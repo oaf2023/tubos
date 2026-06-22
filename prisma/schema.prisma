@@ -1,0 +1,153 @@
+// GasTrack AR - Control de Tubos de Gases para Soldadura
+// Schema ampliado con campos normativos:
+//   - ISO 18119 (inspección y recalificación)
+//   - NTC 5719 (cilindros para gases - requisitos)
+//   - Resolución 2876/2013 (reglamento técnico argentino)
+// Base operativa: San Nicolás de los Arroyos, Buenos Aires
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Gas {
+  id           String     @id @default(cuid())
+  codigo       String     @unique // AR, CO2, O2, C2H2, N2, He, H2, MIX-7525, AR-HE
+  nombre       String
+  descripcion  String
+  presionBar   Int        // Presión típica de carga del tubo
+  colorHex     String     // Color de identificación (norma EN 1089-3)
+  usoPrincipal String
+  categoria    String     // INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE
+  createdAt    DateTime   @default(now())
+  cylinders    Cylinder[]
+}
+
+model Cylinder {
+  id                  String   @id @default(cuid())
+  numeroSerie         String   @unique
+
+  // ============ IDENTIFICACIÓN GENERAL ============
+  propietario         String?  // Persona o empresa dueña del cilindro
+  fabricante          String?  // Marca o fabricante
+  paisFabricacion     String?  // País de origen
+  marcaUN             Boolean  @default(false) // Símbolo UN (regulación internacional)
+
+  // ============ ESPECIFICACIONES DE DISEÑO ============
+  normaFabricacion    String?  // ISO 9809, DOT 3AA, etc.
+  presionTrabajoBar   Int?     // PW - presión máxima a 15°C
+  roscacilindro       String?  // 25E, 3/4-14 NGT, etc.
+  espesorMinParedMm   Float?   // Espesor mínimo garantizado
+  materialAleacion    String?  // Acero (H/HG), Aluminio 6061, etc.
+
+  // ============ PESOS Y CAPACIDADES ============
+  capacidadLitros     Int      // Capacidad de agua en litros
+  pesoVacioKg         Float?   // Sin válvula ni protector
+  pesoTaraKg          Float?   // Vacío + válvula + solvente + masa porosa
+  pesoMaxLlenadoKg    Float?   // Peso máximo de gas licuado
+
+  // ============ INSPECCIÓN Y RECALIFICACIÓN ============
+  presionEnsayoBar    Int?     // PH - presión de prueba hidrostática
+  fechaEnsayoInicial  String?  // MM/AAAA
+  fechaUltimoRetest   DateTime? // Última inspección periódica
+  fechaProximoRetest  DateTime  // Vencimiento de recalificación
+  resultadoInspeccion String   @default("APROBADO") // APROBADO | RECHAZADO | CONDENADO
+  inspectorId         String?  // ID del organismo inspector
+  laboratorio         String?  // Centro de revisión acreditado
+  metodoPrueba        String?  // HIDROSTATICA | ULTRASONIDO | PRESION_PRUEBA
+
+  // ============ ESPECÍFICOS DE GAS ============
+  gasId               String
+  gas                 Gas      @relation(fields: [gasId], references: [id])
+  presionActualBar    Int      // Presión actual (0 a presionBar del gas)
+
+  // Para acetileno
+  masaPorosaId        String?  // Identificación de masa porosa interna
+  tipoSolvente        String?  // ACETONA | DMF
+  solventeMasaKg      Float?   // Masa de solvente en kg
+
+  // Vida útil límite (cilindros compuestos)
+  vidaUtilLimite      DateTime? // Fecha de expiración definitiva
+
+  // Reparaciones y observaciones
+  reparaciones        String?  // Detalles de reparaciones admitidas
+  observaciones       String?  // Corrosión, abolladuras, daños por calor
+
+  // ============ ESTADO OPERATIVO ============
+  estado              String   @default("LLENO") // LLENO, EN_USO, VACIO, MANTENIMIENTO, TRANSITO
+  ubicacionLat        Float
+  ubicacionLng        Float
+  ubicacionNombre     String
+  provincia           String
+  cliente             String?
+  fechaCarga          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Para gases fragilizantes (H2)
+  compatibleH2        Boolean  @default(false) // Estampe H o HG
+
+  // ============ AUDITORÍA ============
+  movimientos         CylinderMovimiento[]
+}
+
+model CylinderMovimiento {
+  id          String   @id @default(cuid())
+  cylinderId  String
+  cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  fecha       DateTime @default(now())
+  tipo        String   // CARGA, DESCARGA, TRASLADO, INSPECCION, REPARACION, ALTA, BAJA
+  descripcion String
+  usuario     String?
+  latOrigen   Float?
+  lngOrigen   Float?
+  latDestino  Float?
+  lngDestino  Float?
+  ubicacion   String?
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  provincia String
+  lat       Float
+  lng       Float
+  esBase    Boolean  @default(false)
+  tipo      String   // BASE, CLIENTE, SUCURSAL, ALIADO
+  direccion String?
+  telefono  String?
+  createdAt DateTime @default(now())
+}
+
+model Ruta {
+  id           String       @id @default(cuid())
+  nombre       String
+  fecha        DateTime     @default(now())
+  estado       String       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
+  origenNombre String
+  origenLat    Float
+  origenLng    Float
+  distanciaKm  Float        @default(0)
+  duracionHoras Float       @default(0)
+  paradas      RutaParada[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model RutaParada {
+  id          String  @id @default(cuid())
+  rutaId      String
+  ruta        Ruta    @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  orden       Int
+  lat         Float
+  lng         Float
+  nombre      String
+  provincia   String
+  cylinderIds String  // IDs separados por coma
+  estado      String  // PENDIENTE, ENTREGADO, EN_PROGRESO
+  notas       String?
+}
