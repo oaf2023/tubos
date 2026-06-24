@@ -19,6 +19,9 @@ export async function PUT(
         usoPrincipal: body.usoPrincipal,
         categoria: body.categoria,
         peligro: body.peligro,
+        precioAlquilerDiario: body.precioAlquilerDiario !== undefined ? (body.precioAlquilerDiario === '' ? null : parseFloat(body.precioAlquilerDiario)) : undefined,
+        precioAlquilerMensual: body.precioAlquilerMensual !== undefined ? (body.precioAlquilerMensual === '' ? null : parseFloat(body.precioAlquilerMensual)) : undefined,
+        precioVenta: body.precioVenta !== undefined ? (body.precioVenta === '' ? null : parseFloat(body.precioVenta)) : undefined,
       },
     })
     return NextResponse.json(gas)

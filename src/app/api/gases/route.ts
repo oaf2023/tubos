@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
         usoPrincipal: body.usoPrincipal || '',
         categoria: body.categoria || 'Alta Presión',
         peligro: body.peligro || 'GAS_PRESION',
+        precioAlquilerDiario: body.precioAlquilerDiario ? parseFloat(body.precioAlquilerDiario) : null,
+        precioAlquilerMensual: body.precioAlquilerMensual ? parseFloat(body.precioAlquilerMensual) : null,
+        precioVenta: body.precioVenta ? parseFloat(body.precioVenta) : null,
       },
     })
     return NextResponse.json(gas, { status: 201 })

@@ -17,7 +17,11 @@ export async function PUT(req: NextRequest, { params }: any) {
   try {
     const { id } = params
     const body = await req.json()
-    const { estado, fechaVencimiento, observaciones, total, items } = body
+    const {
+      estado, fechaVencimiento, fechaDesde, fechaHasta, tipoPeriodo,
+      observaciones, subtotal, descuento, impuestos, total,
+      saldoAnterior, notasCredito, pagosAplicados, totalGeneral, items,
+    } = body
 
     await db.facturaItem.deleteMany({ where: { facturaId: id } })
 
@@ -26,9 +30,31 @@ export async function PUT(req: NextRequest, { params }: any) {
       data: {
         estado: estado ?? undefined,
         fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : undefined,
+        fechaDesde: fechaDesde ? new Date(fechaDesde) : undefined,
+        fechaHasta: fechaHasta ? new Date(fechaHasta) : undefined,
+        tipoPeriodo: tipoPeriodo ?? undefined,
+        subtotal: subtotal ?? undefined,
+        descuento: descuento ?? undefined,
+        impuestos: impuestos ?? undefined,
         total: total ?? undefined,
+        saldoAnterior: saldoAnterior ?? undefined,
+        notasCredito: notasCredito ?? undefined,
+        pagosAplicados: pagosAplicados ?? undefined,
+        totalGeneral: totalGeneral ?? undefined,
         observaciones: observaciones ?? undefined,
-        items: items ? { create: items.map((it: any) => ({ concepto: it.concepto, remitoItemId: it.remitoItemId || null, cantidad: it.cantidad || 1, precioUnitario: it.precioUnitario || 0, subtotal: it.subtotal || 0 })) } : undefined,
+        items: items ? {
+          create: items.map((it: any) => ({
+            concepto: it.concepto,
+            tipo: it.tipo || 'ALQUILER',
+            remitoItemId: it.remitoItemId || null,
+            cylinderId: it.cylinderId || null,
+            numeroSerie: it.numeroSerie || null,
+            diasFacturados: it.diasFacturados || null,
+            cantidad: it.cantidad || 1,
+            precioUnitario: it.precioUnitario || 0,
+            subtotal: it.subtotal || 0,
+          })),
+        } : undefined,
       },
       include: { items: true },
     })
