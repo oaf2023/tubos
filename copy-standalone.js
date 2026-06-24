@@ -1,36 +1,47 @@
-const { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs')
+const { cpSync, existsSync, mkdirSync, rmSync } = require('fs')
 const { join } = require('path')
 
 const root = __dirname
 const standalone = join(root, '.next', 'standalone')
 
-// 1. Copy public/ folder (PWA assets, etc.)
+// 1. Copy .next/static into standalone (always refresh for new hashes)
+const staticSrc = join(root, '.next', 'static')
+const staticDst = join(standalone, '.next', 'static')
+if (existsSync(staticSrc)) {
+  if (existsSync(staticDst)) rmSync(staticDst, { recursive: true })
+  cpSync(staticSrc, staticDst, { recursive: true })
+  console.log('  ✓ .next/static copied')
+}
+
+// 2. Copy public/ folder (always refresh)
 const publicSrc = join(root, 'public')
 const publicDst = join(standalone, 'public')
-if (existsSync(publicSrc) && !existsSync(publicDst)) {
+if (existsSync(publicSrc)) {
+  if (existsSync(publicDst)) rmSync(publicDst, { recursive: true })
   cpSync(publicSrc, publicDst, { recursive: true })
   console.log('  ✓ public/ copied')
 }
 
-// 2. Copy db/ folder (SQLite database)
+// 3. Copy db/ folder (always refresh)
 const dbSrc = join(root, 'db')
 const dbDst = join(standalone, 'db')
-if (existsSync(dbSrc) && !existsSync(dbDst)) {
+if (existsSync(dbSrc)) {
+  if (existsSync(dbDst)) rmSync(dbDst, { recursive: true })
   cpSync(dbSrc, dbDst, { recursive: true })
   console.log('  ✓ db/ copied')
 }
 
-// 3. Copy prisma/schema.prisma for runtime generation if needed
+// 4. Copy prisma/schema.prisma (always refresh)
 const prismaSrc = join(root, 'prisma', 'schema.prisma')
 const prismaDstDir = join(standalone, 'prisma')
 const prismaDst = join(prismaDstDir, 'schema.prisma')
-if (existsSync(prismaSrc) && !existsSync(prismaDst)) {
+if (existsSync(prismaSrc)) {
   if (!existsSync(prismaDstDir)) mkdirSync(prismaDstDir, { recursive: true })
   cpSync(prismaSrc, prismaDst)
   console.log('  ✓ prisma/schema.prisma copied')
 }
 
-// 4. Copy .env (always overwrite to pick up changes)
+// 5. Copy .env (always overwrite)
 const envSrc = join(root, '.env')
 const envDst = join(standalone, '.env')
 if (existsSync(envSrc)) {
