@@ -41,6 +41,7 @@ import {
   GitBranch,
   Receipt,
   ClipboardList,
+  Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -159,6 +160,7 @@ interface Cylinder {
   ubicacionLng: number
   ubicacionNombre: string
   provincia: string
+  clienteId: string | null
   cliente: string | null
   fechaCarga: string | null
 }

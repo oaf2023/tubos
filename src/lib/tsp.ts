@@ -107,7 +107,7 @@ function totalDistance(dist: number[][], order: number[]): number {
 export function solveTSP(
   points: TSPPoint[],
   startIndex: number = 0,
-  realDistances?: number[][] | null
+  realDistances: number[][] | null = null
 ): { order: number[]; distance: number } {
   if (points.length <= 2) {
     return {
