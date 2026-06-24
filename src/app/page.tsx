@@ -267,6 +267,11 @@ const MapView = dynamic(() => import('@/components/map-view'), {
   ),
 })
 
+const LocationPicker = dynamic(() => import('@/components/location-picker'), {
+  ssr: false,
+  loading: () => <div className="h-[250px] rounded-lg bg-slate-100 animate-pulse" />,
+})
+
 const ESTADO_COLORS: Record<string, string> = {
   LLENO: 'bg-emerald-500',
   EN_USO: 'bg-amber-500',
@@ -7412,6 +7417,19 @@ function TablasTab() {
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Latitud</Label><Input type="number" step="any" value={locForm.lat} onChange={e => setLocForm(f => ({ ...f, lat: e.target.value }))} /></div>
                   <div><Label>Longitud</Label><Input type="number" step="any" value={locForm.lng} onChange={e => setLocForm(f => ({ ...f, lng: e.target.value }))} /></div>
+                </div>
+                <div className="rounded-lg overflow-hidden border border-slate-200">
+                  {locForm.lat && locForm.lng && !isNaN(parseFloat(locForm.lat)) && !isNaN(parseFloat(locForm.lng)) ? (
+                    <LocationPicker
+                      lat={parseFloat(locForm.lat)}
+                      lng={parseFloat(locForm.lng)}
+                      onChange={(lat, lng) => setLocForm(f => ({ ...f, lat: String(lat), lng: String(lng) }))}
+                    />
+                  ) : (
+                    <div className="h-[250px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm rounded-lg">
+                      Ingresá latitud y longitud para ver el mapa
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Tipo</Label><Select value={locForm.tipo} onValueChange={v => setLocForm(f => ({ ...f, tipo: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BASE">Base</SelectItem><SelectItem value="CLIENTE">Cliente</SelectItem><SelectItem value="SUCURSAL">Sucursal</SelectItem><SelectItem value="ALIADO">Aliado</SelectItem></SelectContent></Select></div>
