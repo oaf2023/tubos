@@ -138,7 +138,69 @@ model Location {
   tipo      String   // BASE, CLIENTE, SUCURSAL, ALIADO
   direccion String?
   telefono  String?
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+// ============ REMITOS / ENTREGAS ============
+model Remito {
+  id            String       @id @default(cuid())
+  numero        Int          @default(0) // Número de remito autoincremental
+  clienteId     String
+  cliente       String       // Nombre denormalizado
+  fecha         DateTime     @default(now())
+  tipo          String       // ENTREGA, DEVOLUCION, CAMBIO
+  estado        String       @default("PENDIENTE") // PENDIENTE, COMPLETADO, PARCIAL
+  tecnico       String?
+  observaciones String?
+  items         RemitoItem[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model RemitoItem {
+  id              String   @id @default(cuid())
+  remitoId        String
+  remito          Remito   @relation(fields: [remitoId], references: [id], onDelete: Cascade)
+  cylinderId      String?  // Cilindro entregado (nullable: entrega por gas sin tubo asignado)
+  numeroSerie     String?  // Denormalizado
+  gasId           String
+  gasCodigo       String   // AR, O2, C2H2, etc.
+  tipoOperacion   String   // ALQUILER, VENTA, CAMBIO, DEVOLUCION
+  cantidad        Int      @default(1)
+  fechaDevolucion DateTime? // Cuándo se devolvió
+  diasAlquiler    Int?     // Calculado al facturar
+  precioUnitario  Float?
+  subtotal        Float?
+  createdAt       DateTime @default(now())
+}
+
+// ============ FACTURACIÓN ============
+model Factura {
+  id              String        @id @default(cuid())
+  numero          Int           @default(0) // Número de factura autoincremental
+  clienteId       String
+  cliente         String        // Nombre denormalizado
+  fecha           DateTime      @default(now())
+  fechaVencimiento DateTime?
+  remitoIds       String        // IDs de remitos relacionados (separados por coma)
+  total           Float         @default(0)
+  estado          String        @default("PENDIENTE") // PENDIENTE, PAGADA, VENCIDA, ANULADA
+  observaciones   String?
+  items           FacturaItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model FacturaItem {
+  id              String   @id @default(cuid())
+  facturaId       String
+  factura         Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  concepto        String   // Ej: "Alquiler tubo N2 - 15 días"
+  remitoItemId    String?  // Link al ítem de remito origen
+  cantidad        Int      @default(1)
+  precioUnitario  Float    @default(0)
+  subtotal        Float    @default(0)
+  createdAt       DateTime @default(now())
 }
 
 model Cliente {
