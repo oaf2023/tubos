@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { syncMovementToGraph } from '@/lib/neo4j'
 
-// GET /api/cylinders/[id]/movimientos - historial de auditoría de un tubo
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +20,6 @@ export async function GET(
   }
 }
 
-// POST /api/cylinders/[id]/movimientos - registrar nuevo movimiento manual
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -42,6 +41,18 @@ export async function POST(
         lngDestino: body.lngDestino ? parseFloat(body.lngDestino) : null,
       },
     })
+
+    // Sincronizar con Neo4j (histórico)
+    await syncMovementToGraph({
+      id: mov.id,
+      cylinderId: mov.cylinderId,
+      tipo: mov.tipo,
+      descripcion: mov.descripcion,
+      usuario: mov.usuario,
+      ubicacion: mov.ubicacion,
+      fecha: mov.fecha,
+    })
+
     return NextResponse.json(mov, { status: 201 })
   } catch (e) {
     console.error('POST movimientos', e)

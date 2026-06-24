@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Usuario — Control Digital ManejaDatos</title>
+<style>
+  :root {
+    --primary: #ea580c;
+    --primary-dark: #c2410c;
+    --accent: #dc2626;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 280px; height: 100vh;
+    background: #0f172a; color: #e2e8f0; overflow-y: auto; z-index: 100;
+    padding-bottom: 2rem;
+  }
+  .sidebar h1 {
+    font-size: 1rem; padding: 1.5rem 1rem 0.5rem;
+    border-bottom: 1px solid #1e293b; margin-bottom: 0.5rem;
+    color: #f97316; font-weight: 700;
+  }
+  .sidebar .subtitle {
+    font-size: 0.7rem; color: #94a3b8; padding: 0 1rem 1rem;
+    border-bottom: 1px solid #1e293b; margin-bottom: 0.5rem;
+  }
+  .sidebar nav a {
+    display: block; padding: 0.5rem 1rem; color: #cbd5e1;
+    text-decoration: none; font-size: 0.85rem; border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar nav a:hover, .sidebar nav a.active {
+    background: #1e293b; color: #fff; border-left-color: #f97316;
+  }
+  .sidebar nav a.section {
+    font-weight: 600; color: #f97316; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.05em; padding-top: 1rem;
+  }
+  .main { margin-left: 280px; max-width: 960px; padding: 2rem 3rem 6rem; }
+  @media (max-width: 768px) {
+    .sidebar { position: static; width: 100%; height: auto; }
+    .main { margin-left: 0; padding: 1.5rem; }
+  }
+  h2 { font-size: 1.6rem; margin: 2.5rem 0 0.5rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; color: var(--text); }
+  h4 { font-size: 0.95rem; margin: 1rem 0 0.3rem; color: #475569; }
+  p { margin-bottom: 0.8rem; font-size: 0.92rem; }
+  ul { margin: 0.3rem 0 1rem 1.5rem; font-size: 0.9rem; }
+  li { margin-bottom: 0.3rem; }
+  code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+  .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .tag-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .tag-orange { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+  .tag-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .tag-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  .tag-amber { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.tag-purple { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-size: 0.88rem; }
+  .warn-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-size: 0.88rem; }
+  .alert-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-size: 0.88rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.85rem; }
+  th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+  th { background: #f1f5f9; font-weight: 600; }
+  .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #cbd5e1; vertical-align: middle; margin-right: 4px; }
+  .kbd { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.8rem; font-family: monospace; }
+  .toc { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0 2rem; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h1>Control Digital<br>ManejaDatos</h1>
+  <div class="subtitle">Manual de Usuario — v1.0</div>
+  <nav>
+    <a class="section" href="#intro">Introducci&oacute;n</a>
+    <a href="#que-es">&iquest;Qu&eacute; es esta aplicaci&oacute;n?</a>
+    <a href="#conceptos">Conceptos clave</a>
+    <a class="section" href="#tabs">Tabs del Sistema</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#inventario">Inventario</a>
+    <a href="#rutas">Rutas</a>
+    <a href="#catalogo">Cat&aacute;logo</a>
+    <a href="#clientes">Clientes</a>
+    <a href="#laboratorio">Laboratorio</a>
+    <a href="#configuracion">Configuraci&oacute;n</a>
+    <a href="#pedidos">Pedidos</a>
+    <a href="#mantenimiento">Mantenimiento</a>
+    <a href="#tablas">Tablas</a>
+    <a class="section" href="#pwa">App M&oacute;vil (PWA)</a>
+    <a href="#instalar">Instalar en el celular</a>
+    <a href="#responsive">Uso responsive</a>
+    <a class="section" href="#normas">Normas y Colores</a>
+    <a href="#iram2588">IRAM 2588</a>
+    <a href="#sga">Etiquetas SGA</a>
+    <a href="#seguridad">Seguridad</a>
+  </nav>
+</div>
+
+<div class="main">
+
+<h2 id="intro">Introducci&oacute;n</h2>
+
+<div class="info-box">
+  <strong>Aplicaci&oacute;n:</strong> Control Digital ManejaDatos Districon &mdash;
+  <strong>Versi&oacute;n:</strong> 1.0 &mdash;
+  <strong>Base operativa:</strong> San Nicol&aacute;s de los Arroyos, Buenos Aires, Argentina
+</div>
+
+<h3 id="que-es">&iquest;Qu&eacute; es esta aplicaci&oacute;n?</h3>
+<p>
+  Es un sistema web integral para el control, gesti&oacute;n y geolocalizaci&oacute;n de
+  <strong>tubos de gases industriales para soldadura</strong>. Permite llevar el registro completo
+  del inventario de cilindros, sus especificaciones t&eacute;cnicas (normas IRAM 2588, ISO 18119,
+  NTC 5719, Res. 2876/2013), fechas de prueba hidrost&aacute;tica, trazabilidad de movimientos,
+  rutas de distribuci&oacute;n, gesti&oacute;n de clientes y alertas autom&aacute;ticas.
+</p>
+
+<h3 id="conceptos">Conceptos clave</h3>
+<table>
+  <tr><th>T&eacute;rmino</th><th>Significado</th></tr>
+  <tr><td>Tubo / Cilindro</td><td>Recipiente a presi&oacute;n que contiene un gas industrial para soldadura</td></tr>
+  <tr><td>PH (Prueba Hidrost&aacute;tica)</td><td>Ensayo peri&oacute;dico obligatorio cada 5 a&ntilde;os (norma argentina)</td></tr>
+  <tr><td>Retest</td><td>Recalificaci&oacute;n peri&oacute;dica del cilindro (inspecci&oacute;n t&eacute;cnica)</td></tr>
+  <tr><td>SGA</td><td>Sistema Globalmente Armonizado — pictogramas de riesgo en etiquetas</td></tr>
+  <tr><td>IRAM 2588</td><td>Norma argentina de colores identificatorios para cilindros de gases</td></tr>
+  <tr><td>Proximity Alert</td><td>Alerta de vencimiento de prueba hidrost&aacute;tica (retest)</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="tabs">Tabs del Sistema</h2>
+
+<p>La aplicaci&oacute;n se organiza en 11 pesta&ntilde;as (tabs) accesibles desde la barra superior (con scroll horizontal en m&oacute;viles):</p>
+
+<!-- ============================================================ -->
+<h3 id="dashboard">1. Dashboard <span class="tag tag-orange">Vista principal</span></h3>
+
+<p>Pantalla de inicio con resumen ejecutivo de toda la operaci&oacute;n:</p>
+
+<h4>KPIs principales</h4>
+<ul>
+  <li><strong>Total de Tubos:</strong> Cantidad total de cilindros registrados.</li>
+  <li><strong>Capacidad Total:</strong> Suma de litros de todos los cilindros.</li>
+  <li><strong>Ubicaciones:</strong> Cantidad de ciudades/plantas con cilindros.</li>
+  <li><strong>Vencidos:</strong> Tubos con prueba hidrost&aacute;tica vencida.</li>
+  <li><strong>Total Alertas:</strong> Suma de todas las alertas por gas (vencidos + pr&oacute;ximos).</li>
+</ul>
+
+<h4>Alertas por gas</h4>
+<p>
+  Tarjetas individuales por cada tipo de gas, mostrando:
+  <strong>Vencidos</strong> (retest ya expirado) y
+  <strong>Pr&oacute;ximos</strong> (a vencer dentro del umbral configurado).
+  Cada tarjeta tiene un borde lateral de color seg&uacute;n gravedad:
+  <span class="tag tag-red">rojo = hay vencidos</span>,
+  <span class="tag tag-amber">&aacute;mbar = hay pr&oacute;ximos</span>,
+  <span class="tag tag-green">verde = todo en orden</span>.
+</p>
+
+<h4>Distribuciones</h4>
+<ul>
+  <li><strong>Por Estado:</strong> LLENO, EN_USO, VAC&Iacute;O, MANTENIMIENTO, TR&Aacute;NSITO con barras porcentuales.</li>
+  <li><strong>Por Gas:</strong> Cantidad de tubos y capacidad total por cada tipo de gas.</li>
+  <li><strong>Por Ubicaci&oacute;n:</strong> Distribuci&oacute;n geogr&aacute;fica de cilindros.</li>
+</ul>
+
+<h4>Alertas de Vencimiento</h4>
+<p>
+  Lista de tubos con PH vencida, priorizados para acci&oacute;n inmediata.
+  Cada entrada muestra n&uacute;mero de serie, gas, capacidad y ubicaci&oacute;n.
+  Si no hay alertas, se muestra un mensaje verde de &laquo;Sin alertas activas&raquo;.
+</p>
+
+<h4>Mapas en Dashboard <span class="tag tag-blue">Nuevo</span></h4>
+<p>
+  El Dashboard incluye ahora dos mapas interactivos:
+</p>
+<ul>
+  <li><strong>Mapa de geolocalizaci&oacute;n:</strong> Muestra todos los cilindros en el mapa con filtros
+    por gas y por cliente. Cada marcador tiene el color del gas seg&uacute;n IRAM 2588.</li>
+  <li><strong>Mini-mapa de alertas:</strong> Versi&oacute;n reducida enfocada en tubos con alertas activas
+    (PH vencida o pr&oacute;xima a vencer).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="mapa">2. Mapa <span class="tag tag-blue">Geolocalizaci&oacute;n</span></h3>
+
+<p>
+  Visualizaci&oacute;n geogr&aacute;fica interactiva con <strong>Leaflet</strong>.
+  Los cilindros se muestran como marcadores en el mapa, agrupados por ubicaci&oacute;n.
+  La base operativa (San Nicol&aacute;s) aparece destacada.
+</p>
+<ul>
+  <li>Cada marcador representa un cilindro en su &uacute;ltima ubicaci&oacute;n conocida.</li>
+  <li>Los colores de los marcadores se corresponden con el tipo de gas (norma IRAM 2588).</li>
+  <li>Permite hacer zoom y pan para explorar todas las regiones.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="inventario">3. Inventario <span class="tag tag-green">Gesti&oacute;n de tubos</span></h3>
+
+<p>
+  Lista completa de todos los cilindros con filtros y CRUD completo
+  (Crear, Leer, Actualizar, Eliminar).
+</p>
+
+<h4>Filtros r&aacute;pidos</h4>
+<ul>
+  <li><strong>N&uacute;mero de serie:</strong> B&uacute;squeda por texto parcial.</li>
+  <li><strong>Gas:</strong> Filtro por tipo de gas (desplegable).</li>
+  <li><strong>Estado:</strong> LLENO, EN_USO, VAC&Iacute;O, etc.</li>
+  <li><strong>Capacidad:</strong> Litros del cilindro (5, 10, 20, 40, 50 L).</li>
+  <li><strong>Ubicaci&oacute;n:</strong> Ciudad donde se encuentra.</li>
+</ul>
+
+<h4>Tabla de inventario</h4>
+<p>
+  Muestra: N&deg; de Serie, Gas (con <span class="tag tag-blue">etiqueta SGA</span> y punto de color IRAM),
+  Capacidad, Presi&oacute;n actual, Estado (con c&oacute;digo de colores), Ubicaci&oacute;n, Cliente,
+  Vencimiento de PH (con sem&aacute;foro: <span class="tag tag-red">rojo = vencido</span>,
+  <span class="tag tag-amber">&aacute;mbar = pr&oacute;ximo a vencer</span>,
+  <span class="tag tag-green">verde = al d&iacute;a</span>).
+</p>
+
+<h4>Crear / Editar tubo</h4>
+<p>
+  Di&aacute;logo con todos los campos normativos organizados en 7 secciones:
+</p>
+<table>
+  <tr><th>Secci&oacute;n</th><th>Campos incluidos</th></tr>
+  <tr><td>Identificaci&oacute;n General</td><td>N&deg; Serie, Gas, Propietario, Estado actual</td></tr>
+  <tr><td>Especificaciones de Dise&ntilde;o</td><td>Fabricante, Pa&iacute;s, Marca UN, Norma fabricaci&oacute;n, Presi&oacute;n trabajo, Rosca, Espesor pared, Material</td></tr>
+  <tr><td>Pesos y Capacidades</td><td>Capacidad L, Peso vac&iacute;o, Tara, M&aacute;x. llenado, Presi&oacute;n ensayo, Presi&oacute;n actual</td></tr>
+  <tr><td>Inspecci&oacute;n y Recalificaci&oacute;n</td><td>Fecha ensayo inicial, &Uacute;ltimo/pr&oacute;ximo retest, Resultado, Inspector, Laboratorio, M&eacute;todo, Vida &uacute;til</td></tr>
+  <tr><td>Campos Espec&iacute;ficos</td><td>Masa porosa, Solvente, Compatible H₂</td></tr>
+  <tr><td>Observaciones</td><td>Reparaciones, Notas</td></tr>
+  <tr><td>Ubicaci&oacute;n y Cliente</td><td>Ciudad, Cliente/destino</td></tr>
+</table>
+
+<div class="info-box">
+  <strong>Nota:</strong> Los campos marcados con * son obligatorios:
+  N&deg; de Serie, Gas, Capacidad, Pr&oacute;ximo retest y Ubicaci&oacute;n.
+</div>
+
+<h4>Grafo de relaciones <span class="tag tag-purple">Nuevo</span></h4>
+<p>
+  En la columna <strong>Acciones</strong> de la tabla de inventario, el icono
+  &#x1F9BE; (GitBranch) abre un visor de grafo del cilindro seleccionado:
+</p>
+<ul>
+  <li>El cilindro se muestra como nodo central con todas sus relaciones: gas que contiene,
+    cliente asignado, ubicaci&oacute;n actual, movimientos hist&oacute;ricos y registros de mantenimiento.</li>
+  <li>El grafo se renderiza como SVG con nodos coloreados por tipo y aristas etiquetadas
+    (CONTENE, ASIGNADO_A, UBICADO_EN, HISTORICO, MANTENIMIENTO).</li>
+  <li>Debajo del SVG se incluye una tabla detallada de todos los nodos y una secci&oacute;n
+    colapsable con la lista de aristas.</li>
+  <li>Los datos provienen de SQLite (con soporte futuro para Neo4j como fuente de datos
+    m&aacute;s potente).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="rutas">4. Rutas <span class="tag tag-green">Log&iacute;stica</span></h3>
+
+<p>
+  Gesti&oacute;n de rutas de distribuci&oacute;n para la entrega y recolecci&oacute;n de cilindros.
+</p>
+<ul>
+  <li><strong>Crear ruta:</strong> Nombre, origen (base), paradas intermedias.</li>
+  <li><strong>Estado:</strong> PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA.</li>
+  <li><strong>Paradas:</strong> Cada parada puede tener cilindros asignados (IDs separados por coma).</li>
+  <li><strong>Acciones:</strong> Marcar como completada, eliminar ruta.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="catalogo">5. Cat&aacute;logo <span class="tag tag-blue">Referencia t&eacute;cnica</span></h3>
+
+<p>
+  Cat&aacute;logo t&eacute;cnico completo de todos los gases para soldadura.
+  Organizado por categor&iacute;as: INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE.
+</p>
+
+<p>Cada gas muestra:</p>
+<ul>
+  <li>Color del cilindro seg&uacute;n <strong>norma IRAM 2588</strong> (con muestra visual).</li>
+  <li><span class="tag tag-blue">Etiqueta SGA</span> de riesgo correspondiente.</li>
+  <li>Presi&oacute;n de carga en bar.</li>
+  <li>Descripci&oacute;n t&eacute;cnica y uso principal en soldadura.</li>
+  <li>Cantidad de tubos en stock de ese gas.</li>
+</ul>
+
+<p>Adem&aacute;s, incluye una secci&oacute;n de seguridad con normas generales de manejo.</p>
+
+<!-- ============================================================ -->
+<h3 id="clientes">6. Clientes <span class="tag tag-orange">Gesti&oacute;n comercial</span></h3>
+
+<p>
+  Registro completo de clientes con datos t&eacute;cnicos, log&iacute;sticos y financieros.
+</p>
+
+<h4>Campos del formulario</h4>
+<table>
+  <tr><th>Secci&oacute;n</th><th>Campos</th></tr>
+  <tr><td>Identificaci&oacute;n</td><td>Raz&oacute;n social, CUIT, Contacto, Firma digital</td></tr>
+  <tr><td>Perfil T&eacute;cnico</td><td>Tipolog&iacute;a, Proceso de soldadura, Materiales base, Par&aacute;metros de ingenier&iacute;a</td></tr>
+  <tr><td>Log&iacute;stica</td><td>Modo de envasado, Gases de consumo, Servicios especializados, Stock cr&iacute;tico</td></tr>
+  <tr><td>Control Financiero</td><td>Contrato de comodato, Vencimiento, Historial, Cargos, Estado de cuenta</td></tr>
+</table>
+
+<h4>Funcionalidades</h4>
+<ul>
+  <li>Alta, edici&oacute;n y eliminaci&oacute;n de clientes.</li>
+  <li>Filtros por nombre, tipolog&iacute;a, estado de cuenta.</li>
+  <li>Visualizaci&oacute;n de cilindros asociados a cada cliente.</li>
+  <li><strong>Protecci&oacute;n referencial:</strong> No se puede eliminar un cliente que tenga cilindros a su nombre.</li>
+</ul>
+
+<h4>Tubos del cliente <span class="tag tag-blue">Nuevo</span></h4>
+<p>
+  Icono &#x1F4E6; (Package) en la columna Acciones &rarr; muestra todos los cilindros asignados
+  al cliente en un di&aacute;logo con: n&uacute;mero de serie, gas (con color IRAM y etiqueta SGA),
+  estado, capacidad, fecha de PH y ubicaci&oacute;n.
+</p>
+
+<h4>Historial de uso <span class="tag tag-orange">Nuevo</span></h4>
+<p>
+  Icono &#x23F0; (History) en la columna Acciones &rarr; agrupa los movimientos de todos los
+  cilindros del cliente por gas y mes/a&ntilde;o, mostrando la cantidad de movimientos
+  registrados en cada per&iacute;odo.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="laboratorio">7. Laboratorio <span class="tag tag-amber">An&aacute;lisis</span></h3>
+
+<p>Dos sub-m&oacute;dulos t&eacute;cnicos:</p>
+
+<h4>Costo por Kil&oacute;metro</h4>
+<p>
+  Calculadora de costos log&iacute;sticos con m&aacute;s de 20 variables:
+  distancia, combustible, peajes, neum&aacute;ticos, mantenimiento,
+  seguro, salarios, carga/descarga, depreciaci&oacute;n e IVA.
+  Todos los c&aacute;lculos son en tiempo real (useMemo).
+</p>
+
+<h4>Trazabilidad de Activos</h4>
+<p>
+  Sistema de trazabilidad completa por n&uacute;mero de serie:
+</p>
+<ul>
+  <li><strong>KPIs:</strong> Total de movimientos, ubicaciones visitadas, d&iacute;as en poder del cliente.</li>
+  <li><strong>B&uacute;squeda:</strong> Por n&uacute;mero de serie del cilindro.</li>
+  <li><strong>L&iacute;nea de tiempo vertical:</strong> Todos los eventos del cilindro (carga, descarga, traslado, inspecci&oacute;n).</li>
+  <li><strong>Tabla de eventos:</strong> Registro detallado con fecha, tipo, descripci&oacute;n y ubicaci&oacute;n.</li>
+  <li><strong>Alertas PH:</strong> Sem&aacute;foro de vencimiento de prueba hidrost&aacute;tica.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="configuracion">8. Configuraci&oacute;n <span class="tag tag-blue">Alertas</span></h3>
+
+<p>
+  Configuraci&oacute;n de alertas personalizadas por tipo de gas.
+  Los cambios se reflejan autom&aacute;ticamente en el Dashboard.
+</p>
+
+<table>
+  <tr><th>Par&aacute;metro</th><th>Descripci&oacute;n</th><th>Ejemplo</th></tr>
+  <tr><td>Alertas activas</td><td>Habilitar/deshabilitar alertas para este gas</td><td>S&iacute; / No</td></tr>
+  <tr><td>D&iacute;as antes del retest</td><td>Umbral en d&iacute;as para alertar antes del vencimiento de PH</td><td>60 d&iacute;as</td></tr>
+  <tr><td>D&iacute;as m&aacute;x. cliente</td><td>Tiempo m&aacute;ximo que un cliente puede retener el cilindro</td><td>90 d&iacute;as</td></tr>
+  <tr><td>Alerta PH</td><td>Activa o desactiva la alerta de prueba hidrost&aacute;tica</td><td>S&iacute; / No</td></tr>
+</table>
+
+<div class="warn-box">
+  <strong>Valores por defecto:</strong> Acetileno: 90 d&iacute;as alerta / 60 d&iacute;as cliente.
+  Ox&iacute;geno: 45 d&iacute;as alerta / 90 d&iacute;as cliente.
+  Dem&aacute;s gases: 60 d&iacute;as alerta / 90 d&iacute;as cliente.
+</div>
+
+<h4>Vista previa</h4>
+<p>
+  La secci&oacute;n inferior muestra un resumen de todas las configuraciones activas,
+  con el gas, umbrales y estado de la alerta PH.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="pedidos">9. Pedidos <span class="tag tag-orange">Gesti&oacute;n de pedidos</span></h3>
+
+<p>
+  Sistema completo de gesti&oacute;n de pedidos de gases industriales.
+  Permite crear &oacute;rdenes con m&uacute;ltiples renglones, asignar tubos, editar,
+  consultar e imprimir.
+</p>
+
+<h4>Nuevo pedido</h4>
+<ul>
+  <li><strong>Cliente:</strong> Selector tipo combobox con b&uacute;squeda. Al seleccionar un cliente,
+    el estado de cuenta se auto-completa (<span class="tag tag-red">Deuda</span> si es moroso).</li>
+  <li><strong>Fecha del pedido:</strong> Se registra autom&aacute;ticamente la fecha actual,
+    modificable manualmente.</li>
+  <li><strong>Renglones m&uacute;ltiples:</strong> Tabla documento donde cada fila tiene:
+    Gas (selector con <span class="tag tag-blue">SGA</span> y color IRAM),
+    Operaci&oacute;n (Canje / Venta Nueva), Cantidad (botones &minus; +),
+    PH (fecha de prueba hidrost&aacute;tica, autocompletada con la fecha actual),
+    Precio unitario, Subtotal.</li>
+  <li><strong>Agregar rengl&oacute;n:</strong> Bot&oacute;n para a&ntilde;adir filas adicionales.</li>
+  <li><strong>PH autom&aacute;tica:</strong> La fecha de PH se completa con la fecha actual.
+    Si la PH tiene m&aacute;s de 5 a&ntilde;os, se aplica un cargo de $8.500 por re-ensayo.</li>
+</ul>
+
+<h4>Ver detalle <span class="tag tag-blue">Nuevo</span></h4>
+<p>
+  Bot&oacute;n 🔍 en la tabla de hist&oacute;rico &rarr; modal con:
+  datos del cliente, fecha, estado, items desglosados con montos,
+  tubos asignados con verificaci&oacute;n de inventario.
+</p>
+
+<h4>Editar pedido <span class="tag tag-amber">Nuevo</span></h4>
+<p>
+  Bot&oacute;n ✏️ en cada fila &rarr; abre el formulario precargado con todos los datos.
+  Permite modificar renglones, cliente, observaciones y <strong>cambiar el estado</strong>
+  del pedido (PENDIENTE, COMPLETADO, CANCELADO).
+</p>
+
+<h4>Imprimir / PDF <span class="tag tag-green">Nuevo</span></h4>
+<p>
+  Bot&oacute;n 📄 &rarr; abre el detalle del pedido y ejecuta la impresi&oacute;n del navegador.
+  El dise&ntilde;o incluye encabezado corporativo, items, subtotales y tubos asignados,
+  optimizado para papel (oculta botones y men&uacute;s en pantalla).
+</p>
+
+<h4>Asignar tubos por QR / serie <span class="tag tag-orange">Nuevo</span></h4>
+<p>
+  Bot&oacute;n 📦 en la columna "Tubos" &rarr; modal de gesti&oacute;n de cilindros:
+</p>
+<ul>
+  <li>Ingres&aacute; el <strong>n&uacute;mero de serie</strong> del tubo manualmente o escaneando
+    un <strong>c&oacute;digo QR</strong> con el lector del celular.</li>
+  <li>Al agregar, el sistema verifica si el cilindro existe en el inventario
+    (<span class="tag tag-green">Verificado</span> si existe,
+    <span class="tag tag-red">No en inv.</span> si no est&aacute; registrado).</li>
+  <li>Cada cilindro se muestra con su n&uacute;mero de serie, c&oacute;digo de gas y estado de verificaci&oacute;n.</li>
+  <li>Se pueden asignar <strong>varios tubos del mismo gas</strong> a un pedido.</li>
+  <li>Bot&oacute;n para quitar tubos del pedido.</li>
+</ul>
+
+<div class="info-box">
+  <strong>Tip:</strong> En el celular, abr&iacute; la app, entr&aacute; a Pedidos, toc&aacute; el icono 📦
+  y apunt&aacute; la c&aacute;mara al QR del tubo. El n&uacute;mero de serie se ingresa autom&aacute;ticamente.
+</div>
+
+<h4>Historial</h4>
+<p>
+  Tabla completa de todos los pedidos con columnas: Cliente, Gas,
+  Operaci&oacute;n, PH, Total, Estado, Fecha, Tubos asignados y Acciones
+  (Ver, Editar, Imprimir, Eliminar).
+</p>
+
+<!-- ============================================================ -->
+<h3 id="mantenimiento">10. Mantenimiento <span class="tag tag-amber">Gesti&oacute;n t&eacute;cnica</span></h3>
+
+<p>
+  Registro centralizado de <strong>mantenimiento de cilindros</strong> en todos los tubos
+  del inventario. Permite filtrar, crear y eliminar registros.
+</p>
+
+<h4>Filtros</h4>
+<ul>
+  <li><strong>Tubo:</strong> Seleccionar un cilindro espec&iacute;fico por n&uacute;mero de serie.</li>
+  <li><strong>Tipo:</strong> Cambio de v&aacute;lvula, Pintura, Cambio de gas, Reparaci&oacute;n,
+    Inspecci&oacute;n u Otro.</li>
+  <li><strong>Gas:</strong> Filtrar por tipo de gas del cilindro.</li>
+</ul>
+
+<h4>Campos del registro</h4>
+<ul>
+  <li><strong>Tubo:</strong> Cilindro al que se le realiza el mantenimiento.</li>
+  <li><strong>Tipo:</strong> Naturaleza del trabajo (CAMBIO_VALVULA, PINTURA, etc.).</li>
+  <li><strong>Descripci&oacute;n:</strong> Detalle opcional del trabajo realizado.</li>
+  <li><strong>T&eacute;cnico:</strong> Nombre del responsable.</li>
+  <li><strong>Costo:</strong> Monto en pesos del servicio.</li>
+  <li><strong>Fecha:</strong> Fecha del mantenimiento (por defecto la actual).</li>
+</ul>
+
+<h4>Tabla de registros</h4>
+<p>
+  Muestra todos los mantenimientos ordenados por fecha (m&aacute;s recientes primero)
+  con columnas: Fecha, Tubo, Gas, Tipo (con badge), Descripci&oacute;n, T&eacute;cnico,
+  Costo y bot&oacute;n de eliminar.
+</p>
+
+<div class="info-box">
+  <strong>Sincronizaci&oacute;n Neo4j:</strong> Cada registro de mantenimiento se sincroniza
+  autom&aacute;ticamente con el grafo Neo4j (si est&aacute; habilitado), creando una
+  relaci&oacute;n MANTENIMIENTO entre el cilindro y el nodo de mantenimiento con
+  timestamps (desde/hasta) para trazabilidad hist&oacute;rica completa.
+</div>
+
+<!-- ============================================================ -->
+<h3 id="tablas">11. Tablas <span class="tag tag-blue">Referencia CRUD</span></h3>
+
+<p>
+  Mantenimiento de <strong>tablas de referencia</strong> del sistema con operaciones
+  CRUD completas (Crear, Leer, Actualizar, Eliminar). Tres sub-pesta&ntilde;as:
+</p>
+
+<h4>Gases</h4>
+<p>
+  Lista de todos los gases disponibles con campos editables:
+  C&oacute;digo, Nombre, Descripci&oacute;n, Presi&oacute;n (Bar), Color Hex
+  (con selector de color visual), Categor&iacute;a (Alta Presi&oacute;n, Baja Presi&oacute;n,
+  Disuelto, L&iacute;quido Criog&eacute;nico, Mezcla), Uso Principal y Peligro SGA
+  (Inflamable, Comburente, Gas a Presi&oacute;n, Sin Riesgo).
+</p>
+
+<h4>Ubicaciones</h4>
+<p>
+  Registro de ubicaciones geogr&aacute;ficas con campos:
+  Nombre, Provincia, Latitud, Longitud, Tipo (Base, Cliente, Sucursal, Aliado),
+  indicador de Base, Direcci&oacute;n y Tel&eacute;fono.
+</p>
+
+<h4>Alertas</h4>
+<p>
+  Configuraci&oacute;n de alertas por gas con campos:
+  D&iacute;as Alerta Retest (umbral de aviso de vencimiento de PH),
+  D&iacute;as Max Cliente (tiempo m&aacute;ximo de retenci&oacute;n),
+  Alerta PH (activa/desactiva) y Activo (habilita/deshabilita la alerta).
+  Utiliza el endpoint <code>/api/config-alertas</code> con operaci&oacute;n UPSERT
+  (actualiza si existe, crea si no).
+</p>
+
+<div class="warn-box">
+  <strong>Seguridad:</strong> Al eliminar un gas, el sistema verifica que ning&uacute;n
+  cilindro lo est&eacute; usando. Al eliminar una ubicaci&oacute;n, verifica que no haya
+  cilindros asignados a ella. Esto protege la integridad referencial de los datos.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="pwa">App M&oacute;vil (PWA)</h2>
+
+<p>
+  La aplicaci&oacute;n es una <strong>PWA (Progressive Web App)</strong>.
+  Esto significa que se puede instalar en el celular como una aplicaci&oacute;n nativa,
+  sin pasar por las tiendas de aplicaciones (Play Store / App Store).
+</p>
+
+<h3 id="instalar">Instalar en el celular</h3>
+
+<h4>Android (Chrome)</h4>
+<ol style="margin:0.3rem 0 1rem 1.5rem; font-size:0.9rem;">
+  <li>Abr&iacute; <strong>Chrome</strong> y naveg&aacute; a la direcci&oacute;n de la app.</li>
+  <li>Toc&aacute; el men&uacute; ⋮ (tres puntos verticales).</li>
+  <li>Seleccion&aacute; <strong>"Agregar a pantalla de inicio"</strong>.</li>
+  <li>Personaliz&aacute; el nombre si quer&eacute;s y toc&aacute; <strong>"Agregar"</strong>.</li>
+  <li>Aparece un icono en el escritorio del tel&eacute;fono. Al abrirlo, se ve como una app nativa
+    (sin barra de direcciones).</li>
+</ol>
+
+<h4>iOS (Safari)</h4>
+<ol style="margin:0.3rem 0 1rem 1.5rem; font-size:0.9rem;">
+  <li>Abr&iacute; <strong>Safari</strong> y naveg&aacute; a la direcci&oacute;n de la app.</li>
+  <li>Toc&aacute; el bot&oacute;n <strong>Compartir</strong> (icono cuadrado con flecha arriba).</li>
+  <li>Desplazate hacia abajo y seleccion&aacute; <strong>"Agregar a pantalla de inicio"</strong>.</li>
+  <li>Personaliz&aacute; el nombre y toc&aacute; <strong>"Agregar"</strong>.</li>
+  <li>El icono aparece en el escritorio, funciona como una app independiente.</li>
+</ol>
+
+<div class="info-box">
+  <strong>Ventajas de la PWA:</strong> Notificaciones push (futuro), carga r&aacute;pida,
+  funciona offline con datos en cach&eacute;, acceso a c&aacute;mara para QR,
+  no ocupa espacio de almacenamiento significativo.
+</div>
+
+<h3 id="responsive">Uso responsive</h3>
+<p>
+  La interfaz se adapta autom&aacute;ticamente al tama&ntilde;o de la pantalla:
+</p>
+<ul>
+  <li><strong>Escritorio:</strong> Tabs visibles en una fila, tablas con columnas completas,
+    di&aacute;logos amplios, mapas interactivos.</li>
+  <li><strong>Tablet:</strong> Tabs con scroll horizontal si es necesario, grids de 2-3 columnas,
+    tablas con scroll interno.</li>
+  <li><strong>M&oacute;vil:</strong> Tabs deslizables horizontalmente, formularios a ancho completo,
+    tablas con scroll horizontal, botones e iconos adaptados al tacto.</li>
+</ul>
+
+<div class="warn-box">
+  <strong>Consejo:</strong> Para escanear c&oacute;digos QR de tubos, instal&aacute; la app
+  en el celular siguiendo los pasos de arriba. La c&aacute;mara del tel&eacute;fono funciona
+  directamente con el lector de QR integrado.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="normas">Normas y Colores</h2>
+
+<h3 id="iram2588">Colores IRAM 2588 (Argentina)</h3>
+
+<p>
+  A diferencia de la norma europea EN 1089-3 o la estadounidense CGA C-9,
+  <strong>Argentina</strong> utiliza la norma <strong>IRAM 2588</strong> con colores propios.
+  Es com&uacute;n que todo el cuerpo del cilindro est&eacute; pintado del color identificatorio,
+  no solo la ojiva.
+</p>
+
+<table>
+  <tr><th>Gas</th><th>Color Argentina</th><th>Muestra</th><th>Presi&oacute;n</th></tr>
+  <tr><td>Ox&iacute;geno (O₂)</td><td>Blanco</td><td><span class="color-dot" style="background:#fff"></span></td><td>150–200 bar</td></tr>
+  <tr><td>Acetileno (C₂H₂)</td><td>Amarillo</td><td><span class="color-dot" style="background:#FFD700"></span></td><td>15–18 bar</td></tr>
+  <tr><td>Arg&oacute;n (Ar)</td><td>Marr&oacute;n</td><td><span class="color-dot" style="background:#8B4513"></span></td><td>150–200 bar</td></tr>
+  <tr><td>CO₂</td><td>Gris / Aluminio</td><td><span class="color-dot" style="background:#808080"></span></td><td>50–70 bar</td></tr>
+  <tr><td>Nitr&oacute;geno (N₂)</td><td>Verde</td><td><span class="color-dot" style="background:#008000"></span></td><td>150–200 bar</td></tr>
+  <tr><td>Aire Comprimido</td><td>Negro</td><td><span class="color-dot" style="background:#000"></span></td><td>150–200 bar</td></tr>
+  <tr><td>Hidr&oacute;geno (H₂)</td><td>Rojo</td><td><span class="color-dot" style="background:#F00"></span></td><td>150 bar</td></tr>
+  <tr><td>Mezclas Ar/CO₂</td><td>Marr&oacute;n (cuerpo)</td><td><span class="color-dot" style="background:#8B4513"></span></td><td>150–200 bar</td></tr>
+</table>
+
+<div class="alert-box">
+  <strong>Atenci&oacute;n:</strong> En Argentina el acetileno es <strong>AMARILLO</strong>
+  (en Europa es marr&oacute;n, en USA es rojo). El nitr&oacute;geno es <strong>VERDE</strong>
+  (en Europa es negro). El arg&oacute;n es <strong>MARR&Oacute;N</strong>
+  (en Europa es verde oscuro). Siempre verifique la etiqueta de papel adherida al cilindro,
+  que es la declaraci&oacute;n legal del contenido.
+</div>
+
+<h3 id="sga">Etiquetas SGA (Sistema Globalmente Armonizado)</h3>
+
+<p>
+  Cada gas tiene un pictograma de seguridad SGA que se muestra como insignia en toda la aplicaci&oacute;n:
+</p>
+
+<table>
+  <tr><th>Pictograma</th><th>Significado</th><th>Gases</th></tr>
+  <tr><td><span class="tag tag-red">Inflamable</span></td><td>Riesgo de incendio — llama abierta</td><td>Acetileno, Hidr&oacute;geno</td></tr>
+  <tr><td><span class="tag tag-orange">Comburente</span></td><td>Aviva el fuego — riesgo de explosi&oacute;n con grasas</td><td>Ox&iacute;geno</td></tr>
+  <tr><td><span class="tag tag-blue">Gas a Presi&oacute;n</span></td><td>Gas comprimido — puede explotar si se calienta</td><td>Arg&oacute;n, CO₂, Mezclas, Nitr&oacute;geno, Helio</td></tr>
+</table>
+
+<p>Estas etiquetas se muestran en:</p>
+<ul>
+  <li>Cat&aacute;logo de gases (tarjeta de cada gas)</li>
+  <li>Inventario (columna Gas de la tabla)</li>
+  <li>Dashboard (tarjetas de alertas por gas)</li>
+  <li>Configuraci&oacute;n (tabla de alertas y vista previa)</li>
+</ul>
+
+<h3 id="seguridad">Recomendaciones de seguridad</h3>
+
+<div class="alert-box">
+  <strong>Ox&iacute;geno:</strong> Los tubos de ox&iacute;geno nunca deben entrar en
+  contacto con aceites, grasas o combustibles — riesgo de explosi&oacute;n inmediata.
+</div>
+
+<div class="warn-box">
+  <strong>Acetileno:</strong> Los tubos de acetileno deben almacenarse y transportarse
+  <strong>siempre en posici&oacute;n vertical</strong>. Contienen acetona como solvente
+  en una masa porosa; si se acuestan, puede salir acetona l&iacute;quida y causar una explosi&oacute;n.
+  Presi&oacute;n de salida nunca superior a 1.5 bar.
+</div>
+
+<div class="info-box">
+  <strong>Prueba Hidrost&aacute;tica:</strong> Todos los cilindros deben superar la PH cada
+  <strong>5 a&ntilde;os</strong> (normativa argentina). La fecha de vencimiento est&aacute;
+  grabada en el metal del cuello del cilindro. La aplicaci&oacute;n alerta autom&aacute;ticamente
+  sobre los vencimientos pr&oacute;ximos.
+</div>
+
+<div class="info-box">
+  <strong>CO₂:</strong> Se almacena en estado l&iacute;quido. La presi&oacute;n no es constante
+  (depende de la temperatura ambiente). A 20°C es de ~57 bar. Se vende por kilogramos,
+  no por metros c&uacute;bicos. El man&oacute;metro no indica el nivel de llenado real.
+</div>
+
+<h4>Antes de conectar cualquier regulador</h4>
+<ol style="margin:0.3rem 0 1rem 1.5rem; font-size:0.9rem;">
+  <li>Verifique la <strong>etiqueta de papel</strong> pegada en el cilindro (es la declaraci&oacute;n legal).</li>
+  <li>Confirme el color del cilindro seg&uacute;n la norma IRAM 2588.</li>
+  <li>Revise la fecha de la &uacute;ltima prueba hidrost&aacute;tica.</li>
+  <li>Aseg&uacute;rese de que el regulador sea compatible con el gas.</li>
+  <li>Para acetileno: verifique que el cilindro est&eacute; vertical y la presi&oacute;n de salida &le; 1.5 bar.</li>
+</ol>
+
+<p style="margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem;">
+  Manual de Usuario — Control Digital ManejaDatos &copy; 2026 &mdash;
+  &Uacute;ltima actualizaci&oacute;n: Junio 2026 &mdash; v1.2 (11 tabs, grafo por tubo, CRUD tablas)
+</p>
+
+</div>
+</body>
+</html>

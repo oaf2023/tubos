@@ -76,10 +76,29 @@ async function main() {
         colorHex: g.colorHex,
         usoPrincipal: g.usoPrincipal,
         categoria: g.categoria,
+        peligro: g.peligro,
       },
     })
   }
   console.log(`   ✓ ${GASES.length} gases cargados`)
+
+  // 1b. Crear configuración de alertas por defecto para cada gas
+  console.log(' → Creando configuración de alertas...')
+  const allGases = await db.gas.findMany()
+  for (const g of allGases) {
+    await db.alertConfig.upsert({
+      where: { gasId: g.id },
+      update: {},
+      create: {
+        gasId: g.id,
+        diasAlertaRetest: g.codigo === 'C2H2' ? 90 : g.codigo === 'O2' ? 45 : 60,
+        diasMaxCliente: g.codigo === 'C2H2' ? 60 : 90,
+        alertaPH: true,
+        activo: true,
+      },
+    })
+  }
+  console.log(`   ✓ ${allGases.length} configuraciones de alertas creadas`)
 
   // 2. Cargar ubicaciones
   console.log(' → Cargando ciudades de distribución...')
@@ -259,7 +278,47 @@ async function main() {
   }
   console.log(`   ✓ ${cantidadTubos} tubos con datos normativos generados`)
 
-  // 4. Crear ruta de ejemplo
+  // 4. Cargar clientes con perfil técnico detallado
+  console.log(' → Cargando clientes con perfil técnico...')
+  const CLIENTES_DETALLE = [
+    { nombre: 'Metalúrgica San Martín S.A.', taxId: '30-71234567-8', tipologia: 'Metalúrgica Pesada', procesoSoldadura: 'MIG/MAG + TIG', materialesBase: 'Acero carbono, inoxidable', gasesConsumo: 'MIX-7525, AR, CO2', modoEnvasado: 'Cilindros', nivelesStockCritico: 10, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Construcciones del Plata S.R.L.', taxId: '30-72345678-9', tipologia: 'Construcción Pesada', procesoSoldadura: 'Electrodo + Oxicorte', materialesBase: 'Acero estructural', gasesConsumo: 'C2H2, O2', modoEnvasado: 'Cilindros', nivelesStockCritico: 8, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Taller Soldadura Rossi Hnos.', taxId: '30-73456789-0', tipologia: 'Taller Metalúrgico', procesoSoldadura: 'TIG + MIG/MAG', materialesBase: 'Aluminio, acero inoxidable', gasesConsumo: 'AR, AR-HE, N2', modoEnvasado: 'Cilindros', nivelesStockCritico: 15, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Herrería Artística Belgrano', taxId: '30-74567890-1', tipologia: 'Herrería Artística', procesoSoldadura: 'MIG/MAG + Electrodo', materialesBase: 'Acero, hierro forjado', gasesConsumo: 'MIX-7525, CO2', modoEnvasado: 'Cilindros', nivelesStockCritico: 5, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Estructuras Metálicas del Litoral', taxId: '30-75678901-2', tipologia: 'Estructuras Metálicas', procesoSoldadura: 'MIG/MAG + TIG', materialesBase: 'Acero carbono, galvanizado', gasesConsumo: 'MIX-7525, AR', modoEnvasado: 'Bloques', nivelesStockCritico: 12, estadoCuenta: 'PENDIENTE' },
+    { nombre: 'Calderas y Tanques Argentina', taxId: '30-76789012-3', tipologia: 'Calderería', procesoSoldadura: 'TIG + Electrodo', materialesBase: 'Acero inoxidable, carbono', gasesConsumo: 'AR, N2, MIX-7525', modoEnvasado: 'Cilindros', nivelesStockCritico: 20, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Ferretería Industrial El Torno', taxId: '30-77890123-4', tipologia: 'Comercio Industrial', procesoSoldadura: 'MIG/MAG', materialesBase: 'Acero', gasesConsumo: 'MIX-7525, O2, C2H2', modoEnvasado: 'Cilindros', nivelesStockCritico: 6, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Soldaduras y Servicios Pérez', taxId: '30-78901234-5', tipologia: 'Servicios de Soldadura', procesoSoldadura: 'TIG + MIG/MAG + Oxicorte', materialesBase: 'Acero, inox, aluminio', gasesConsumo: 'AR, MIX-7525, O2, C2H2', modoEnvasado: 'Cilindros', nivelesStockCritico: 8, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Metalfor S.A.I.C.', taxId: '30-79012345-6', tipologia: 'Industria Metalúrgica', procesoSoldadura: 'MIG/MAG + TIG', materialesBase: 'Acero, aluminio', gasesConsumo: 'AR, MIX-7525, HE', modoEnvasado: 'Microgranel', nivelesStockCritico: 25, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Aceros Bragado S.A.', taxId: '30-80123456-7', tipologia: 'Aceros', procesoSoldadura: 'Electrodo + Oxicorte', materialesBase: 'Acero carbono', gasesConsumo: 'O2, C2H2', modoEnvasado: 'Cilindros', nivelesStockCritico: 4, estadoCuenta: 'MOROSO' },
+    { nombre: 'Industrias Metalúrgicas Pampa', taxId: '30-81234567-8', tipologia: 'Industria Pesada', procesoSoldadura: 'TIG + MIG/MAG', materialesBase: 'Acero inoxidable, aluminio', gasesConsumo: 'AR, AR-HE, N2', modoEnvasado: 'Bloques', nivelesStockCritico: 15, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Taller Mecánico Don Bosco', taxId: '30-82345678-9', tipologia: 'Taller Mecánico', procesoSoldadura: 'MIG/MAG + Electrodo', materialesBase: 'Acero', gasesConsumo: 'MIX-7525, CO2', modoEnvasado: 'Cilindros', nivelesStockCritico: 3, estadoCuenta: 'PENDIENTE' },
+    { nombre: 'Constructora Andina', taxId: '30-83456789-0', tipologia: 'Construcción', procesoSoldadura: 'Electrodo + Oxicorte', materialesBase: 'Acero estructural', gasesConsumo: 'C2H2, O2', modoEnvasado: 'Cilindros', nivelesStockCritico: 10, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Carrocerías del Centro', taxId: '30-84567890-1', tipologia: 'Carrocerías', procesoSoldadura: 'MIG/MAG', materialesBase: 'Acero, aluminio', gasesConsumo: 'MIX-7525, AR', modoEnvasado: 'Cilindros', nivelesStockCritico: 7, estadoCuenta: 'AL_DIA' },
+    { nombre: 'Soldadura Especializada Gutiérrez', taxId: '30-85678901-2', tipologia: 'Soldadura Especializada', procesoSoldadura: 'TIG + Plasma', materialesBase: 'Inoxidable, aluminio, titanio', gasesConsumo: 'AR, AR-HE, H2, N2', modoEnvasado: 'Cilindros', nivelesStockCritico: 10, estadoCuenta: 'AL_DIA' },
+  ]
+
+  for (const c of CLIENTES_DETALLE) {
+    await db.cliente.upsert({
+      where: { nombre: c.nombre },
+      update: {},
+      create: {
+        nombre: c.nombre,
+        taxId: c.taxId,
+        tipologia: c.tipologia,
+        procesoSoldadura: c.procesoSoldadura,
+        materialesBase: c.materialesBase,
+        gasesConsumo: c.gasesConsumo,
+        modoEnvasado: c.modoEnvasado,
+        nivelesStockCritico: c.nivelesStockCritico,
+        estadoCuenta: c.estadoCuenta,
+        activo: true,
+      },
+    })
+  }
+  console.log(`   ✓ ${CLIENTES_DETALLE.length} clientes cargados`)
+
+  // 5. Crear ruta de ejemplo
   console.log(' → Creando ruta de demostración...')
   await db.rutaParada.deleteMany({})
   await db.ruta.deleteMany({})

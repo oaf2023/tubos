@@ -1,0 +1,52 @@
+{
+  "company": {
+    "name": "Districon",
+    "tagline": "Ferreteria Industrial - Gases para soldadura",
+    "country": "Argentina",
+    "locale": "es-AR"
+  },
+  "base": {
+    "name": "San Nicolás de los Arroyos",
+    "province": "Buenos Aires",
+    "lat": -33.361686,
+    "lng": -60.186233,
+    "tipo": "BASE",
+    "address": "Av. Savio y Bogado",
+    "phone": "+54 336 446-0102"
+  },
+  "map": {
+    "defaultCenter": [
+      -33.3293,
+      -60.2244
+    ],
+    "defaultZoom": 6
+  },
+  "meta": {
+    "title": "Control Digital ManejaDatos - Districon",
+    "description": "Sistema integral de control y geolocalización de tubos de gases para soldadura. Gestion, trazabilidad y logistica de activos industriales.",
+    "keywords": [
+      "gases soldadura",
+      "tubos gases",
+      "argón",
+      "acetileno",
+      "oxígeno",
+      "logística Argentina",
+      "San Nicolás de los Arroyos"
+    ],
+    "author": ""
+  },
+  "seed": {
+    "totalCylinders": 80,
+    "baseRatio": 0.7,
+    "demoRoute": {
+      "name": "Ruta Litoral Norte - Lunes",
+      "cities": [
+        "Rosario",
+        "Pergamino",
+        "Buenos Aires (CABA)",
+        "Campana",
+        "San Pedro"
+      ]
+    }
+  }
+}

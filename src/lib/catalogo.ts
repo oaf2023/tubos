@@ -1,5 +1,5 @@
 // Datos de referencia - Tipos de gases para soldadura (investigación técnica)
-// Norma de color: EN 1089-3 (aplicada en Argentina)
+// Norma de color: IRAM 2588 (Argentina) — difiere de EN 1089-3/ISO
 // Presiones referenciales según procedimientos operativos estándar
 
 export interface GasInfo {
@@ -10,6 +10,7 @@ export interface GasInfo {
   colorHex: string
   usoPrincipal: string
   categoria: string // INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE
+  peligro: string  // INFLAMABLE, COMBURENTE, GAS_PRESION, NINGUNO
 }
 
 export const GASES: GasInfo[] = [
@@ -19,9 +20,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas inerte noble, no reactivo. Base de la soldadura TIG (GTAW) y MIG (GMAW) para aceros inoxidables, aluminio y cobre. Proporciona un arco estable y limpia el cordón de soldadura.',
     presionBar: 200,
-    colorHex: '#006400', // Verde oscuro
+    colorHex: '#8B4513', // Marrón (IRAM 2588)
     usoPrincipal: 'Soldadura TIG (GTAW) y MIG (GMAW) - metales no ferrosos',
     categoria: 'INERTE',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'CO2',
@@ -29,9 +31,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas activo, económico, utilizado para soldadura MIG/MAG en acero al carbono. Produce salpique más que las mezclas pero penetra bien en chapas gruesas. Tubo de media presión.',
     presionBar: 60,
-    colorHex: '#808080', // Gris
+    colorHex: '#808080', // Gris (IRAM 2588)
     usoPrincipal: 'Soldadura MIG/MAG en acero al carbono',
     categoria: 'ACTIVO',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'MIX-7525',
@@ -39,9 +42,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Mezcla universal conocida como "C25" o "Mixto". Combina la estabilidad del argón con la penetración del CO2. Es el gas más utilizado en talleres de herrería y carpintería metálica.',
     presionBar: 200,
-    colorHex: '#2E8B57', // Verde mar
+    colorHex: '#8B4513', // Marrón (IRAM 2588 — cuerpo igual al Ar)
     usoPrincipal: 'Soldadura MIG/MAG universal en acero al carbono',
     categoria: 'ACTIVO',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'O2',
@@ -49,9 +53,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas comburente que mantiene y aviva la combustión. Esencial para oxicorte y corte por plasma. Se almacena a 200 bar. NUNCA debe entrar en contacto con aceites o grasas (riesgo de explosión).',
     presionBar: 200,
-    colorHex: '#FFFFFF', // Blanco
+    colorHex: '#FFFFFF', // Blanco (IRAM 2588)
     usoPrincipal: 'Oxicorte y soldadura oxiacetilénica (comburente)',
     categoria: 'COMBURENTE',
+    peligro: 'COMBURENTE',
   },
   {
     codigo: 'C2H2',
@@ -59,9 +64,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas combustible que produce la llama de mayor temperatura (hasta 3.160 °C). Se disuelve en acetona dentro del tubo, con poroso monolítico. Presión limitada a 19 bar por seguridad. Tubo en posición vertical obligatoria.',
     presionBar: 19,
-    colorHex: '#800000', // Granate / Bordó
+    colorHex: '#FFD700', // Amarillo (IRAM 2588 — difiere de Europa que es marrón)
     usoPrincipal: 'Soldadura autógena y oxicorte',
     categoria: 'COMBUSTIBLE',
+    peligro: 'INFLAMABLE',
   },
   {
     codigo: 'N2',
@@ -69,9 +75,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas inerte económico. Se usa para purga de cañerías de acero inoxidable antes y durante la soldadura TIG, evitando la oxidación interna. También para calibración y pruebas neumáticas.',
     presionBar: 200,
-    colorHex: '#000000', // Negro
+    colorHex: '#008000', // Verde (IRAM 2588 — difiere de Europa que es negro)
     usoPrincipal: 'Purga de cañerías y soldadura TIG de acero inoxidable',
     categoria: 'INERTE',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'HE',
@@ -79,9 +86,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas inerte más liviano que el argón. Aporta mayor aporte térmico, ideal para soldadura TIG de aluminio de gran espesor y cobre. Más caro que el argón. Se usa puro o en mezcla.',
     presionBar: 200,
-    colorHex: '#8B4513', // Marrón
+    colorHex: '#8B4513', // Marrón (IRAM 2588 — sin especificar, por similitud con Ar)
     usoPrincipal: 'Soldadura TIG de aluminio de espesor y cobre',
     categoria: 'INERTE',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'AR-HE',
@@ -92,6 +100,7 @@ export const GASES: GasInfo[] = [
     colorHex: '#A0522D', // Marrón claro
     usoPrincipal: 'Soldadura TIG de aluminio de mediano/gran espesor',
     categoria: 'INERTE',
+    peligro: 'GAS_PRESION',
   },
   {
     codigo: 'H2',
@@ -99,9 +108,10 @@ export const GASES: GasInfo[] = [
     descripcion:
       'Gas combustible de muy bajo peso molecular. Se usa como gas de protección en soldadura plasma de acero inoxidable y en mezclas para procesos especiales. Requiere manipulación cuidadosa.',
     presionBar: 200,
-    colorHex: '#FF0000', // Rojo
+    colorHex: '#FF0000', // Rojo (IRAM 2588)
     usoPrincipal: 'Soldadura plasma de acero inoxidable',
     categoria: 'COMBUSTIBLE',
+    peligro: 'INFLAMABLE',
   },
 ]
 

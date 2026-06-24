@@ -4,7 +4,9 @@ import { db } from '@/lib/db'
 // GET /api/stats - estadísticas para el dashboard
 export async function GET() {
   try {
-    const [total, porEstado, porGas, porCapacidad, porUbicacion, enAlerta] =
+    const hoy = new Date()
+
+    const [total, porEstado, porGas, porCapacidad, porUbicacion, enAlerta, alertConfigs] =
       await Promise.all([
         db.cylinder.count(),
         db.cylinder.groupBy({
@@ -25,9 +27,12 @@ export async function GET() {
           _count: { _all: true },
         }),
         db.cylinder.findMany({
-          where: { fechaVencimiento: { lt: new Date() } },
+          where: { fechaProximoRetest: { lt: hoy } },
           include: { gas: true },
           take: 10,
+        }),
+        db.alertConfig.findMany({
+          include: { gas: true },
         }),
       ])
 
@@ -45,6 +50,39 @@ export async function GET() {
       0
     )
 
+    // Alertas por gas con umbrales configurados
+    const alertasPorGas = await Promise.all(
+      alertConfigs.filter((c) => c.activo).map(async (cfg) => {
+        const fechaLimite = new Date(hoy)
+        fechaLimite.setDate(fechaLimite.getDate() + cfg.diasAlertaRetest)
+
+        const enAlerta = await db.cylinder.count({
+          where: {
+            gasId: cfg.gasId,
+            fechaProximoRetest: { lte: fechaLimite },
+          },
+        })
+
+        const vencidos = await db.cylinder.count({
+          where: {
+            gasId: cfg.gasId,
+            fechaProximoRetest: { lt: hoy },
+          },
+        })
+
+        return {
+          gasId: cfg.gasId,
+          gas: cfg.gas,
+          diasAlertaRetest: cfg.diasAlertaRetest,
+          diasMaxCliente: cfg.diasMaxCliente,
+          enAlertaRetest: enAlerta,
+          vencidos,
+        }
+      })
+    )
+
+    const totalAlertas = alertasPorGas.reduce((a, b) => a + b.enAlertaRetest, 0)
+
     return NextResponse.json({
       total,
       porEstado: porEstado.map((e) => ({ estado: e.estado, cantidad: e._count._all })),
@@ -61,10 +99,12 @@ export async function GET() {
         }))
         .sort((a, b) => b.cantidad - a.cantidad),
       enAlertaVencimiento: enAlerta,
+      alertasPorGas,
+      totalAlertas,
       capacidadTotalLitros: capacidadTotal,
     })
   } catch (e) {
-    console.error('GET /api/stats', e)
+    console.error('GET /api/stats', e instanceof Error ? e.message : String(e))
     return NextResponse.json({ error: 'Error al obtener estadísticas' }, { status: 500 })
   }
 }

@@ -1,0 +1,47 @@
+appId: ar.gastrack.app
+productName: GasTrack AR
+copyright: Copyright © 2026
+
+directories:
+  output: dist
+  buildResources: resources
+
+files:
+  - electron/**/*
+  - package.json
+
+extraResources:
+  - from: .next/standalone/
+    to: .next/standalone/
+  - from: db/
+    to: db/
+  - from: config.json
+    to: config.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: GasTrack AR
+
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: resources/icon.png
+  category: Utility
+
+mac:
+  target:
+    - dmg
+  icon: resources/icon.png
+  category: public.app-category.utility

@@ -23,8 +23,11 @@ model Gas {
   colorHex     String     // Color de identificación (norma EN 1089-3)
   usoPrincipal String
   categoria    String     // INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE
+  peligro      String     @default("GAS_PRESION") // INFLAMABLE, COMBURENTE, GAS_PRESION, NINGUNO
   createdAt    DateTime   @default(now())
   cylinders    Cylinder[]
+  alertConfig  AlertConfig?
+  pedidos      Pedido[]
 }
 
 model Cylinder {
@@ -83,7 +86,9 @@ model Cylinder {
   ubicacionLng        Float
   ubicacionNombre     String
   provincia           String
-  cliente             String?
+  cliente             String?  // Nombre denormalizado (búsqueda rápida)
+  clienteId           String?  // Relación con tabla Clientes
+  clienteRel          Cliente? @relation("ClienteCylinders", fields: [clienteId], references: [id])
   fechaCarga          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -93,6 +98,7 @@ model Cylinder {
 
   // ============ AUDITORÍA ============
   movimientos         CylinderMovimiento[]
+  mantenimientos      Mantenimiento[]
 }
 
 model CylinderMovimiento {
@@ -110,6 +116,18 @@ model CylinderMovimiento {
   ubicacion   String?
 }
 
+model Mantenimiento {
+  id          String   @id @default(cuid())
+  cylinderId  String
+  cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  tipo        String   // CAMBIO_VALVULA, PINTURA, CAMBIO_GAS, REPARACION, INSPECCION, OTRO
+  descripcion String?
+  tecnico     String?
+  costo       Float?
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
 model Location {
   id        String   @id @default(cuid())
   nombre    String   @unique
@@ -121,6 +139,48 @@ model Location {
   direccion String?
   telefono  String?
   createdAt DateTime @default(now())
+}
+
+model Cliente {
+  id                    String         @id @default(cuid())
+  nombre                String         @unique // Razón social
+  taxId                 String?        // CUIT / Tax ID
+  contacto              String?        // Persona de contacto / receptor autorizado
+  firmaDigital          String?        // Registro de aceptación de responsabilidad
+  tipologia             String?        // Construcción pesada, Farmacéutico, Taller, etc.
+  procesoSoldadura      String?        // TIG, MIG/MAG, Oxicorte, Electrodo
+  materialesBase        String?        // Acero, inox, aluminio + espesores
+  parametrosIngenieria  String?        // Homologaciones WPS
+  modoEnvasado          String?        // Cilindros, bloques, microgranel, granel
+  gasesConsumo          String?        // Tipos de gases que consume
+  serviciosEspecializados String?      // CryoEase®, Maxx®, Integra®
+  nivelesStockCritico   Int?           // Stock mínimo para alertas
+  contratoComodato      String?        // Número de contrato de comodato
+  activosEnPosesion     String?        // IDs de cilindros en posesión
+  fechaVencimientoContrato DateTime?
+  historialDevoluciones String?        // Registro de activos devueltos
+  cargosRecurrentes     String?        // Facturación automática
+  penalizacionesExtravio String?       // Cargos por extravío
+  estadoCuenta          String?        // AL_DIA, PENDIENTE, MOROSO
+  ubicaciones           String?        // Direcciones / coordenadas
+  lat                   Float?         // Ubicación principal latitud
+  lng                   Float?         // Ubicación principal longitud
+  notas                 String?
+  activo                Boolean        @default(true)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  cylinders             Cylinder[]     @relation("ClienteCylinders")
+}
+
+model AlertConfig {
+  id              String   @id @default(cuid())
+  gasId           String   @unique
+  gas             Gas      @relation(fields: [gasId], references: [id])
+  diasAlertaRetest Int     @default(60)    // Días antes del retest para mostrar alerta
+  diasMaxCliente  Int      @default(90)    // Días máximos que un cliente puede retener un tubo
+  alertaPH        Boolean  @default(true)  // Mostrar alertas de prueba hidrostática
+  activo          Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
 }
 
 model Ruta {
@@ -150,4 +210,42 @@ model RutaParada {
   cylinderIds String  // IDs separados por coma
   estado      String  // PENDIENTE, ENTREGADO, EN_PROGRESO
   notas       String?
+}
+
+model Pedido {
+  id              String           @id @default(cuid())
+  fecha           DateTime         @default(now())
+  clienteId       String?
+  cliente         String           // Nombre denormalizado
+  estadoCuenta    String?          // OK, DEUDA_PENDIENTE
+  gasId           String
+  gas             Gas              @relation(fields: [gasId], references: [id])
+  operacionEnvase String           // CANJE, VENTA_NUEVO
+  phVigente       Boolean?         // null si es venta nueva
+  phObservacion   String?
+  total           Float            @default(0)
+  estado          String           @default("PENDIENTE") // PENDIENTE, COMPLETADO, CANCELADO
+  observaciones   String?
+  items           PedidoItem[]
+  cilindros       PedidoCilindro[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model PedidoItem {
+  id        String @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  concepto  String
+  monto     Float
+}
+
+model PedidoCilindro {
+  id          String   @id @default(cuid())
+  pedidoId    String
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  numeroSerie String
+  gasCodigo   String?  // Denormalizado: AR, O2, etc.
+  verified    Boolean  @default(false) // Si el cilindro existe en inventario
+  createdAt   DateTime @default(now())
 }

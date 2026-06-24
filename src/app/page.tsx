@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import {
   Activity,
   Map as MapIcon,
@@ -23,6 +23,22 @@ import {
   X,
   Save,
   RefreshCw,
+  Users,
+  Building2,
+  FileText,
+  Hash,
+  DollarSign,
+  ShieldAlert,
+  Contact,
+  FlaskConical,
+  Wrench,
+  Beaker,
+  Settings2,
+  History,
+  Clock,
+  Bell,
+  ShoppingCart,
+  GitBranch,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -57,7 +73,17 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
-import { ESTADOS, CAPACIDADES_LITROS } from '@/lib/catalogo'
+import { ESTADOS, CAPACIDADES_LITROS, CLIENTES_EJEMPLO } from '@/lib/catalogo'
+
+const TIPOLOGIAS = [
+  'Metalúrgica Pesada', 'Construcción Pesada', 'Taller Metalúrgico',
+  'Herrería Artística', 'Estructuras Metálicas', 'Calderería',
+  'Comercio Industrial', 'Servicios de Soldadura', 'Industria Metalúrgica',
+  'Aceros', 'Industria Pesada', 'Taller Mecánico', 'Construcción',
+  'Carrocerías', 'Soldadura Especializada', 'Farmacéutico',
+]
+
+const ESTADO_CUENTA_OPTS = ['AL_DIA', 'PENDIENTE', 'MOROSO']
 
 // Tipos
 interface Gas {
@@ -69,16 +95,60 @@ interface Gas {
   colorHex: string
   usoPrincipal: string
   categoria: string
+  peligro: string
   _count?: { cylinders: number }
+}
+
+const SGA_PELIGROS: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  INFLAMABLE: { label: 'Inflamable', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  COMBURENTE: { label: 'Comburente', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  GAS_PRESION: { label: 'Gas a Presión', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  NINGUNO: { label: 'Sin Riesgo', bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-slate-200' },
+}
+
+function SgaBadge({ peligro }: { peligro: string }) {
+  const info = SGA_PELIGROS[peligro] || SGA_PELIGROS.GAS_PRESION
+  return (
+    <Badge variant="outline" className={`${info.bg} ${info.text} ${info.border} text-[10px] px-1.5 py-0 leading-tight`}>
+      {info.label}
+    </Badge>
+  )
 }
 
 interface Cylinder {
   id: string
   numeroSerie: string
+  propietario: string | null
+  fabricante: string | null
+  paisFabricacion: string | null
+  marcaUN: boolean
+  normaFabricacion: string | null
+  presionTrabajoBar: number | null
+  roscacilindro: string | null
+  espesorMinParedMm: number | null
+  materialAleacion: string | null
+  capacidadLitros: number
+  pesoVacioKg: number | null
+  pesoTaraKg: number | null
+  pesoMaxLlenadoKg: number | null
+  presionEnsayoBar: number | null
+  fechaEnsayoInicial: string | null
+  fechaUltimoRetest: string | null
+  fechaProximoRetest: string
+  resultadoInspeccion: string
+  inspectorId: string | null
+  laboratorio: string | null
+  metodoPrueba: string | null
   gasId: string
   gas: Gas
-  capacidadLitros: number
   presionActualBar: number
+  masaPorosaId: string | null
+  tipoSolvente: string | null
+  solventeMasaKg: number | null
+  vidaUtilLimite: string | null
+  reparaciones: string | null
+  observaciones: string | null
+  compatibleH2: boolean
   estado: string
   ubicacionLat: number
   ubicacionLng: number
@@ -86,8 +156,6 @@ interface Cylinder {
   provincia: string
   cliente: string | null
   fechaCarga: string | null
-  fechaUltimaInspeccion: string
-  fechaVencimiento: string
 }
 
 interface Location {
@@ -98,6 +166,8 @@ interface Location {
   lng: number
   esBase: boolean
   tipo: string
+  direccion?: string | null
+  telefono?: string | null
 }
 
 interface Ruta {
@@ -125,6 +195,44 @@ interface RutaParada {
   notas: string | null
 }
 
+interface Cliente {
+  id: string
+  nombre: string
+  taxId: string | null
+  contacto: string | null
+  firmaDigital: string | null
+  tipologia: string | null
+  procesoSoldadura: string | null
+  materialesBase: string | null
+  parametrosIngenieria: string | null
+  modoEnvasado: string | null
+  gasesConsumo: string | null
+  serviciosEspecializados: string | null
+  nivelesStockCritico: number | null
+  contratoComodato: string | null
+  activosEnPosesion: string | null
+  fechaVencimientoContrato: string | null
+  historialDevoluciones: string | null
+  cargosRecurrentes: string | null
+  penalizacionesExtravio: string | null
+  estadoCuenta: string | null
+  ubicaciones: string | null
+  lat: number | null
+  lng: number | null
+  notas: string | null
+  activo: boolean
+  _count?: { cylinders: number }
+}
+
+interface AlertaPorGas {
+  gasId: string
+  gas: Gas
+  diasAlertaRetest: number
+  diasMaxCliente: number
+  enAlertaRetest: number
+  vencidos: number
+}
+
 interface Stats {
   total: number
   porEstado: { estado: string; cantidad: number }[]
@@ -132,6 +240,8 @@ interface Stats {
   porCapacidad: { capacidad: number; cantidad: number }[]
   porUbicacion: { ubicacion: string; provincia: string; cantidad: number }[]
   enAlertaVencimiento: Cylinder[]
+  alertasPorGas: AlertaPorGas[]
+  totalAlertas: number
   capacidadTotalLitros: number
 }
 
@@ -185,26 +295,39 @@ export default function Home() {
       <Header />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-6 h-auto">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 py-2">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+          <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap">
+            <TabsTrigger value="dashboard" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Activity className="w-4 h-4" /><span>Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="mapa" className="flex items-center gap-2 py-2">
-              <MapIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Mapa</span>
+            <TabsTrigger value="mapa" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <MapIcon className="w-4 h-4" /><span>Mapa</span>
             </TabsTrigger>
-            <TabsTrigger value="inventario" className="flex items-center gap-2 py-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Inventario</span>
+            <TabsTrigger value="inventario" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Package className="w-4 h-4" /><span>Inventario</span>
             </TabsTrigger>
-            <TabsTrigger value="rutas" className="flex items-center gap-2 py-2">
-              <RouteIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Rutas</span>
+            <TabsTrigger value="rutas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <RouteIcon className="w-4 h-4" /><span>Rutas</span>
             </TabsTrigger>
-            <TabsTrigger value="catalogo" className="flex items-center gap-2 py-2">
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Catálogo</span>
+            <TabsTrigger value="catalogo" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <BookOpen className="w-4 h-4" /><span>Catálogo</span>
+            </TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Users className="w-4 h-4" /><span>Clientes</span>
+            </TabsTrigger>
+            <TabsTrigger value="laboratorio" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Beaker className="w-4 h-4" /><span>Laboratorio</span>
+            </TabsTrigger>
+            <TabsTrigger value="configuracion" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Settings2 className="w-4 h-4" /><span>Configuración</span>
+            </TabsTrigger>
+            <TabsTrigger value="pedidos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <ShoppingCart className="w-4 h-4" /><span>Pedidos</span>
+            </TabsTrigger>
+            <TabsTrigger value="mantenimiento" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Wrench className="w-4 h-4" /><span>Mantenimiento</span>
+            </TabsTrigger>
+            <TabsTrigger value="tablas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <FileText className="w-4 h-4" /><span>Tablas</span>
             </TabsTrigger>
           </TabsList>
 
@@ -222,6 +345,24 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="catalogo">
             <CatalogoTab />
+          </TabsContent>
+          <TabsContent value="clientes">
+            <ClientesTab />
+          </TabsContent>
+          <TabsContent value="laboratorio">
+            <LaboratorioTab />
+          </TabsContent>
+          <TabsContent value="configuracion">
+            <ConfiguracionTab />
+          </TabsContent>
+          <TabsContent value="pedidos">
+            <PedidosTab />
+          </TabsContent>
+          <TabsContent value="mantenimiento">
+            <MantenimientoTab />
+          </TabsContent>
+          <TabsContent value="tablas">
+            <TablasTab />
           </TabsContent>
         </Tabs>
       </main>
@@ -241,10 +382,10 @@ function Header() {
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">
-              GasTrack AR
+              Control Digital ManejaDatos
             </h1>
             <p className="text-xs text-slate-500 hidden sm:block">
-              Control de tubos de gases para soldadura · Argentina
+              Districon · Ferreteria Industrial · Gases para soldadura
             </p>
           </div>
         </div>
@@ -263,7 +404,7 @@ function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-500">
-        GasTrack AR · Sistema de control y geolocalización de tubos de gases para
+        Control Digital ManejaDatos Districon · Ferreteria Industrial · Gases para
         soldadura · Distribución en Argentina · Base operativa San Nicolás de los
         Arroyos (Buenos Aires)
       </div>
@@ -278,19 +419,83 @@ function DashboardTab() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const [mapCylinders, setMapCylinders] = useState<Cylinder[]>([])
+  const [gases, setGases] = useState<Gas[]>([])
+  const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
+  const [filtroGas, setFiltroGas] = useState('all')
+  const [filtroCliente, setFiltroCliente] = useState('all')
+
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/stats')
-      const data = await res.json()
-      setStats(data && typeof data === 'object' && 'total' in data ? data : null)
-    } finally {
-      setLoading(false)
-    }
+      const [statsRes, cylRes, gasRes, cliRes] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/cylinders'),
+        fetch('/api/gases'),
+        fetch('/api/clientes?activo=true'),
+      ])
+      const sData = await statsRes.json()
+      setStats(sData && typeof sData === 'object' && 'total' in sData ? sData : null)
+      const cData = await cylRes.json()
+      setMapCylinders(Array.isArray(cData) ? cData : [])
+      const gData = await gasRes.json()
+      setGases(Array.isArray(gData) ? gData : [])
+      const clData = await cliRes.json()
+      setClientes(Array.isArray(clData) ? clData.map((c: any) => ({ id: c.id, nombre: c.nombre })) : [])
+    } catch { /* ok */ }
+    finally { setLoading(false) }
   }, [])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // Cilindros filtrados para el mapa
+  const mapMarkers = useMemo(() => {
+    let filtrados = mapCylinders
+    if (filtroGas !== 'all') filtrados = filtrados.filter((c) => c.gasId === filtroGas)
+    if (filtroCliente !== 'all') filtrados = filtrados.filter((c) => c.clienteId === filtroCliente)
+
+    const grupos = new Map<string, { lat: number; lng: number; nombre: string; provincia: string; tubos: Cylinder[] }>()
+    filtrados.forEach((c) => {
+      const key = `${c.ubicacionLat.toFixed(2)}_${c.ubicacionLng.toFixed(2)}`
+      if (!grupos.has(key)) {
+        grupos.set(key, { lat: c.ubicacionLat, lng: c.ubicacionLng, nombre: c.ubicacionNombre, provincia: c.provincia, tubos: [] })
+      }
+      grupos.get(key)!.tubos.push(c)
+    })
+
+    return Array.from(grupos.values()).map((g, idx) => {
+      const esBase = g.nombre === 'San Nicolás de los Arroyos'
+      const gasPrincipal = g.tubos[0].gas
+      return {
+        id: `dm-${idx}`,
+        lat: g.lat,
+        lng: g.lng,
+        color: esBase ? '#dc2626' : gasPrincipal.colorHex,
+        label: g.nombre,
+        count: g.tubos.length,
+        isBase: esBase,
+        popup: `<div><strong>${g.tubos.length} tubo(s)</strong><br/><span style="color:#64748b;">${g.provincia}</span><br/><span style="display:inline-block;margin-top:4px;font-size:11px;">${[...new Set(g.tubos.map((t) => t.gas.nombre))].slice(0, 3).join(' · ')}</span></div>`,
+      }
+    })
+  }, [mapCylinders, filtroGas, filtroCliente])
+
+  // Marcadores de alertas (tubos con PH vencida)
+  const alertMarkers = useMemo(() => {
+    if (!stats) return []
+    return stats.enAlertaVencimiento
+      .filter((c) => c.ubicacionLat && c.ubicacionLng)
+      .map((c, idx) => ({
+        id: `al-${idx}`,
+        lat: c.ubicacionLat,
+        lng: c.ubicacionLng,
+        color: '#dc2626',
+        label: c.ubicacionNombre,
+        count: 1,
+        isBase: false,
+        popup: `<div><strong>${c.numeroSerie}</strong><br/><span style="color:#64748b;">${c.gas.nombre}</span><br/><span style="color:#dc2626;font-size:11px;">PH vencida: ${new Date(c.fechaProximoRetest).toLocaleDateString()}</span></div>`,
+      }))
+  }, [stats])
 
   if (loading || !stats) {
     return (
@@ -329,11 +534,42 @@ function DashboardTab() {
         />
         <KpiCard
           icon={<AlertTriangle className="w-5 h-5" />}
-          label="Vencidos / Alerta"
+          label="Vencidos"
           value={stats.enAlertaVencimiento.length.toString()}
           accent="from-red-500 to-rose-600"
         />
+        <KpiCard
+          icon={<Bell className="w-5 h-5" />}
+          label="Total Alertas"
+          value={stats.totalAlertas.toString()}
+          accent="from-amber-500 to-orange-600"
+        />
       </div>
+
+      {/* Alertas por gas */}
+      {stats.alertasPorGas.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {stats.alertasPorGas.map((a) => (
+            <Card key={a.gasId} className={`border-l-4 ${a.vencidos > 0 ? 'border-l-red-500' : a.enAlertaRetest > 0 ? 'border-l-amber-500' : 'border-l-emerald-500'}`}>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: a.gas.colorHex }} />
+                  <span className="text-xs font-semibold text-slate-700 truncate">{a.gas.nombre}</span>
+                  <SgaBadge peligro={a.gas.peligro} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>Vencidos:</span>
+                  <span className={`font-bold ${a.vencidos > 0 ? 'text-red-600' : 'text-slate-700'}`}>{a.vencidos}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>Próximos ({a.diasAlertaRetest}d):</span>
+                  <span className={`font-bold ${a.enAlertaRetest > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{a.enAlertaRetest}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Distribución por estado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -565,6 +801,62 @@ function DashboardTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mapa de geoposicionamiento */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapIcon className="w-4 h-4 text-orange-500" />
+              Geoposicionamiento de Tubos
+            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="w-36">
+                <select value={filtroGas} onChange={(e) => setFiltroGas(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-white">
+                  <option value="all">Todos los gases</option>
+                  {gases.map((g) => (
+                    <option key={g.id} value={g.id}>{g.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-36">
+                <select value={filtroCliente} onChange={(e) => setFiltroCliente(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-white">
+                  <option value="all">Todos los clientes</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-white shadow-sm" />Base</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-sm" />Tubo</span>
+              </div>
+            </div>
+          </div>
+          <CardDescription>{mapMarkers.length} ubicaciones con {mapCylinders.filter((c) => (filtroGas === 'all' || c.gasId === filtroGas) && (filtroCliente === 'all' || c.clienteId === filtroCliente)).length} tubos</CardDescription>
+        </CardHeader>
+        <CardContent className="p-2">
+          <MapView markers={mapMarkers} height="320px" />
+        </CardContent>
+      </Card>
+
+      {/* Mapa de alertas */}
+      {alertMarkers.length > 0 && (
+        <Card className="border-l-4 border-l-red-400">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              Alertas Geográficas — Tubos con PH vencida
+            </CardTitle>
+            <CardDescription>{alertMarkers.length} tubos con prueba hidrostática vencida</CardDescription>
+          </CardHeader>
+          <CardContent className="p-2">
+            <MapView markers={alertMarkers} height="200px" zoom={5} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
@@ -761,19 +1053,63 @@ function InventarioTab() {
   // Form dialog
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [form, setForm] = useState({
+
+  // Graph dialog
+  const [graphCylinder, setGraphCylinder] = useState<Cylinder | null>(null)
+  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; source: string } | null>(null)
+  const [graphLoading, setGraphLoading] = useState(false)
+
+  async function loadGraph(cyl: Cylinder) {
+    setGraphLoading(true)
+    setGraphCylinder(cyl)
+    setGraphData(null)
+    try {
+      const res = await fetch(`/api/cylinders/${cyl.id}/graph`)
+      if (!res.ok) throw new Error()
+      setGraphData(await res.json())
+    } catch { setGraphData(null) }
+    finally { setGraphLoading(false) }
+  }
+  const emptyForm = {
     numeroSerie: '',
     gasId: '',
+    propietario: '',
+    fabricante: '',
+    paisFabricacion: '',
+    marcaUN: 'false',
+    normaFabricacion: '',
+    presionTrabajoBar: '',
+    roscacilindro: '',
+    espesorMinParedMm: '',
+    materialAleacion: '',
     capacidadLitros: '40',
+    pesoVacioKg: '',
+    pesoTaraKg: '',
+    pesoMaxLlenadoKg: '',
+    presionEnsayoBar: '',
+    fechaEnsayoInicial: '',
+    fechaUltimoRetest: '',
+    fechaProximoRetest: '',
+    resultadoInspeccion: 'APROBADO',
+    inspectorId: '',
+    laboratorio: '',
+    metodoPrueba: '',
     presionActualBar: '200',
+    masaPorosaId: '',
+    tipoSolvente: '',
+    solventeMasaKg: '',
+    vidaUtilLimite: '',
+    reparaciones: '',
+    observaciones: '',
+    compatibleH2: 'false',
     estado: 'LLENO',
     ubicacionNombre: 'San Nicolás de los Arroyos',
     provincia: 'Buenos Aires',
     ubicacionLat: '-33.3293',
     ubicacionLng: '-60.2244',
     cliente: '',
-    fechaVencimiento: '',
-  })
+  }
+  const [form, setForm] = useState({ ...emptyForm })
 
   const load = useCallback(async () => {
     try {
@@ -809,17 +1145,17 @@ function InventarioTab() {
   function openCreate() {
     setEditId(null)
     setForm({
+      ...emptyForm,
       numeroSerie: `SN-2026-${String(cylinders.length + 1).padStart(4, '0')}`,
       gasId: gases[0]?.id || '',
       capacidadLitros: '40',
-      presionActualBar: '200',
-      estado: 'LLENO',
+      presionActualBar: gases[0] ? String(gases[0].presionBar) : '200',
       ubicacionNombre: 'San Nicolás de los Arroyos',
       provincia: 'Buenos Aires',
       ubicacionLat: '-33.3293',
       ubicacionLng: '-60.2244',
-      cliente: '',
-      fechaVencimiento: '',
+      resultadoInspeccion: 'APROBADO',
+      estado: 'LLENO',
     })
     setDialogOpen(true)
   }
@@ -829,15 +1165,41 @@ function InventarioTab() {
     setForm({
       numeroSerie: c.numeroSerie,
       gasId: c.gasId,
+      propietario: c.propietario || '',
+      fabricante: c.fabricante || '',
+      paisFabricacion: c.paisFabricacion || '',
+      marcaUN: c.marcaUN ? 'true' : 'false',
+      normaFabricacion: c.normaFabricacion || '',
+      presionTrabajoBar: c.presionTrabajoBar != null ? String(c.presionTrabajoBar) : '',
+      roscacilindro: c.roscacilindro || '',
+      espesorMinParedMm: c.espesorMinParedMm != null ? String(c.espesorMinParedMm) : '',
+      materialAleacion: c.materialAleacion || '',
       capacidadLitros: String(c.capacidadLitros),
+      pesoVacioKg: c.pesoVacioKg != null ? String(c.pesoVacioKg) : '',
+      pesoTaraKg: c.pesoTaraKg != null ? String(c.pesoTaraKg) : '',
+      pesoMaxLlenadoKg: c.pesoMaxLlenadoKg != null ? String(c.pesoMaxLlenadoKg) : '',
+      presionEnsayoBar: c.presionEnsayoBar != null ? String(c.presionEnsayoBar) : '',
+      fechaEnsayoInicial: c.fechaEnsayoInicial || '',
+      fechaUltimoRetest: c.fechaUltimoRetest ? c.fechaUltimoRetest.split('T')[0] : '',
+      fechaProximoRetest: c.fechaProximoRetest ? c.fechaProximoRetest.split('T')[0] : '',
+      resultadoInspeccion: c.resultadoInspeccion || 'APROBADO',
+      inspectorId: c.inspectorId || '',
+      laboratorio: c.laboratorio || '',
+      metodoPrueba: c.metodoPrueba || '',
       presionActualBar: String(c.presionActualBar),
+      masaPorosaId: c.masaPorosaId || '',
+      tipoSolvente: c.tipoSolvente || '',
+      solventeMasaKg: c.solventeMasaKg != null ? String(c.solventeMasaKg) : '',
+      vidaUtilLimite: c.vidaUtilLimite ? c.vidaUtilLimite.split('T')[0] : '',
+      reparaciones: c.reparaciones || '',
+      observaciones: c.observaciones || '',
+      compatibleH2: c.compatibleH2 ? 'true' : 'false',
       estado: c.estado,
       ubicacionNombre: c.ubicacionNombre,
       provincia: c.provincia,
       ubicacionLat: String(c.ubicacionLat),
       ubicacionLng: String(c.ubicacionLng),
       cliente: c.cliente || '',
-      fechaVencimiento: c.fechaVencimiento.split('T')[0],
     })
     setDialogOpen(true)
   }
@@ -1016,7 +1378,7 @@ function InventarioTab() {
                 </TableHeader>
                 <TableBody>
                   {cylinders.map((c) => {
-                    const diasVenc = daysUntil(c.fechaVencimiento)
+                    const diasVenc = daysUntil(c.fechaProximoRetest)
                     const vencido = diasVenc < 0
                     const proximoVencer = diasVenc >= 0 && diasVenc <= 30
                     return (
@@ -1034,8 +1396,9 @@ function InventarioTab() {
                               <div className="text-sm font-medium truncate">
                                 {c.gas.nombre}
                               </div>
-                              <div className="text-xs text-slate-500">
-                                {c.gas.codigo}
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[10px] text-slate-400">{c.gas.codigo}</span>
+                                <SgaBadge peligro={c.gas.peligro} />
                               </div>
                             </div>
                           </div>
@@ -1073,11 +1436,20 @@ function InventarioTab() {
                                 : 'text-slate-600'
                             }`}
                           >
-                            {formatDate(c.fechaVencimiento)}
+                            {formatDate(c.fechaProximoRetest)}
                           </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-purple-600"
+                              onClick={() => loadGraph(c)}
+                              title="Ver grafo de relaciones"
+                            >
+                              <GitBranch className="w-4 h-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1120,143 +1492,241 @@ function InventarioTab() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Número de serie *</Label>
-              <Input
-                value={form.numeroSerie}
-                onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })}
-                placeholder="SN-2026-0001"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Tipo de gas *</Label>
-              <Select
-                value={form.gasId}
-                onValueChange={(v) => {
-                  const g = gases.find((x) => x.id === v)
-                  setForm({
-                    ...form,
-                    gasId: v,
-                    presionActualBar: g ? String(g.presionBar) : form.presionActualBar,
-                  })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar gas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {gases.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full inline-block"
-                          style={{ background: g.colorHex }}
-                        />
-                        {g.nombre} ({g.codigo})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-6">
+            {/* --- 1. Identificación General --- */}
             <div>
-              <Label className="text-xs">Capacidad (litros) *</Label>
-              <Select
-                value={form.capacidadLitros}
-                onValueChange={(v) => setForm({ ...form, capacidadLitros: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CAPACIDADES_LITROS.map((c) => (
-                    <SelectItem key={c} value={String(c)}>
-                      {c} L
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Identificación General</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Número de serie *</Label>
+                  <Input value={form.numeroSerie} onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })} placeholder="SN-2026-0001" />
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo de gas *</Label>
+                  <Select value={form.gasId} onValueChange={(v) => { const g = gases.find((x) => x.id === v); setForm({ ...form, gasId: v, presionActualBar: g ? String(g.presionBar) : form.presionActualBar }) }}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar gas" /></SelectTrigger>
+                    <SelectContent>
+                      {gases.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ background: g.colorHex }} />
+                            {g.nombre} ({g.codigo})
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Propietario</Label>
+                  <Input value={form.propietario} onChange={(e) => setForm({ ...form, propietario: e.target.value })} placeholder="ManejaDatos Districon" />
+                </div>
+                <div>
+                  <Label className="text-xs">Estado actual</Label>
+                  <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS.map((e) => (<SelectItem key={e} value={e}>{ESTADO_LABELS[e]}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
+
+            {/* --- 2. Especificaciones de Diseño --- */}
             <div>
-              <Label className="text-xs">Presión actual (bar)</Label>
-              <Input
-                type="number"
-                value={form.presionActualBar}
-                onChange={(e) =>
-                  setForm({ ...form, presionActualBar: e.target.value })
-                }
-              />
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Especificaciones de Diseño</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Fabricante</Label>
+                  <Input value={form.fabricante} onChange={(e) => setForm({ ...form, fabricante: e.target.value })} placeholder="Ej: FAE, Luxfer" />
+                </div>
+                <div>
+                  <Label className="text-xs">País de fabricación</Label>
+                  <Input value={form.paisFabricacion} onChange={(e) => setForm({ ...form, paisFabricacion: e.target.value })} placeholder="Argentina" />
+                </div>
+                <div>
+                  <Label className="text-xs">Marca UN</Label>
+                  <Select value={form.marcaUN} onValueChange={(v) => setForm({ ...form, marcaUN: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Sí</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Norma de fabricación</Label>
+                  <Input value={form.normaFabricacion} onChange={(e) => setForm({ ...form, normaFabricacion: e.target.value })} placeholder="NTC 5719 / ISO 18119" />
+                </div>
+                <div>
+                  <Label className="text-xs">Presión de trabajo (bar)</Label>
+                  <Input type="number" value={form.presionTrabajoBar} onChange={(e) => setForm({ ...form, presionTrabajoBar: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Roscacilindro / Conexión</Label>
+                  <Input value={form.roscacilindro} onChange={(e) => setForm({ ...form, roscacilindro: e.target.value })} placeholder="25E / G5/8" />
+                </div>
+                <div>
+                  <Label className="text-xs">Espesor mínimo pared (mm)</Label>
+                  <Input type="number" step="0.1" value={form.espesorMinParedMm} onChange={(e) => setForm({ ...form, espesorMinParedMm: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Material / Aleación</Label>
+                  <Input value={form.materialAleacion} onChange={(e) => setForm({ ...form, materialAleacion: e.target.value })} placeholder="Acero / Aluminio" />
+                </div>
+              </div>
             </div>
+
+            {/* --- 3. Pesos y Capacidades --- */}
             <div>
-              <Label className="text-xs">Estado</Label>
-              <Select
-                value={form.estado}
-                onValueChange={(v) => setForm({ ...form, estado: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ESTADOS.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {ESTADO_LABELS[e]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Pesos y Capacidades</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Capacidad (litros) *</Label>
+                  <Select value={form.capacidadLitros} onValueChange={(v) => setForm({ ...form, capacidadLitros: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CAPACIDADES_LITROS.map((c) => (<SelectItem key={c} value={String(c)}>{c} L</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Peso vacío (kg)</Label>
+                  <Input type="number" step="0.1" value={form.pesoVacioKg} onChange={(e) => setForm({ ...form, pesoVacioKg: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Peso tara (kg)</Label>
+                  <Input type="number" step="0.1" value={form.pesoTaraKg} onChange={(e) => setForm({ ...form, pesoTaraKg: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Peso máximo llenado (kg)</Label>
+                  <Input type="number" step="0.1" value={form.pesoMaxLlenadoKg} onChange={(e) => setForm({ ...form, pesoMaxLlenadoKg: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Presión de ensayo (bar)</Label>
+                  <Input type="number" value={form.presionEnsayoBar} onChange={(e) => setForm({ ...form, presionEnsayoBar: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Presión actual (bar)</Label>
+                  <Input type="number" value={form.presionActualBar} onChange={(e) => setForm({ ...form, presionActualBar: e.target.value })} />
+                </div>
+              </div>
             </div>
+
+            {/* --- 4. Inspección y Recalificación --- */}
             <div>
-              <Label className="text-xs">Vencimiento (prueba hidrostática)</Label>
-              <Input
-                type="date"
-                value={form.fechaVencimiento}
-                onChange={(e) =>
-                  setForm({ ...form, fechaVencimiento: e.target.value })
-                }
-              />
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Inspección y Recalificación</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Fecha ensayo inicial</Label>
+                  <Input type="date" value={form.fechaEnsayoInicial} onChange={(e) => setForm({ ...form, fechaEnsayoInicial: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Fecha último retest</Label>
+                  <Input type="date" value={form.fechaUltimoRetest} onChange={(e) => setForm({ ...form, fechaUltimoRetest: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Próximo retest *</Label>
+                  <Input type="date" value={form.fechaProximoRetest} onChange={(e) => setForm({ ...form, fechaProximoRetest: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Resultado inspección</Label>
+                  <Select value={form.resultadoInspeccion} onValueChange={(v) => setForm({ ...form, resultadoInspeccion: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="APROBADO">Aprobado</SelectItem>
+                      <SelectItem value="CONDICIONAL">Condicional</SelectItem>
+                      <SelectItem value="RECHAZADO">Rechazado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Inspector ID</Label>
+                  <Input value={form.inspectorId} onChange={(e) => setForm({ ...form, inspectorId: e.target.value })} placeholder="N.º habilitación" />
+                </div>
+                <div>
+                  <Label className="text-xs">Laboratorio</Label>
+                  <Input value={form.laboratorio} onChange={(e) => setForm({ ...form, laboratorio: e.target.value })} placeholder="Laboratorio habilitado" />
+                </div>
+                <div>
+                  <Label className="text-xs">Método de prueba</Label>
+                  <Input value={form.metodoPrueba} onChange={(e) => setForm({ ...form, metodoPrueba: e.target.value })} placeholder="PH / Ultrasonido" />
+                </div>
+                <div>
+                  <Label className="text-xs">Vida útil límite</Label>
+                  <Input type="date" value={form.vidaUtilLimite} onChange={(e) => setForm({ ...form, vidaUtilLimite: e.target.value })} />
+                </div>
+              </div>
             </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Ubicación (ciudad) *</Label>
-              <Select
-                value={form.ubicacionNombre}
-                onValueChange={(v) => {
-                  const loc = locations.find((l) => l.nombre === v)
-                  if (loc) {
-                    setForm({
-                      ...form,
-                      ubicacionNombre: loc.nombre,
-                      provincia: loc.provincia,
-                      ubicacionLat: String(loc.lat),
-                      ubicacionLng: String(loc.lng),
-                    })
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.nombre}>
-                      {l.esBase && '🏭 '} {l.nombre} ({l.provincia})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* --- 5. Campos Específicos (Disolución / Masa Porosa) --- */}
+            <div>
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Campos Específicos (Disolución / Masa Porosa)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Masa porosa ID / tipo</Label>
+                  <Input value={form.masaPorosaId} onChange={(e) => setForm({ ...form, masaPorosaId: e.target.value })} placeholder="AEC / ACM" />
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo de solvente</Label>
+                  <Input value={form.tipoSolvente} onChange={(e) => setForm({ ...form, tipoSolvente: e.target.value })} placeholder="Acetona / DMF" />
+                </div>
+                <div>
+                  <Label className="text-xs">Solvente — masa (kg)</Label>
+                  <Input type="number" step="0.1" value={form.solventeMasaKg} onChange={(e) => setForm({ ...form, solventeMasaKg: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Compatible H₂</Label>
+                  <Select value={form.compatibleH2} onValueChange={(v) => setForm({ ...form, compatibleH2: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Sí</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Cliente (opcional)</Label>
-              <Input
-                value={form.cliente}
-                onChange={(e) => setForm({ ...form, cliente: e.target.value })}
-                placeholder="Nombre del cliente"
-              />
+
+            {/* --- 6. Observaciones --- */}
+            <div>
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Observaciones</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Label className="text-xs">Reparaciones</Label>
+                  <Input value={form.reparaciones} onChange={(e) => setForm({ ...form, reparaciones: e.target.value })} placeholder="Historial de reparaciones si aplica" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Observaciones</Label>
+                  <Input value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} placeholder="Notas adicionales" />
+                </div>
+              </div>
             </div>
-            <div className="hidden">
-              <Input value={form.ubicacionLat} readOnly />
-              <Input value={form.ubicacionLng} readOnly />
-              <Input value={form.provincia} readOnly />
+
+            {/* --- 7. Ubicación / Cliente --- */}
+            <div>
+              <h4 className="text-sm font-semibold text-orange-600 mb-2 border-b pb-1">Ubicación y Cliente</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <Label className="text-xs">Ubicación (ciudad) *</Label>
+                  <Select value={form.ubicacionNombre} onValueChange={(v) => { const loc = locations.find((l) => l.nombre === v); if (loc) { setForm({ ...form, ubicacionNombre: loc.nombre, provincia: loc.provincia, ubicacionLat: String(loc.lat), ubicacionLng: String(loc.lng) }) } }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {locations.map((l) => (<SelectItem key={l.id} value={l.nombre}>{l.esBase && '🏭 '} {l.nombre} ({l.provincia})</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Label className="text-xs">Cliente / Destino</Label>
+                  <Input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} placeholder="Nombre del cliente" />
+                </div>
+                <div className="hidden">
+                  <Input value={form.ubicacionLat} readOnly />
+                  <Input value={form.ubicacionLng} readOnly />
+                  <Input value={form.provincia} readOnly />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1264,13 +1734,98 @@ function InventarioTab() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               <X className="w-4 h-4 mr-1" /> Cancelar
             </Button>
-            <Button
-              onClick={save}
-              className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90"
-            >
+            <Button onClick={save} className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90">
               <Save className="w-4 h-4 mr-1" /> Guardar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Graph dialog */}
+      <Dialog open={!!graphCylinder} onOpenChange={(o) => { if (!o) setGraphCylinder(null) }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitBranch className="w-5 h-5 text-purple-600" />
+              Grafo de relaciones — {graphCylinder?.numeroSerie}
+            </DialogTitle>
+            <DialogDescription>
+              Nodos: {graphData?.nodes.length ?? 0} | Aristas: {graphData?.edges.length ?? 0}
+              {graphData?.source === 'neo4j' ? <Badge className="ml-2 bg-emerald-100 text-emerald-700 text-[10px]">Neo4j</Badge> : <Badge className="ml-2 bg-amber-100 text-amber-700 text-[10px]">SQLite</Badge>}
+            </DialogDescription>
+          </DialogHeader>
+
+          {graphLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <RefreshCw className="w-8 h-8 animate-spin text-slate-400" />
+            </div>
+          ) : !graphData || graphData.nodes.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">Sin datos de grafo para este tubo</div>
+          ) : (
+            <div className="space-y-4">
+              {/* Visual graph */}
+              <SimpleGraph nodes={graphData.nodes} edges={graphData.edges} />
+
+              {/* Node table */}
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Label</TableHead>
+                      <TableHead>Detalle</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {graphData.nodes.map(n => (
+                      <TableRow key={n.id}>
+                        <TableCell>
+                          <Badge variant="outline" style={{ background: NODE_COLORS[n.type]?.fill || '#f1f5f9', color: NODE_COLORS[n.type]?.text || '#475569', borderColor: NODE_COLORS[n.type]?.stroke || '#cbd5e1' }} className="text-[10px]">
+                            {n.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs font-semibold">{n.label}</TableCell>
+                        <TableCell className="text-xs text-slate-500 max-w-64 truncate">
+                          {n.type === 'Cylinder' && `${n.properties.estado || ''} | ${n.properties.capacidad || ''}L | ${n.properties.presion || ''}bar`}
+                          {n.type === 'Gas' && `${n.properties.codigo || ''}`}
+                          {n.type === 'Cliente' && ''}
+                          {n.type === 'Location' && `${n.properties.provincia || ''}`}
+                          {n.type === 'Movimiento' && `${n.properties.tipo || ''} @ ${n.properties.ubicacion || ''}`}
+                          {n.type === 'Mantenimiento' && `${n.properties.tipo || ''}${n.properties.tecnico ? ` por ${n.properties.tecnico}` : ''}`}
+                          {!['Cylinder', 'Gas', 'Cliente', 'Location', 'Movimiento', 'Mantenimiento'].includes(n.type) && JSON.stringify(n.properties).slice(0, 60)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Edges */}
+              <details>
+                <summary className="text-sm font-medium text-slate-500 cursor-pointer">Aristas ({graphData.edges.length})</summary>
+                <div className="overflow-x-auto rounded-lg border mt-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Origen</TableHead>
+                        <TableHead>Relación</TableHead>
+                        <TableHead>Destino</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {graphData.edges.map((e, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-mono text-xs">{e.source}</TableCell>
+                          <TableCell><Badge className="bg-purple-100 text-purple-700 text-[10px]">{e.type}</Badge></TableCell>
+                          <TableCell className="font-mono text-xs">{e.target}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </details>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -1702,7 +2257,7 @@ function CatalogoTab() {
               </h2>
               <p className="text-sm text-slate-500">
                 Información de tipos de gases, presiones de carga, colores de
-                identificación (norma EN 1089-3) y aplicaciones en soldadura.
+                identificación (norma IRAM 2588) y aplicaciones en soldadura.
               </p>
             </div>
           </div>
@@ -1771,7 +2326,11 @@ function CatalogoTab() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-1.5 border-t border-slate-100">
-                        <span className="text-slate-500">Color del tubo</span>
+                        <span className="text-slate-500">Riesgo SGA</span>
+                        <SgaBadge peligro={g.peligro} />
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 border-t border-slate-100">
+                        <span className="text-slate-500">Color del tubo (IRAM 2588)</span>
                         <div className="flex items-center gap-2">
                           <span
                             className="w-4 h-4 rounded-full border border-slate-300"
@@ -1822,6 +2381,3490 @@ function CatalogoTab() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+// ============================================================
+// 6. CLIENTES
+// ============================================================
+function ClientesTab() {
+  const { toast } = useToast()
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Filtros
+  const [filtroNombre, setFiltroNombre] = useState('')
+  const [filtroTipologia, setFiltroTipologia] = useState('all')
+  const [filtroEstado, setFiltroEstado] = useState('all')
+
+  // Dialogs: tubos del cliente / historial
+  const [viewCylindersCliente, setViewCylindersCliente] = useState<Cliente | null>(null)
+  const [cylindersForCliente, setCylindersForCliente] = useState<Cylinder[]>([])
+  const [loadingCylinders, setLoadingCylinders] = useState(false)
+  const [viewHistoryCliente, setViewHistoryCliente] = useState<Cliente | null>(null)
+  const [historyData, setHistoryData] = useState<{ gas: string; mes: string; cantidad: number }[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  async function loadCylindersForCliente(clienteId: string) {
+    setLoadingCylinders(true)
+    try {
+      const res = await fetch(`/api/cylinders?clienteId=${encodeURIComponent(clienteId)}`)
+      const data = await res.json()
+      setCylindersForCliente(Array.isArray(data) ? data : [])
+    } catch { setCylindersForCliente([]) }
+    finally { setLoadingCylinders(false) }
+  }
+
+  async function loadHistoryForCliente(clienteId: string) {
+    setLoadingHistory(true)
+    try {
+      const cylRes = await fetch(`/api/cylinders?clienteId=${encodeURIComponent(clienteId)}`)
+      const cyls: Cylinder[] = Array.isArray(await cylRes.json()) ? await cylRes.json() : []
+      const histMap = new Map<string, number>()
+      for (const cyl of cyls) {
+        const movRes = await fetch(`/api/cylinders/${cyl.id}/movimientos`)
+        const movs: any[] = Array.isArray(await movRes.json()) ? await movRes.json() : []
+        for (const m of movs) {
+          const d = new Date(m.fecha)
+          const key = `${cyl.gas.nombre}|${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          histMap.set(key, (histMap.get(key) || 0) + 1)
+        }
+      }
+      setHistoryData(
+        Array.from(histMap.entries())
+          .map(([k, cantidad]) => {
+            const [gas, mes] = k.split('|')
+            return { gas, mes, cantidad }
+          })
+          .sort((a, b) => a.mes.localeCompare(b.mes))
+      )
+    } catch { setHistoryData([]) }
+    finally { setLoadingHistory(false) }
+  }
+
+  // Form dialog
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const emptyForm = {
+    nombre: '',
+    taxId: '',
+    contacto: '',
+    firmaDigital: '',
+    tipologia: '',
+    procesoSoldadura: '',
+    materialesBase: '',
+    parametrosIngenieria: '',
+    modoEnvasado: '',
+    gasesConsumo: '',
+    serviciosEspecializados: '',
+    nivelesStockCritico: '',
+    contratoComodato: '',
+    activosEnPosesion: '',
+    fechaVencimientoContrato: '',
+    historialDevoluciones: '',
+    cargosRecurrentes: '',
+    penalizacionesExtravio: '',
+    estadoCuenta: '',
+    ubicaciones: '',
+    notas: '',
+  }
+  const [form, setForm] = useState({ ...emptyForm })
+
+  const load = useCallback(async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filtroNombre) params.set('nombre', filtroNombre)
+      if (filtroTipologia !== 'all') params.set('tipologia', filtroTipologia)
+      if (filtroEstado === 'activos') params.set('activo', 'true')
+      if (filtroEstado === 'inactivos') params.set('activo', 'false')
+      const res = await fetch(`/api/clientes?${params}`)
+      const data = await res.json()
+      setClientes(Array.isArray(data) ? data : [])
+    } finally {
+      setLoading(false)
+    }
+  }, [filtroNombre, filtroTipologia, filtroEstado])
+
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 250)
+    return () => clearTimeout(t)
+  }, [load])
+
+  function openCreate() {
+    setEditId(null)
+    setForm({ ...emptyForm, modoEnvasado: 'Cilindros' })
+    setDialogOpen(true)
+  }
+
+  function openEdit(c: Cliente) {
+    setEditId(c.id)
+    setForm({
+      nombre: c.nombre,
+      taxId: c.taxId || '',
+      contacto: c.contacto || '',
+      firmaDigital: c.firmaDigital || '',
+      tipologia: c.tipologia || '',
+      procesoSoldadura: c.procesoSoldadura || '',
+      materialesBase: c.materialesBase || '',
+      parametrosIngenieria: c.parametrosIngenieria || '',
+      modoEnvasado: c.modoEnvasado || '',
+      gasesConsumo: c.gasesConsumo || '',
+      serviciosEspecializados: c.serviciosEspecializados || '',
+      nivelesStockCritico: c.nivelesStockCritico != null ? String(c.nivelesStockCritico) : '',
+      contratoComodato: c.contratoComodato || '',
+      activosEnPosesion: c.activosEnPosesion || '',
+      fechaVencimientoContrato: c.fechaVencimientoContrato ? c.fechaVencimientoContrato.split('T')[0] : '',
+      historialDevoluciones: c.historialDevoluciones || '',
+      cargosRecurrentes: c.cargosRecurrentes || '',
+      penalizacionesExtravio: c.penalizacionesExtravio || '',
+      estadoCuenta: c.estadoCuenta || '',
+      ubicaciones: c.ubicaciones || '',
+      notas: c.notas || '',
+    })
+    setDialogOpen(true)
+  }
+
+  async function saveCliente() {
+    try {
+      const url = editId ? `/api/clientes/${editId}` : '/api/clientes'
+      const method = editId ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Error al guardar')
+      }
+      toast({
+        title: editId ? 'Cliente actualizado' : 'Cliente creado',
+        description: form.nombre,
+      })
+      setDialogOpen(false)
+      load()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Error desconocido',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  async function removeCliente(c: Cliente) {
+    if (!confirm(`¿Eliminar el cliente ${c.nombre}?`)) return
+    try {
+      const res = await fetch(`/api/clientes/${c.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Error al eliminar')
+      }
+      toast({ title: 'Cliente eliminado', description: c.nombre })
+      load()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Error desconocido',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const ESTADO_CUENTA_COLORS: Record<string, string> = {
+    AL_DIA: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    PENDIENTE: 'bg-amber-100 text-amber-700 border-amber-200',
+    MOROSO: 'bg-red-100 text-red-700 border-red-200',
+  }
+
+  const ESTADO_CUENTA_LABELS: Record<string, string> = {
+    AL_DIA: 'Al día',
+    PENDIENTE: 'Pendiente',
+    MOROSO: 'Moroso',
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Barra de filtros */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="text-xs flex items-center gap-1">
+                <Search className="w-3 h-3" /> Nombre o razón social
+              </Label>
+              <Input
+                placeholder="Buscar cliente..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+              />
+            </div>
+            <div className="min-w-[180px]">
+              <Label className="text-xs">Tipología</Label>
+              <Select value={filtroTipologia} onValueChange={setFiltroTipologia}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las tipologías</SelectItem>
+                  {TIPOLOGIAS.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-[140px]">
+              <Label className="text-xs">Estado</Label>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="activos">Activos</SelectItem>
+                  <SelectItem value="inactivos">Inactivos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={openCreate}
+              className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90 ml-auto"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Nuevo Cliente
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabla */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">
+                Base de Clientes
+              </CardTitle>
+              <CardDescription>
+                {loading
+                  ? 'Cargando...'
+                  : `${clientes.length} cliente(s) encontrado(s)`}
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={load}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Actualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
+            </div>
+          ) : clientes.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <Users className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+              No se encontraron clientes
+            </div>
+          ) : (
+            <ScrollArea className="h-[600px]">
+              <Table>
+                <TableHeader className="sticky top-0 bg-white z-10">
+                  <TableRow>
+                    <TableHead className="w-48">Razón Social</TableHead>
+                    <TableHead>Tax ID</TableHead>
+                    <TableHead>Tipología</TableHead>
+                    <TableHead className="text-center">Cilindros</TableHead>
+                    <TableHead>Gases</TableHead>
+                    <TableHead className="text-center">Stock Crítico</TableHead>
+                    <TableHead>Estado Cuenta</TableHead>
+                    <TableHead className="text-center">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientes.map((c) => (
+                    <TableRow key={c.id} className="hover:bg-slate-50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold truncate">
+                              {c.nombre}
+                            </div>
+                            {c.contacto && (
+                              <div className="text-xs text-slate-500">
+                                <Contact className="w-3 h-3 inline mr-1" />
+                                {c.contacto}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-slate-600">
+                        {c.taxId || '—'}
+                      </TableCell>
+                      <TableCell>
+                        {c.tipologia ? (
+                          <Badge variant="outline" className="text-xs bg-slate-50">
+                            {c.tipologia}
+                          </Badge>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-semibold tabular-nums">
+                          {c._count?.cylinders || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600 max-w-[180px] truncate">
+                        {c.gasesConsumo || '—'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {c.nivelesStockCritico != null ? (
+                          <span className="font-medium tabular-nums">
+                            {c.nivelesStockCritico}
+                          </span>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {c.estadoCuenta ? (
+                          <Badge
+                            className={`text-xs border ${ESTADO_CUENTA_COLORS[c.estadoCuenta] || 'bg-slate-100 text-slate-600'}`}
+                          >
+                            {ESTADO_CUENTA_LABELS[c.estadoCuenta] || c.estadoCuenta}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-sky-600"
+                            onClick={() => { setViewCylindersCliente(c); loadCylindersForCliente(c.id) }}
+                            title="Ver tubos del cliente">
+                            <Package className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600"
+                            onClick={() => { setViewHistoryCliente(c); loadHistoryForCliente(c.id) }}
+                            title="Historial de uso por gas/mes">
+                            <History className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEdit(c)}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeCliente(c)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog de creación/edición */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editId ? 'Editar Cliente' : 'Nuevo Cliente'}
+            </DialogTitle>
+            <DialogDescription>
+              {editId
+                ? `Modificando ${form.nombre}`
+                : 'Complete el perfil técnico y comercial del cliente'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* IDENTIFICACIÓN */}
+            <div className="col-span-2">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
+                <Building2 className="w-4 h-4" /> Identificación y Contacto
+              </h3>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Nombre / Razón Social *</Label>
+              <Input
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                placeholder="Razón social del cliente"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Hash className="w-3 h-3" /> Tax ID / CUIT
+              </Label>
+              <Input
+                value={form.taxId}
+                onChange={(e) => setForm({ ...form, taxId: e.target.value })}
+                placeholder="30-12345678-9"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Contact className="w-3 h-3" /> Persona de Contacto
+              </Label>
+              <Input
+                value={form.contacto}
+                onChange={(e) => setForm({ ...form, contacto: e.target.value })}
+                placeholder="Nombre del contacto / receptor autorizado"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Firma Digital del Receptor</Label>
+              <Input
+                value={form.firmaDigital}
+                onChange={(e) => setForm({ ...form, firmaDigital: e.target.value })}
+                placeholder="Registro digital de aceptación"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Ubicaciones de Entrega</Label>
+              <Input
+                value={form.ubicaciones}
+                onChange={(e) => setForm({ ...form, ubicaciones: e.target.value })}
+                placeholder="Direcciones o coordenadas de plantas, tiendas o puntos de entrega"
+              />
+            </div>
+
+            {/* PERFIL TÉCNICO */}
+            <div className="col-span-2 mt-2">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
+                <FlaskConical className="w-4 h-4" /> Perfil Técnico (Segmentación)
+              </h3>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Tipología de Cliente</Label>
+              <Select
+                value={form.tipologia}
+                onValueChange={(v) => setForm({ ...form, tipologia: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipología" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOLOGIAS.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Procesos de Soldadura</Label>
+              <Input
+                value={form.procesoSoldadura}
+                onChange={(e) => setForm({ ...form, procesoSoldadura: e.target.value })}
+                placeholder="TIG, MIG/MAG, Oxicorte, Electrodo"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Materiales Base</Label>
+              <Input
+                value={form.materialesBase}
+                onChange={(e) => setForm({ ...form, materialesBase: e.target.value })}
+                placeholder="Acero, inoxidable, aluminio + espesores"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Parámetros de Ingeniería</Label>
+              <Input
+                value={form.parametrosIngenieria}
+                onChange={(e) => setForm({ ...form, parametrosIngenieria: e.target.value })}
+                placeholder="Homologaciones WPS críticas"
+              />
+            </div>
+
+            {/* LOGÍSTICA Y SUMINISTRO */}
+            <div className="col-span-2 mt-2">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
+                <Truck className="w-4 h-4" /> Logística y Suministro
+              </h3>
+            </div>
+            <div>
+              <Label className="text-xs">Modo de Envasado</Label>
+              <Select
+                value={form.modoEnvasado}
+                onValueChange={(v) => setForm({ ...form, modoEnvasado: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cilindros">Cilindros individuales</SelectItem>
+                  <SelectItem value="Bloques">Bloques</SelectItem>
+                  <SelectItem value="Microgranel">Microgranel</SelectItem>
+                  <SelectItem value="Granel">Granel líquido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Nivel de Stock Crítico</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.nivelesStockCritico}
+                onChange={(e) => setForm({ ...form, nivelesStockCritico: e.target.value })}
+                placeholder="Cantidad mínima para alerta"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Gases de Consumo</Label>
+              <Input
+                value={form.gasesConsumo}
+                onChange={(e) => setForm({ ...form, gasesConsumo: e.target.value })}
+                placeholder="AR, MIX-7525, CO2, O2, C2H2..."
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Servicios Especializados</Label>
+              <Input
+                value={form.serviciosEspecializados}
+                onChange={(e) => setForm({ ...form, serviciosEspecializados: e.target.value })}
+                placeholder="CryoEase®, Maxx®, Integra®"
+              />
+            </div>
+
+            {/* COMODATOS */}
+            <div className="col-span-2 mt-2">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
+                <FileText className="w-4 h-4" /> Gestión de Comodatos
+              </h3>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">N° Contrato de Comodato</Label>
+              <Input
+                value={form.contratoComodato}
+                onChange={(e) => setForm({ ...form, contratoComodato: e.target.value })}
+                placeholder="Número de contrato"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Vencimiento de Contrato</Label>
+              <Input
+                type="date"
+                value={form.fechaVencimientoContrato}
+                onChange={(e) => setForm({ ...form, fechaVencimientoContrato: e.target.value })}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Activos en Posesión</Label>
+              <Input
+                value={form.activosEnPosesion}
+                onChange={(e) => setForm({ ...form, activosEnPosesion: e.target.value })}
+                placeholder="Números de serie o IDs de cilindros en poder del cliente"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Historial de Devoluciones</Label>
+              <Input
+                value={form.historialDevoluciones}
+                onChange={(e) => setForm({ ...form, historialDevoluciones: e.target.value })}
+                placeholder="Registro de activos devueltos"
+              />
+            </div>
+
+            {/* CONTROL FINANCIERO */}
+            <div className="col-span-2 mt-2">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
+                <DollarSign className="w-4 h-4" /> Control Financiero
+              </h3>
+            </div>
+            <div>
+              <Label className="text-xs">Estado de Cuenta</Label>
+              <Select
+                value={form.estadoCuenta}
+                onValueChange={(v) => setForm({ ...form, estadoCuenta: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AL_DIA">Al día</SelectItem>
+                  <SelectItem value="PENDIENTE">Pendiente</SelectItem>
+                  <SelectItem value="MOROSO">Moroso</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Penalizaciones por Extravío</Label>
+              <Input
+                value={form.penalizacionesExtravio}
+                onChange={(e) => setForm({ ...form, penalizacionesExtravio: e.target.value })}
+                placeholder="Cargos por cilindros no devueltos"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Label className="text-xs">Cargos Recurrentes</Label>
+              <Input
+                value={form.cargosRecurrentes}
+                onChange={(e) => setForm({ ...form, cargosRecurrentes: e.target.value })}
+                placeholder="Facturación automática por alquiler o mantenimiento"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Notas / Observaciones</Label>
+              <Input
+                value={form.notas}
+                onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                placeholder="Información adicional del cliente"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <X className="w-4 h-4 mr-1" /> Cancelar
+            </Button>
+            <Button
+              onClick={saveCliente}
+              disabled={!form.nombre.trim()}
+              className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90"
+            >
+              <Save className="w-4 h-4 mr-1" /> Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tubos del cliente */}
+      <Dialog open={!!viewCylindersCliente} onOpenChange={(o) => { if (!o) setViewCylindersCliente(null) }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-sky-600" />
+              Tubos de {viewCylindersCliente?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          {loadingCylinders ? (
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+          ) : cylindersForCliente.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Package className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+              Este cliente no tiene tubos asignados
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-96">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>N° Serie</TableHead>
+                    <TableHead>Gas</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Capacidad</TableHead>
+                    <TableHead>PH</TableHead>
+                    <TableHead>Ubicación</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cylindersForCliente.map((cyl) => (
+                    <TableRow key={cyl.id}>
+                      <TableCell className="font-mono text-xs font-semibold">{cyl.numeroSerie}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: cyl.gas.colorHex }} />
+                          <span className="text-sm">{cyl.gas.nombre}</span>
+                          <SgaBadge peligro={cyl.gas.peligro} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] ${ESTADO_COLORS[cyl.estado] || 'bg-slate-100 text-slate-700'}`}>
+                          {ESTADO_LABELS[cyl.estado] || cyl.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="tabular-nums">{cyl.capacidadLitros}L</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const d = daysUntil(cyl.fechaProximoRetest)
+                          if (d < 0) return <Badge variant="destructive" className="text-[10px]">Vencida</Badge>
+                          if (d <= 60) return <Badge className="bg-amber-100 text-amber-700 text-[10px]">{d}d</Badge>
+                          return <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">{formatDate(cyl.fechaProximoRetest)}</Badge>
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-xs">{cyl.ubicacionNombre}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Historial de uso por gas/mes */}
+      <Dialog open={!!viewHistoryCliente} onOpenChange={(o) => { if (!o) setViewHistoryCliente(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-amber-600" />
+              Historial de uso — {viewHistoryCliente?.nombre}
+            </DialogTitle>
+            <DialogDescription>Movimientos de tubos agrupados por gas, mes y año</DialogDescription>
+          </DialogHeader>
+          {loadingHistory ? (
+            <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+          ) : historyData.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <History className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+              Sin movimientos registrados
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-96">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Gas</TableHead>
+                    <TableHead className="text-center">Mes / Año</TableHead>
+                    <TableHead className="text-right">Movimientos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyData.map((h, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="flex items-center gap-2"><span className="text-sm font-medium">{h.gas}</span></div></TableCell>
+                      <TableCell className="text-center font-mono text-sm">{h.mes}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary" className="font-mono tabular-nums">{h.cantidad}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+// ============================================================
+function LaboratorioTab() {
+  return (
+    <Tabs defaultValue="costo-km" className="w-full">
+      <TabsList className="mb-6 h-auto">
+        <TabsTrigger value="costo-km" className="flex items-center gap-2 py-2">
+          <Truck className="w-4 h-4" /> Costo x KM
+        </TabsTrigger>
+        <TabsTrigger value="trazabilidad" className="flex items-center gap-2 py-2">
+          <History className="w-4 h-4" /> Trazabilidad
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="costo-km">
+        <CostoKmCalculator />
+      </TabsContent>
+      <TabsContent value="trazabilidad">
+        <TrazabilidadPanel />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+// ============================================================
+// 7a. CALCULADORA COSTO POR KILÓMETRO
+// ============================================================
+function CostoKmCalculator() {
+  const [kmMensuales, setKmMensuales] = useState(10000)
+  const [factorRetorno, setFactorRetorno] = useState(1)
+
+  // Costos Variables
+  const [precioLitro, setPrecioLitro] = useState(1.00)
+  const [rendimiento, setRendimiento] = useState(4)
+  const [precioNeumatico, setPrecioNeumatico] = useState(400)
+  const [cantNeumaticos, setCantNeumaticos] = useState(6)
+  const [vidaNeumaticos, setVidaNeumaticos] = useState(80000)
+  const [costoMantenimiento, setCostoMantenimiento] = useState(0.05)
+  const [costoLubricantes, setCostoLubricantes] = useState(150)
+  const [intervaloLubricantes, setIntervaloLubricantes] = useState(10000)
+
+  // Costos Fijos
+  const [sueldoBruto, setSueldoBruto] = useState(2000)
+  const [cargasSociales, setCargasSociales] = useState(800)
+  const [polizaSeguro, setPolizaSeguro] = useState(500)
+  const [valorCompra, setValorCompra] = useState(80000)
+  const [valorReventa, setValorReventa] = useState(20000)
+  const [mesesVida, setMesesVida] = useState(120)
+  const [impuestosAnuales, setImpuestosAnuales] = useState(1200)
+  const [gastosOficina, setGastosOficina] = useState(3000)
+  const [cantVehiculos, setCantVehiculos] = useState(5)
+  const [valorVehiculo, setValorVehiculo] = useState(80000)
+  const [tasaInteres, setTasaInteres] = useState(0.5)
+
+  const calc = useMemo(() => {
+    const km = kmMensuales || 1
+    // Costos Variables
+    const combustible = precioLitro / (rendimiento || 1)
+    const neumaticos = (precioNeumatico * cantNeumaticos) / (vidaNeumaticos || 1)
+    const mantenimiento = costoMantenimiento
+    const lubricantes = costoLubricantes / (intervaloLubricantes || 1)
+    const totalVariables = combustible + neumaticos + mantenimiento + lubricantes
+
+    // Costos Fijos (mensuales)
+    const salarios = sueldoBruto + cargasSociales
+    const seguro = polizaSeguro
+    const depreciacion = (valorCompra - valorReventa) / (mesesVida || 1)
+    const impuestos = impuestosAnuales / 12
+    const administrativos = gastosOficina / (cantVehiculos || 1)
+    const financieros = (valorVehiculo * (tasaInteres / 100)) / (km || 1)
+    const totalFijosMensuales = salarios + seguro + depreciacion + impuestos + administrativos
+
+    // CPK
+    const cpkBase = totalVariables + (totalFijosMensuales / km)
+    const cpkAjustado = cpkBase * factorRetorno
+
+    return {
+      combustible,
+      neumaticos,
+      mantenimiento,
+      lubricantes,
+      totalVariables,
+      salarios: salarios / km,
+      seguro: seguro / km,
+      depreciacion: depreciacion / km,
+      impuestos: impuestos / km,
+      administrativos: administrativos / km,
+      financieros,
+      totalFijos: totalFijosMensuales / km,
+      cpkBase,
+      cpkAjustado,
+    }
+  }, [
+    kmMensuales, factorRetorno,
+    precioLitro, rendimiento, precioNeumatico, cantNeumaticos,
+    vidaNeumaticos, costoMantenimiento, costoLubricantes, intervaloLubricantes,
+    sueldoBruto, cargasSociales, polizaSeguro, valorCompra, valorReventa,
+    mesesVida, impuestosAnuales, gastosOficina, cantVehiculos,
+    valorVehiculo, tasaInteres,
+  ])
+
+  return (
+    <div className="space-y-6">
+      {/* Encabezado */}
+      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Beaker className="w-6 h-6 text-amber-400" />
+            <h2 className="text-xl font-bold">Calculadora de Costo por Kilómetro</h2>
+          </div>
+          <p className="text-sm text-slate-300">
+            Ingrese los datos del vehículo y operación para calcular el CPK (Costo por Kilómetro)
+            real, desglosado en costos variables, fijos y financieros.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Columna izquierda: formulario */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Parámetros Generales */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Settings2 className="w-4 h-4" /> Parámetros Generales
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Kilómetros recorridos al mes</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={kmMensuales}
+                    onChange={(e) => setKmMensuales(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Factor de Retorno Vacío</Label>
+                  <Select value={String(factorRetorno)} onValueChange={(v) => setFactorRetorno(Number(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Sin retorno vacío (1x)</SelectItem>
+                      <SelectItem value="1.25">25% retorno vacío (1.25x)</SelectItem>
+                      <SelectItem value="1.5">50% retorno vacío (1.5x)</SelectItem>
+                      <SelectItem value="2">100% retorno vacío (2x)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Si el camión vuelve sin carga, el CPK se multiplica.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Costos Variables */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" /> Costos Variables
+              </CardTitle>
+              <CardDescription>Dependen de los kilómetros recorridos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs">Combustible — Precio del litro ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={precioLitro}
+                    onChange={(e) => setPrecioLitro(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Combustible — Rendimiento (km/l)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    value={rendimiento}
+                    onChange={(e) => setRendimiento(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Neumáticos — Precio unitario ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={precioNeumatico}
+                    onChange={(e) => setPrecioNeumatico(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Neumáticos — Cantidad</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={cantNeumaticos}
+                    onChange={(e) => setCantNeumaticos(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Neumáticos — Vida útil (km)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={vidaNeumaticos}
+                    onChange={(e) => setVidaNeumaticos(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Mantenimiento ($/km o % comb.)</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={costoMantenimiento}
+                    onChange={(e) => setCostoMantenimiento(Number(e.target.value))}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">$/km o % del combustible</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Lubricantes — Costo entre cambios ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={costoLubricantes}
+                    onChange={(e) => setCostoLubricantes(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Lubricantes — Intervalo (km)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={intervaloLubricantes}
+                    onChange={(e) => setIntervaloLubricantes(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Costos Fijos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Wrench className="w-4 h-4" /> Costos Fijos
+              </CardTitle>
+              <CardDescription>No dependen de los km, se prorratean mensualmente</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-xs">Salarios — Sueldo bruto mensual ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={sueldoBruto}
+                    onChange={(e) => setSueldoBruto(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Salarios — Cargas sociales ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={cargasSociales}
+                    onChange={(e) => setCargasSociales(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Seguros — Póliza mensual ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={polizaSeguro}
+                    onChange={(e) => setPolizaSeguro(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Depreciación — Valor de compra ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={valorCompra}
+                    onChange={(e) => setValorCompra(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Depreciación — Valor de reventa ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={valorReventa}
+                    onChange={(e) => setValorReventa(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Depreciación — Vida útil (meses)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={mesesVida}
+                    onChange={(e) => setMesesVida(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Impuestos anuales ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={impuestosAnuales}
+                    onChange={(e) => setImpuestosAnuales(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Gastos administrativos mensuales ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={gastosOficina}
+                    onChange={(e) => setGastosOficina(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Cantidad de vehículos en flota</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={cantVehiculos}
+                    onChange={(e) => setCantVehiculos(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Costos Financieros */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4" /> Costos Financieros
+              </CardTitle>
+              <CardDescription>Si el vehículo se compró con crédito o costo de oportunidad</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Valor del vehículo ($)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={valorVehiculo}
+                    onChange={(e) => setValorVehiculo(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Tasa de interés mensual (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={tasaInteres}
+                    onChange={(e) => setTasaInteres(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Columna derecha: resultados */}
+        <div className="space-y-4">
+          {/* Resultado principal */}
+          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Gauge className="w-5 h-5" /> CPK Final
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold mb-1 tabular-nums">
+                ${calc.cpkAjustado.toFixed(4)}
+              </div>
+              <p className="text-emerald-100 text-sm">por kilómetro recorrido</p>
+              {factorRetorno > 1 && (
+                <div className="mt-2 text-xs text-emerald-200">
+                  CPK base: ${calc.cpkBase.toFixed(4)} × {factorRetorno}x (retorno vacío)
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Desglose Variables */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Costos Variables</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <ResultRow label="Combustible" value={calc.combustible} />
+              <ResultRow label="Neumáticos" value={calc.neumaticos} />
+              <ResultRow label="Mantenimiento" value={calc.mantenimiento} />
+              <ResultRow label="Lubricantes" value={calc.lubricantes} />
+              <div className="border-t pt-2 mt-2">
+                <ResultRow label="Total Variables" value={calc.totalVariables} bold />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Desglose Fijos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Costos Fijos (por km)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <ResultRow label="Salarios" value={calc.salarios} />
+              <ResultRow label="Seguros" value={calc.seguro} />
+              <ResultRow label="Depreciación" value={calc.depreciacion} />
+              <ResultRow label="Impuestos" value={calc.impuestos} />
+              <ResultRow label="Administrativos" value={calc.administrativos} />
+              <ResultRow label="Financieros" value={calc.financieros} />
+              <div className="border-t pt-2 mt-2">
+                <ResultRow label="Total Fijos" value={calc.totalFijos} bold />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Costos mensuales totales */}
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <div className="text-xs text-amber-800 space-y-1">
+                <p className="font-semibold">Costos mensuales totales:</p>
+                <p>Variables: ${(calc.totalVariables * kmMensuales).toFixed(2)}</p>
+                <p>Fijos: ${((calc.totalFijos * kmMensuales)).toFixed(2)}</p>
+                <p className="font-bold text-sm mt-1">
+                  Total: ${((calc.totalVariables * kmMensuales) + (calc.totalFijos * kmMensuales)).toFixed(2)}/mes
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Referencia rápida */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-slate-500 space-y-1">
+                <p className="font-semibold text-slate-700 mb-1">Fórmulas aplicadas:</p>
+                <p><b>Combustible:</b> PrecioLitro / Rendimiento</p>
+                <p><b>Neumáticos:</b> (Precio × Cant) / VidaKm</p>
+                <p><b>Salarios:</b> (Bruto + Cargas) / Km</p>
+                <p><b>Depreciación:</b> (Compra − Reventa) / Meses / Km</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ResultRow({ label, value, bold }: { label: string; value: number; bold?: boolean }) {
+  return (
+    <div className={`flex justify-between items-center ${bold ? 'font-bold' : 'text-sm'}`}>
+      <span className="text-slate-600">{label}</span>
+      <span className={`tabular-nums ${bold ? 'text-slate-900' : 'text-slate-700'}`}>
+        ${value.toFixed(4)}
+      </span>
+    </div>
+  )
+}
+
+// ============================================================
+// 7b. TRAZABILIDAD DE ACTIVOS
+// ============================================================
+interface Movimiento {
+  id: string
+  cylinderId: string
+  fecha: string
+  tipo: string
+  descripcion: string
+  usuario: string | null
+  ubicacion: string | null
+  latOrigen: number | null
+  lngOrigen: number | null
+  latDestino: number | null
+  lngDestino: number | null
+}
+
+interface CylinderConMovimientos extends Cylinder {
+  movimientos: Movimiento[]
+}
+
+interface CylinderSimple {
+  id: string
+  numeroSerie: string
+  estado: string
+  gas: Gas
+  ubicacionNombre: string
+  cliente: string | null
+  fechaProximoRetest: string
+}
+
+function TrazabilidadPanel() {
+  const [cargando, setCargando] = useState(true)
+  const [todosLosCilindros, setTodosLosCilindros] = useState<CylinderSimple[]>([])
+  const [todosLosMovimientos, setTodosLosMovimientos] = useState<Movimiento[]>([])
+
+  // Buscador
+  const [busqueda, setBusqueda] = useState('')
+  const [cilindroSeleccionado, setCilindroSeleccionado] = useState<CylinderConMovimientos | null>(null)
+  const [buscando, setBuscando] = useState(false)
+
+  // Filtros del log
+  const [filtroTipo, setFiltroTipo] = useState('all')
+  const [filtroBusqueda, setFiltroBusqueda] = useState('')
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    async function load() {
+      try {
+        const [cylRes, statsRes] = await Promise.all([
+          fetch('/api/cylinders'),
+          fetch('/api/stats'),
+        ])
+        const cylinders: CylinderSimple[] = await cylRes.json()
+        setTodosLosCilindros(Array.isArray(cylinders) ? cylinders : [])
+      } finally {
+        setCargando(false)
+      }
+    }
+    load()
+  }, [])
+
+  // Buscar cilindro por serie
+  async function buscarCilindro() {
+    if (!busqueda.trim() || !Array.isArray(todosLosCilindros)) return
+    setBuscando(true)
+    setCilindroSeleccionado(null)
+    try {
+      const encontrado = todosLosCilindros.find((c) =>
+        c.numeroSerie.toLowerCase().includes(busqueda.trim().toLowerCase())
+      )
+      if (!encontrado) {
+        setCilindroSeleccionado(null)
+        setBuscando(false)
+        return
+      }
+      const res = await fetch(`/api/cylinders/${encontrado.id}`)
+      if (res.ok) {
+        const data: CylinderConMovimientos = await res.json()
+        setCilindroSeleccionado(data)
+        setTodosLosMovimientos(data.movimientos || [])
+      }
+    } finally {
+      setBuscando(false)
+    }
+  }
+
+  // Calcular KPIs
+  const kpis = useMemo(() => {
+    const totalTubos = todosLosCilindros.length
+    const phProximas = todosLosCilindros.filter((c) => {
+      if (!c.fechaProximoRetest) return false
+      const dias = daysUntil(c.fechaProximoRetest)
+      return dias >= 0 && dias <= 90
+    }).length
+    const phVencidas = todosLosCilindros.filter((c) => {
+      if (!c.fechaProximoRetest) return false
+      return daysUntil(c.fechaProximoRetest) < 0
+    }).length
+    return { totalTubos, phProximas, phVencidas, totalMovs: todosLosMovimientos.length }
+  }, [todosLosCilindros, todosLosMovimientos])
+
+  // Filtrar movimientos para el log
+  const movimientosFiltrados = useMemo(() => {
+    let list = todosLosMovimientos
+    if (filtroTipo !== 'all') {
+      list = list.filter((m) => m.tipo === filtroTipo)
+    }
+    if (filtroBusqueda.trim()) {
+      const q = filtroBusqueda.toLowerCase()
+      list = list.filter(
+        (m) =>
+          m.descripcion.toLowerCase().includes(q) ||
+          (m.ubicacion && m.ubicacion.toLowerCase().includes(q)) ||
+          (m.usuario && m.usuario.toLowerCase().includes(q))
+      )
+    }
+    return list.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+  }, [todosLosMovimientos, filtroTipo, filtroBusqueda])
+
+  const TIPOS_MOVIMIENTO = ['ALTA', 'CARGA', 'DESCARGA', 'TRASLADO', 'INSPECCION', 'REPARACION', 'BAJA']
+
+  const TIPO_COLORS: Record<string, string> = {
+    ALTA: 'bg-emerald-100 text-emerald-700',
+    CARGA: 'bg-blue-100 text-blue-700',
+    DESCARGA: 'bg-amber-100 text-amber-700',
+    TRASLADO: 'bg-purple-100 text-purple-700',
+    INSPECCION: 'bg-cyan-100 text-cyan-700',
+    REPARACION: 'bg-red-100 text-red-700',
+    BAJA: 'bg-slate-100 text-slate-700',
+  }
+
+  const TIPO_ICONOS: Record<string, string> = {
+    ALTA: '🟢',
+    CARGA: '🔵',
+    DESCARGA: '🟡',
+    TRASLADO: '🟣',
+    INSPECCION: '🔷',
+    REPARACION: '🔴',
+    BAJA: '⚫',
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Encabezado */}
+      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <History className="w-6 h-6 text-amber-400" />
+            <h2 className="text-xl font-bold">Trazabilidad de Activos</h2>
+          </div>
+          <p className="text-sm text-slate-300">
+            Histórico de movimientos, control de vida útil y alertas de prueba hidráulica (PH)
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          icon={<History className="w-5 h-5" />}
+          label="Eventos Registrados"
+          value={String(kpis.totalMovs)}
+          accent="from-orange-500 to-red-600"
+        />
+        <KpiCard
+          icon={<Package className="w-5 h-5" />}
+          label="Total de Tubos"
+          value={String(kpis.totalTubos)}
+          accent="from-emerald-500 to-teal-600"
+        />
+        <KpiCard
+          icon={<AlertTriangle className="w-5 h-5" />}
+          label="PH por Vencer"
+          value={`${kpis.phProximas} tubos`}
+          accent="from-amber-500 to-yellow-600"
+        />
+        <KpiCard
+          icon={<Clock className="w-5 h-5" />}
+          label="PH Vencidas"
+          value={`${kpis.phVencidas} tubos`}
+          accent="from-red-500 to-rose-600"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Columna izquierda: Buscador + Timeline */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Search className="w-4 h-4" /> Buscar Cilindro
+              </CardTitle>
+              <CardDescription>Buscar por número de serie</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ej: SN-2024-0001"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && buscarCilindro()}
+                />
+                <Button size="sm" onClick={buscarCilindro} disabled={buscando}>
+                  {buscando ? '...' : <Search className="w-4 h-4" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Timeline del cilindro seleccionado */}
+          {cilindroSeleccionado && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="w-4 h-4" /> Timeline:
+                  <span className="font-mono">{cilindroSeleccionado.numeroSerie}</span>
+                </CardTitle>
+                <CardDescription>
+                  {cilindroSeleccionado.gas.nombre} · {cilindroSeleccionado.ubicacionNombre} ·{' '}
+                  <Badge className={`${ESTADO_COLORS[cilindroSeleccionado.estado]} text-white text-xs`}>
+                    {ESTADO_LABELS[cilindroSeleccionado.estado]}
+                  </Badge>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(!cilindroSeleccionado.movimientos || cilindroSeleccionado.movimientos.length === 0) ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    <Clock className="w-8 h-8 mx-auto mb-2" />
+                    Sin movimientos registrados
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {cilindroSeleccionado.movimientos
+                      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                      .map((m, idx) => (
+                        <div key={m.id} className="flex gap-3 pb-3 last:pb-0">
+                          <div className="flex flex-col items-center">
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1.5" />
+                            {idx < cilindroSeleccionado.movimientos.length - 1 && (
+                              <div className="w-px flex-1 bg-slate-200" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge className={`text-xs ${TIPO_COLORS[m.tipo] || 'bg-slate-100'}`}>
+                                {TIPO_ICONOS[m.tipo] || '•'} {m.tipo}
+                              </Badge>
+                              <span className="text-xs text-slate-400 tabular-nums">
+                                {formatDate(m.fecha)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-700 mt-0.5">{m.descripcion}</p>
+                            {m.ubicacion && (
+                              <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3" /> {m.ubicacion}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Si no se encontró */}
+          {busqueda && !cilindroSeleccionado && !buscando && (
+            <Card>
+              <CardContent className="p-6 text-center text-slate-400">
+                <p>No se encontró un cilindro con ese número de serie</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Columna derecha: Log de movimientos + Alertas */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Log de movimientos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <History className="w-4 h-4" /> Registro de Eventos
+                  </CardTitle>
+                  <CardDescription>
+                    {movimientosFiltrados.length} movimiento(s)
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={buscarCilindro}>
+                  <RefreshCw className="w-4 h-4 mr-1" /> Actualizar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Filtros */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <div className="min-w-[140px]">
+                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todos los tipos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los tipos</SelectItem>
+                      {TIPOS_MOVIMIENTO.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[180px]">
+                  <Input
+                    placeholder="Buscar en descripción, ubicación o usuario..."
+                    value={filtroBusqueda}
+                    onChange={(e) => setFiltroBusqueda(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {movimientosFiltrados.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <History className="w-8 h-8 mx-auto mb-2" />
+                  {todosLosMovimientos.length === 0
+                    ? 'Seleccione un cilindro para ver sus movimientos'
+                    : 'No hay movimientos con los filtros aplicados'}
+                </div>
+              ) : (
+                <ScrollArea className="h-[350px]">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead className="w-24">Fecha</TableHead>
+                        <TableHead className="w-24">Tipo</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead>Ubicación</TableHead>
+                        <TableHead>Usuario</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {movimientosFiltrados.map((m) => (
+                        <TableRow key={m.id} className="hover:bg-slate-50">
+                          <TableCell className="text-xs tabular-nums text-slate-500">
+                            {formatDate(m.fecha)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`text-xs ${TIPO_COLORS[m.tipo] || 'bg-slate-100 text-slate-600'}`}>
+                              {m.tipo}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[300px] truncate">
+                            {m.descripcion}
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-500">
+                            {m.ubicacion || '—'}
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-500">
+                            {m.usuario || '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Alertas de Prueba Hidráulica */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4" /> Estado de Pruebas Hidráulicas (PH)
+              </CardTitle>
+              <CardDescription>
+                Control de vencimientos según normativa (renovación cada 5 años)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-emerald-700 tabular-nums">
+                    {todosLosCilindros.filter((c) => {
+                      if (!c.fechaProximoRetest) return false
+                      return daysUntil(c.fechaProximoRetest) > 90
+                    }).length}
+                  </div>
+                  <div className="text-xs text-emerald-600">PH al día (&gt;90 días)</div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-amber-700 tabular-nums">
+                    {kpis.phProximas}
+                  </div>
+                  <div className="text-xs text-amber-600">PH próxima (&lt;90 días)</div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-red-700 tabular-nums">
+                    {kpis.phVencidas}
+                  </div>
+                  <div className="text-xs text-red-600">PH vencida</div>
+                </div>
+              </div>
+
+              {/* Lista de tubos en alerta */}
+              {kpis.phProximas + kpis.phVencidas > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">
+                    Tubos que requieren atención:
+                  </p>
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-1">
+                      {todosLosCilindros
+                        .filter((c) => {
+                          if (!c.fechaProximoRetest) return false
+                          return daysUntil(c.fechaProximoRetest) <= 90
+                        })
+                        .sort((a, b) => {
+                          const da = daysUntil(a.fechaProximoRetest)
+                          const db = daysUntil(b.fechaProximoRetest)
+                          return da - db
+                        })
+                        .map((c) => {
+                          const dias = daysUntil(c.fechaProximoRetest)
+                          const vencido = dias < 0
+                          return (
+                            <div
+                              key={c.id}
+                              className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`w-2 h-2 rounded-full ${vencido ? 'bg-red-500' : 'bg-amber-500'}`} />
+                                <span className="font-mono text-sm font-medium">
+                                  {c.numeroSerie}
+                                </span>
+                                <Badge className={`text-xs ${ESTADO_COLORS[c.estado]} text-white`}>
+                                  {ESTADO_LABELS[c.estado]}
+                                </Badge>
+                              </div>
+                              <span className={`text-xs font-semibold tabular-nums ${vencido ? 'text-red-600' : 'text-amber-600'}`}>
+                                {vencido ? `Vencido (${Math.abs(dias)} días)` : `${dias} días`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 8. CONFIGURACIÓN DE ALERTAS
+// ============================================================
+interface AlertConfigData {
+  id: string
+  gasId: string
+  gas: Gas
+  diasAlertaRetest: number
+  diasMaxCliente: number
+  alertaPH: boolean
+  activo: boolean
+}
+
+function ConfiguracionTab() {
+  const { toast } = useToast()
+  const [configs, setConfigs] = useState<AlertConfigData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editando, setEditando] = useState<Record<string, { diasAlertaRetest: string; diasMaxCliente: string; alertaPH: boolean; activo: boolean }>>({})
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/config-alertas')
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : []
+      setConfigs(list)
+      const ed: Record<string, { diasAlertaRetest: string; diasMaxCliente: string; alertaPH: boolean; activo: boolean }> = {}
+      for (const c of list) {
+        ed[c.gasId] = {
+          diasAlertaRetest: String(c.diasAlertaRetest),
+          diasMaxCliente: String(c.diasMaxCliente),
+          alertaPH: c.alertaPH,
+          activo: c.activo,
+        }
+      }
+      setEditando(ed)
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo cargar la configuración', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => { void load() }, [load])
+
+  async function guardar(config: AlertConfigData) {
+    const vals = editando[config.gasId]
+    if (!vals) return
+    try {
+      const res = await fetch('/api/config-alertas', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gasId: config.gasId,
+          diasAlertaRetest: vals.diasAlertaRetest,
+          diasMaxCliente: vals.diasMaxCliente,
+          alertaPH: vals.alertaPH,
+          activo: vals.activo,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Guardado', description: `Configuración de ${config.gas.nombre} actualizada` })
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar', variant: 'destructive' })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+      </div>
+    )
+  }
+
+  return (
+    <Tabs defaultValue="alertas" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="alertas" className="flex items-center gap-1.5">
+          <Bell className="w-4 h-4" /><span>Alertas por Gas</span>
+        </TabsTrigger>
+        <TabsTrigger value="empresa" className="flex items-center gap-1.5">
+          <Building2 className="w-4 h-4" /><span>Datos de la Empresa</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="alertas">
+      <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-orange-500" />
+            Configuración de Alertas por Gas
+          </CardTitle>
+          <CardDescription>
+            Defina los umbrales de alerta para cada tipo de gas. Las alertas se mostrarán en el Dashboard principal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gas</TableHead>
+                  <TableHead className="text-center">Alertas activas</TableHead>
+                  <TableHead className="text-center">Días antes del retest</TableHead>
+                  <TableHead className="text-center">Días máx. cliente</TableHead>
+                  <TableHead className="text-center">Alerta PH</TableHead>
+                  <TableHead className="text-center" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {configs.map((cfg) => {
+                  const vals = editando[cfg.gasId]
+                  if (!vals) return null
+                  return (
+                    <TableRow key={cfg.id}>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ background: cfg.gas.colorHex }} />
+                          <span className="font-medium text-sm">{cfg.gas.nombre}</span>
+                          <span className="text-xs text-slate-400">({cfg.gas.codigo})</span>
+                          <SgaBadge peligro={cfg.gas.peligro} />
+                        </div>
+                      </td>
+                      <td className="text-center">
+                        <Select value={vals.activo ? 'true' : 'false'} onValueChange={(v) => setEditando({ ...editando, [cfg.gasId]: { ...vals, activo: v === 'true' } })}>
+                          <SelectTrigger className="w-24 mx-auto"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Sí</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="text-center">
+                        <Input
+                          type="number"
+                          className="w-20 text-center mx-auto"
+                          value={vals.diasAlertaRetest}
+                          onChange={(e) => setEditando({ ...editando, [cfg.gasId]: { ...vals, diasAlertaRetest: e.target.value } })}
+                        />
+                      </td>
+                      <td className="text-center">
+                        <Input
+                          type="number"
+                          className="w-20 text-center mx-auto"
+                          value={vals.diasMaxCliente}
+                          onChange={(e) => setEditando({ ...editando, [cfg.gasId]: { ...vals, diasMaxCliente: e.target.value } })}
+                        />
+                      </td>
+                      <td className="text-center">
+                        <Select value={vals.alertaPH ? 'true' : 'false'} onValueChange={(v) => setEditando({ ...editando, [cfg.gasId]: { ...vals, alertaPH: v === 'true' } })}>
+                          <SelectTrigger className="w-24 mx-auto"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Sí</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="text-center">
+                        <Button size="sm" onClick={() => guardar(cfg)} className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90">
+                          <Save className="w-3 h-3 mr-1" /> Guardar
+                        </Button>
+                      </td>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="w-4 h-4 text-amber-500" />
+            Vista previa de alertas actuales
+          </CardTitle>
+          <CardDescription>
+            Resumen de alertas activas según la configuración actual
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {configs.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">No hay configuraciones</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {configs.filter((c) => c.activo).map((cfg) => (
+                <div key={cfg.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200">
+                  <span className="w-3 h-3 rounded-full" style={{ background: cfg.gas.colorHex }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{cfg.gas.nombre}</span>
+                      <SgaBadge peligro={cfg.gas.peligro} />
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Alerta retest: {cfg.diasAlertaRetest}d · Cliente máx: {cfg.diasMaxCliente}d
+                    </div>
+                  </div>
+                  <Badge className={cfg.alertaPH ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}>
+                    PH {cfg.alertaPH ? 'Activa' : 'Inactiva'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      </div>
+      </TabsContent>
+
+      <TabsContent value="empresa">
+        <ConfigEmpresaForm />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+function ConfigEmpresaForm() {
+  const { toast } = useToast()
+  const [form, setForm] = useState({
+    company: { name: '', tagline: '', country: '', locale: '' },
+    base: { name: '', province: '', lat: '', lng: '', tipo: '', address: '', phone: '' },
+    map: { defaultCenterLat: '', defaultCenterLng: '', defaultZoom: '' },
+    meta: { title: '', description: '', keywords: '', author: '' },
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/config-empresa')
+        const data = await res.json()
+        setForm({
+          company: { name: data.company?.name || '', tagline: data.company?.tagline || '', country: data.company?.country || '', locale: data.company?.locale || '' },
+          base: { name: data.base?.name || '', province: data.base?.province || '', lat: String(data.base?.lat ?? ''), lng: String(data.base?.lng ?? ''), tipo: data.base?.tipo || '', address: data.base?.address || '', phone: data.base?.phone || '' },
+          map: { defaultCenterLat: String(data.map?.defaultCenter?.[0] ?? ''), defaultCenterLng: String(data.map?.defaultCenter?.[1] ?? ''), defaultZoom: String(data.map?.defaultZoom ?? '') },
+          meta: { title: data.meta?.title || '', description: data.meta?.description || '', keywords: Array.isArray(data.meta?.keywords) ? data.meta.keywords.join(', ') : (data.meta?.keywords || ''), author: data.meta?.author || '' },
+        })
+      } catch { /* use defaults */ }
+      finally { setLoading(false) }
+    }
+    load()
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    try {
+      const body = {
+        company: form.company,
+        base: { ...form.base, lat: parseFloat(form.base.lat) || 0, lng: parseFloat(form.base.lng) || 0 },
+        map: { defaultCenter: [parseFloat(form.map.defaultCenterLat) || 0, parseFloat(form.map.defaultCenterLng) || 0], defaultZoom: parseInt(form.map.defaultZoom) || 6 },
+        meta: { ...form.meta, keywords: form.meta.keywords.split(',').map(s => s.trim()).filter(Boolean) },
+      }
+      const res = await fetch('/api/config-empresa', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Configuración guardada', description: 'Los datos de la empresa se actualizaron correctamente' })
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar la configuración', variant: 'destructive' })
+    }
+    finally { setSaving(false) }
+  }
+
+  if (loading) {
+    return <div className="space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-orange-500" />
+            Datos de la Empresa
+          </CardTitle>
+          <CardDescription>Información corporativa que se muestra en la aplicación. Los cambios se guardan en <code>config.json</code>.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Company */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Compañía</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><Label>Nombre</Label><Input value={form.company.name} onChange={e => setForm(f => ({ ...f, company: { ...f.company, name: e.target.value } }))} /></div>
+              <div><Label>Tagline / Lema</Label><Input value={form.company.tagline} onChange={e => setForm(f => ({ ...f, company: { ...f.company, tagline: e.target.value } }))} /></div>
+              <div><Label>País</Label><Input value={form.company.country} onChange={e => setForm(f => ({ ...f, company: { ...f.company, country: e.target.value } }))} /></div>
+              <div><Label>Locale</Label><Input value={form.company.locale} onChange={e => setForm(f => ({ ...f, company: { ...f.company, locale: e.target.value } }))} /></div>
+            </div>
+          </div>
+
+          {/* Base */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Base Operativa</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><Label>Nombre</Label><Input value={form.base.name} onChange={e => setForm(f => ({ ...f, base: { ...f.base, name: e.target.value } }))} /></div>
+              <div><Label>Provincia</Label><Input value={form.base.province} onChange={e => setForm(f => ({ ...f, base: { ...f.base, province: e.target.value } }))} /></div>
+              <div><Label>Tipo</Label><Input value={form.base.tipo} onChange={e => setForm(f => ({ ...f, base: { ...f.base, tipo: e.target.value } }))} /></div>
+              <div><Label>Latitud</Label><Input type="number" step="any" value={form.base.lat} onChange={e => setForm(f => ({ ...f, base: { ...f.base, lat: e.target.value } }))} /></div>
+              <div><Label>Longitud</Label><Input type="number" step="any" value={form.base.lng} onChange={e => setForm(f => ({ ...f, base: { ...f.base, lng: e.target.value } }))} /></div>
+              <div><Label>Teléfono</Label><Input value={form.base.phone} onChange={e => setForm(f => ({ ...f, base: { ...f.base, phone: e.target.value } }))} /></div>
+              <div className="sm:col-span-3"><Label>Dirección</Label><Input value={form.base.address} onChange={e => setForm(f => ({ ...f, base: { ...f.base, address: e.target.value } }))} /></div>
+            </div>
+          </div>
+
+          {/* Map */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><MapIcon className="w-3.5 h-3.5" /> Mapa</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><Label>Centro Lat</Label><Input type="number" step="any" value={form.map.defaultCenterLat} onChange={e => setForm(f => ({ ...f, map: { ...f.map, defaultCenterLat: e.target.value } }))} /></div>
+              <div><Label>Centro Lng</Label><Input type="number" step="any" value={form.map.defaultCenterLng} onChange={e => setForm(f => ({ ...f, map: { ...f.map, defaultCenterLng: e.target.value } }))} /></div>
+              <div><Label>Zoom</Label><Input type="number" value={form.map.defaultZoom} onChange={e => setForm(f => ({ ...f, map: { ...f.map, defaultZoom: e.target.value } }))} /></div>
+            </div>
+          </div>
+
+          {/* Meta */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Meta / SEO</h4>
+            <div className="grid grid-cols-1 gap-3">
+              <div><Label>Título</Label><Input value={form.meta.title} onChange={e => setForm(f => ({ ...f, meta: { ...f.meta, title: e.target.value } }))} /></div>
+              <div><Label>Descripción</Label><Input value={form.meta.description} onChange={e => setForm(f => ({ ...f, meta: { ...f.meta, description: e.target.value } }))} /></div>
+              <div><Label>Keywords (separadas por coma)</Label><Input value={form.meta.keywords} onChange={e => setForm(f => ({ ...f, meta: { ...f.meta, keywords: e.target.value } }))} /></div>
+              <div><Label>Autor</Label><Input value={form.meta.author} onChange={e => setForm(f => ({ ...f, meta: { ...f.meta, author: e.target.value } }))} /></div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={save} disabled={saving} className="bg-gradient-to-r from-orange-500 to-red-600 gap-2">
+              <Save className="w-4 h-4" /> {saving ? 'Guardando...' : 'Guardar configuración'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ============================================================
+// 9. PEDIDOS
+// ============================================================
+interface Pedido {
+  id: string
+  fecha: string
+  cliente: string
+  clienteId: string | null
+  estadoCuenta: string | null
+  gasId: string
+  gas: Gas
+  operacionEnvase: string
+  phVigente: boolean | null
+  phObservacion: string | null
+  total: number
+  estado: string
+  observaciones: string | null
+  items: PedidoItem[]
+  cilindros: PedidoCilindro[]
+  createdAt: string
+}
+
+interface PedidoItem {
+  id: string
+  concepto: string
+  monto: number
+}
+
+interface PedidoCilindro {
+  id: string
+  pedidoId: string
+  numeroSerie: string
+  gasCodigo: string | null
+  verified: boolean
+  createdAt: string
+}
+
+interface RenglonPedido {
+  id: string
+  gasId: string
+  operacionEnvase: string
+  cantidad: number
+  phFecha: string
+}
+
+interface PedidoCilindroEntry {
+  id: string
+  numeroSerie: string
+  gasCodigo: string
+  verified: boolean
+}
+
+const PRECIOS_GAS: Record<string, number> = {
+  AR: 15000, C2H2: 22000, O2: 12000, CO2: 18000, N2: 10000,
+  'MIX-7525': 16000, HE: 28000, 'AR-HE': 24000, H2: 35000,
+}
+
+const ESTADOS_PEDIDO = ['PENDIENTE', 'COMPLETADO', 'CANCELADO'] as const
+
+function PedidosTab() {
+  const { toast } = useToast()
+  const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [gases, setGases] = useState<Gas[]>([])
+  const [clientes, setClientes] = useState<{ id: string; nombre: string; estadoCuenta: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [viewPedido, setViewPedido] = useState<Pedido | null>(null)
+  const [scannerPedidoId, setScannerPedidoId] = useState<string | null>(null)
+  const [scannerInput, setScannerInput] = useState('')
+  const [scannerCilindros, setScannerCilindros] = useState<PedidoCilindro[]>([])
+
+  const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0])
+  const [clienteId, setClienteId] = useState('')
+  const [estadoCuenta, setEstadoCuenta] = useState('OK')
+  const [observaciones, setObservaciones] = useState('')
+
+  const renglonIdRef = useRef(0)
+
+  const [renglones, setRenglones] = useState<RenglonPedido[]>([
+    { id: `r_${++renglonIdRef.current}`, gasId: '', operacionEnvase: 'CANJE', cantidad: 1, phFecha: new Date().toISOString().split('T')[0] },
+  ])
+
+  function resetForm() {
+    setFecha(new Date().toISOString().split('T')[0])
+    setClienteId(''); setEstadoCuenta('OK'); setObservaciones(''); setEditingId(null)
+    setRenglones([{ id: `r_${++renglonIdRef.current}`, gasId: '', operacionEnvase: 'CANJE', cantidad: 1, phFecha: new Date().toISOString().split('T')[0] }])
+  }
+
+  function openEdit(p: Pedido) {
+    setFecha(p.fecha ? p.fecha.split('T')[0] : new Date().toISOString().split('T')[0])
+    setClienteId(p.clienteId || '')
+    setEstadoCuenta(p.estadoCuenta || 'OK')
+    setObservaciones(p.observaciones || '')
+    setEditingId(p.id)
+    setRenglones(p.items.filter((i) => i.concepto.includes('Carga')).map((i, idx) => {
+      const gas = gases.find((g) => i.concepto.startsWith(g.nombre))
+      const cantMatch = i.concepto.match(/× (\d+)/)
+      return {
+        id: `r_${++renglonIdRef.current}`,
+        gasId: gas?.id || '',
+        operacionEnvase: 'CANJE',
+        cantidad: cantMatch ? parseInt(cantMatch[1]) : 1,
+        phFecha: new Date().toISOString().split('T')[0],
+      }
+    }))
+    setShowForm(true)
+  }
+
+  function agregarRenglon() {
+    setRenglones((prev) => [...prev, { id: `r_${++renglonIdRef.current}`, gasId: '', operacionEnvase: 'CANJE', cantidad: 1, phFecha: new Date().toISOString().split('T')[0] }])
+  }
+
+  function actualizarRenglon(id: string, campo: keyof RenglonPedido, valor: string | number) {
+    setRenglones((prev) => prev.map((r) => (r.id === id ? { ...r, [campo]: valor } : r)))
+  }
+
+  function eliminarRenglon(id: string) {
+    setRenglones((prev) => prev.filter((r) => r.id !== id))
+  }
+
+  const clienteSel = clientes.find((c) => c.id === clienteId)
+
+  function phVencida(phFecha: string): boolean | null {
+    if (!phFecha) return null
+    const d = new Date(phFecha); const hace5 = new Date(); hace5.setFullYear(hace5.getFullYear() - 5)
+    return d < hace5
+  }
+
+  const totalCalc = useMemo(() => {
+    let t = 0
+    for (const r of renglones) {
+      const gas = gases.find((g) => g.id === r.gasId)
+      if (!gas) continue
+      t += (PRECIOS_GAS[gas.codigo] || 15000) * r.cantidad
+      if (r.operacionEnvase === 'VENTA_NUEVO') t += 45000 * r.cantidad
+      if (r.operacionEnvase === 'CANJE' && phVencida(r.phFecha) === true) t += 8500 * r.cantidad
+    }
+    return t
+  }, [renglones, gases])
+
+  const subtotalRenglon = useCallback((r: RenglonPedido) => {
+    const gas = gases.find((g) => g.id === r.gasId)
+    if (!gas) return 0
+    let s = (PRECIOS_GAS[gas.codigo] || 15000) * r.cantidad
+    if (r.operacionEnvase === 'VENTA_NUEVO') s += 45000 * r.cantidad
+    if (r.operacionEnvase === 'CANJE' && phVencida(r.phFecha) === true) s += 8500 * r.cantidad
+    return s
+  }, [gases])
+
+  const load = useCallback(async () => {
+    try {
+      const [pRes, gRes, cRes] = await Promise.all([
+        fetch('/api/pedidos'),
+        fetch('/api/gases'),
+        fetch('/api/clientes?activo=true'),
+      ])
+      const pData = await pRes.json(); setPedidos(Array.isArray(pData) ? pData : [])
+      const gData = await gRes.json(); setGases(Array.isArray(gData) ? gData : [])
+      const cData = await cRes.json()
+      setClientes(Array.isArray(cData) ? cData.map((c: any) => ({ id: c.id, nombre: c.nombre, estadoCuenta: c.estadoCuenta || 'AL_DIA' })) : [])
+    } catch { /* ok */ }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  async function guardarPedido() {
+    if (!clienteId || renglones.length === 0 || renglones.every((r) => !r.gasId)) {
+      toast({ title: 'Faltan datos', description: 'Seleccioná un cliente y al menos un gas', variant: 'destructive' }); return
+    }
+    try {
+      const body = {
+        fecha,
+        cliente: clienteSel?.nombre,
+        clienteId,
+        estadoCuenta,
+        renglones: renglones.filter((r) => r.gasId).map((r) => ({
+          gasId: r.gasId,
+          operacionEnvase: r.operacionEnvase,
+          cantidad: r.cantidad,
+          phVigente: r.operacionEnvase === 'CANJE' ? !phVencida(r.phFecha) : null,
+        })),
+        observaciones: observaciones.trim() || null,
+      }
+
+      const res = editingId
+        ? await fetch(`/api/pedidos/${editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        : await fetch('/api/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
+      toast({ title: editingId ? 'Pedido actualizado' : 'Pedido creado', description: `$${totalCalc.toLocaleString()}` })
+      setShowForm(false); resetForm(); load()
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+    }
+  }
+
+  async function cambiarEstado(id: string, estado: string) {
+    await fetch(`/api/pedidos/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }) })
+    toast({ title: 'Estado actualizado' }); load()
+  }
+
+  async function eliminarPedido(id: string) {
+    if (!confirm('¿Eliminar este pedido?')) return
+    await fetch(`/api/pedidos/${id}`, { method: 'DELETE' })
+    toast({ title: 'Pedido eliminado' }); load()
+  }
+
+  // Scanner de cilindros
+  async function openScanner(pedido: Pedido) {
+    setScannerPedidoId(pedido.id)
+    setScannerInput('')
+    try {
+      const res = await fetch(`/api/pedidos/${pedido.id}/cilindros`)
+      const data = await res.json()
+      setScannerCilindros(Array.isArray(data) ? data : [])
+    } catch { setScannerCilindros([]) }
+  }
+
+  async function agregarCilindroScan() {
+    if (!scannerInput.trim() || !scannerPedidoId) return
+    try {
+      const res = await fetch(`/api/pedidos/${scannerPedidoId}/cilindros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numeroSerie: scannerInput.trim() }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
+      const nuevo = await res.json()
+      setScannerCilindros((prev) => [...prev, nuevo])
+      setScannerInput('')
+      toast({ title: 'Cilindro agregado', description: scannerInput.trim() })
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+    }
+  }
+
+  async function eliminarCilindroScan(id: string) {
+    if (!confirm('Quitar este cilindro del pedido?')) return
+    await fetch(`/api/pedidos/${scannerPedidoId}/cilindros?cilindroId=${id}`, { method: 'DELETE' })
+    setScannerCilindros((prev) => prev.filter((c) => c.id !== id))
+    toast({ title: 'Cilindro quitado' })
+  }
+
+  if (loading) return <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5 text-orange-500" />
+          <h2 className="text-lg font-semibold">Pedidos</h2>
+          <span className="text-xs text-slate-400">({pedidos.length} registros)</span>
+        </div>
+        <Button onClick={() => { if (showForm) resetForm(); setShowForm(!showForm) }} className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90">
+          <Plus className="w-4 h-4 mr-1" /> {showForm ? 'Cancelar' : 'Nuevo Pedido'}
+        </Button>
+      </div>
+
+      {/* FORM: Nuevo / Editar */}
+      {showForm && (
+        <Card className="border-orange-200 shadow-md print:hidden">
+          <CardContent className="p-4 space-y-4">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-orange-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-orange-600" />
+                  <span className="font-bold text-orange-800 uppercase tracking-wider text-sm">{editingId ? 'Editar Pedido' : 'Orden de Pedido'}</span>
+                </div>
+                <Badge variant="outline" className="bg-white text-orange-700 border-orange-300 text-xs">{editingId ? 'Editando' : 'Nuevo'}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs text-slate-500 font-medium">Fecha del pedido</Label>
+                  <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="bg-white text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500 font-medium">Cliente *</Label>
+                  <Select value={clienteId} onValueChange={(v) => {
+                    setClienteId(v)
+                    const c = clientes.find((cl) => cl.id === v)
+                    if (c) setEstadoCuenta(c.estadoCuenta === 'MOROSO' ? 'DEUDA_PENDIENTE' : 'OK')
+                  }}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Seleccionar cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{c.nombre}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500 font-medium">Estado de cuenta</Label>
+                  <Select value={estadoCuenta} onValueChange={setEstadoCuenta}>
+                    <SelectTrigger className={`bg-white ${estadoCuenta === 'DEUDA_PENDIENTE' ? 'border-red-400' : ''}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OK">Ok — Sin deuda</SelectItem>
+                      <SelectItem value="DEUDA_PENDIENTE">Deuda pendiente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {estadoCuenta === 'DEUDA_PENDIENTE' && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <AlertTriangle className="w-3 h-3 text-red-500" />
+                      <span className="text-[10px] text-red-600">Cliente con deuda — verificar condiciones de pago</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500 font-medium">Observaciones</Label>
+                  <Input value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Notas del pedido" className="bg-white text-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* Renglones */}
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
+              <div className="bg-slate-800 text-white px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold tracking-wide">Detalle del pedido</span>
+                </div>
+                <span className="text-xs text-slate-400">{renglones.filter((r) => r.gasId).length} ítem(s)</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-xs uppercase tracking-wider text-slate-600">
+                      <th className="px-3 py-2.5 text-left font-semibold w-8">#</th>
+                      <th className="px-3 py-2.5 text-left font-semibold min-w-[160px]">Gas</th>
+                      <th className="px-3 py-2.5 text-left font-semibold min-w-[130px]">Operación</th>
+                      <th className="px-3 py-2.5 text-center font-semibold w-16">Cant.</th>
+                      <th className="px-3 py-2.5 text-left font-semibold min-w-[140px]">PH (Canje)</th>
+                      <th className="px-3 py-2.5 text-right font-semibold w-28">P. Unit.</th>
+                      <th className="px-3 py-2.5 text-right font-semibold w-28">Subtotal</th>
+                      <th className="px-3 py-2.5 text-center w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renglones.map((r, idx) => {
+                      const gas = gases.find((g) => g.id === r.gasId)
+                      const phCheck = phVencida(r.phFecha)
+                      const sub = subtotalRenglon(r)
+                      const pUnit = gas ? (PRECIOS_GAS[gas.codigo] || 15000) : 0
+                      return (
+                        <tr key={r.id} className={`border-t border-slate-100 ${!r.gasId ? 'bg-slate-50/40' : 'bg-white'} hover:bg-orange-50/30 transition-colors`}>
+                          <td className="px-3 py-2 text-xs font-mono text-slate-400">{idx + 1}</td>
+                          <td className="px-3 py-2">
+                            <Select value={r.gasId} onValueChange={(v) => actualizarRenglon(r.id, 'gasId', v)}>
+                              <SelectTrigger className={`h-9 text-sm border-0 bg-transparent ${!r.gasId ? 'text-slate-400' : ''} hover:bg-slate-50 focus:ring-1`}>
+                                <SelectValue placeholder="— Seleccionar gas —" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {gases.map((g) => (
+                                  <SelectItem key={g.id} value={g.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-3 h-3 rounded-full border border-slate-300" style={{ background: g.colorHex }} />
+                                      <span className="font-medium">{g.nombre}</span>
+                                      <span className="text-slate-400 text-xs">({g.codigo})</span>
+                                      <SgaBadge peligro={g.peligro} />
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Select value={r.operacionEnvase} onValueChange={(v) => actualizarRenglon(r.id, 'operacionEnvase', v)}>
+                              <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-slate-50 focus:ring-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="CANJE"><div className="flex items-center gap-2"><RefreshCw className="w-3.5 h-3.5 text-blue-500" /><span>Canje (mano a mano)</span></div></SelectItem>
+                                <SelectItem value="VENTA_NUEVO"><div className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-emerald-600" /><span>Venta de cilindro nuevo</span></div></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={() => { if (r.cantidad > 1) actualizarRenglon(r.id, 'cantidad', r.cantidad - 1) }}>
+                                <span className="text-sm font-bold text-slate-500">−</span>
+                              </Button>
+                              <span className="w-8 text-center text-sm font-semibold tabular-nums">{r.cantidad}</span>
+                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={() => actualizarRenglon(r.id, 'cantidad', r.cantidad + 1)}>
+                                <span className="text-sm font-bold text-slate-500">+</span>
+                              </Button>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            {r.operacionEnvase === 'CANJE' ? (
+                              <div>
+                                <Input type="date" value={r.phFecha} onChange={(e) => actualizarRenglon(r.id, 'phFecha', e.target.value)}
+                                  className="h-9 text-xs bg-transparent border-0 hover:bg-slate-50 focus:ring-1" />
+                                {phCheck === true && <p className="text-[10px] text-red-600 mt-0.5">PH vencida (+$8.500 c/u)</p>}
+                                {phCheck === false && <p className="text-[10px] text-emerald-600 mt-0.5">PH vigente</p>}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {gas ? <span className="text-sm font-mono font-semibold tabular-nums">${pUnit.toLocaleString()}</span>
+                              : <span className="text-xs text-slate-300">—</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <span className="text-sm font-bold font-mono tabular-nums text-orange-700">${sub.toLocaleString()}</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-50"
+                              onClick={() => eliminarRenglon(r.id)} disabled={renglones.length === 1}>
+                              <Trash2 className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-slate-200 px-4 py-2 flex items-center justify-between bg-slate-50">
+                <Button type="button" variant="ghost" size="sm" onClick={agregarRenglon} className="text-xs text-orange-600 hover:text-orange-800 hover:bg-orange-50">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Agregar renglón
+                </Button>
+              </div>
+            </div>
+
+            {/* Totales */}
+            <div className="flex justify-end">
+              <div className="w-full max-w-sm bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200 p-4 space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-orange-200 pb-2">Resumen</p>
+                {renglones.filter((r) => r.gasId).map((r) => {
+                  const gas = gases.find((g) => g.id === r.gasId)
+                  if (!gas) return null
+                  const sub = subtotalRenglon(r)
+                  return (
+                    <div key={r.id} className="flex justify-between text-xs">
+                      <span className="text-slate-600 truncate">{gas.nombre} × {r.cantidad}
+                        <span className="text-slate-400 ml-1">({r.operacionEnvase === 'CANJE' ? 'Canje' : 'Nuevo'})</span>
+                      </span>
+                      <span className="font-mono font-semibold tabular-nums">${sub.toLocaleString()}</span>
+                    </div>
+                  )
+                })}
+                <div className="border-t border-orange-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-700">Total</span>
+                  <span className="text-lg font-bold font-mono tabular-nums text-orange-600">${totalCalc.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              {editingId && (
+                <Select onValueChange={(v) => cambiarEstado(editingId, v)}>
+                  <SelectTrigger className="w-44"><SelectValue placeholder="Cambiar estado..." /></SelectTrigger>
+                  <SelectContent>
+                    {ESTADOS_PEDIDO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button onClick={guardarPedido} disabled={!clienteId || renglones.every((r) => !r.gasId)}
+                className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90 px-8">
+                <ShoppingCart className="w-4 h-4 mr-2" /> {editingId ? 'Actualizar Pedido' : 'Confirmar Pedido'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Historial */}
+      <Card>
+        <CardContent className="p-0">
+          {pedidos.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+              No hay pedidos registrados
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Gas</TableHead>
+                    <TableHead>Envase</TableHead>
+                    <TableHead className="text-center">PH</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead className="text-center">Tubos</TableHead>
+                    <TableHead className="text-center">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pedidos.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{p.cliente}</div>
+                        {p.estadoCuenta === 'DEUDA_PENDIENTE' && <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200">Deuda</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.gas.colorHex }} />
+                          <span className="text-sm">{p.gas.nombre}</span>
+                          <SgaBadge peligro={p.gas.peligro} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{p.operacionEnvase === 'CANJE' ? 'Canje' : 'Venta nueva'}</TableCell>
+                      <TableCell className="text-center">
+                        {p.phVigente === true && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Vigente</Badge>}
+                        {p.phVigente === false && <Badge variant="destructive" className="text-xs">Vencida</Badge>}
+                        {p.phVigente === null && <span className="text-xs text-slate-400">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">${p.total.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge className={`text-xs ${p.estado === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : p.estado === 'CANCELADO' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{p.estado}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-500">{p.fecha ? formatDate(p.fecha) : formatDate(p.createdAt)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openScanner(p)} title="Gestionar tubos del pedido">
+                          <Package className="w-3.5 h-3.5" />
+                        </Button>
+                        {p.cilindros && p.cilindros.length > 0 && (
+                          <span className="text-[10px] text-slate-400 block -mt-1">{p.cilindros.length}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewPedido(p)} title="Ver detalle">
+                            <Search className="w-3.5 h-3.5 text-slate-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} title="Editar">
+                            <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setViewPedido(p); setTimeout(() => window.print(), 300) }} title="Imprimir / PDF">
+                            <FileText className="w-3.5 h-3.5 text-amber-600" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => eliminarPedido(p.id)} title="Eliminar">
+                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal: Ver detalle / Imprimir */}
+      <Dialog open={!!viewPedido} onOpenChange={(o) => { if (!o) setViewPedido(null) }}>
+        <DialogContent className="max-w-3xl print:max-w-full print:shadow-none print:border-0">
+          {viewPedido && <PedidoDetalle pedido={viewPedido} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Scanner de cilindros */}
+      <Dialog open={!!scannerPedidoId} onOpenChange={(o) => { if (!o) setScannerPedidoId(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-orange-500" />
+              Gestionar tubos del pedido
+            </DialogTitle>
+            <DialogDescription>
+              Escaneá el QR o ingresá manualmente el número de serie del tubo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input value={scannerInput} onChange={(e) => setScannerInput(e.target.value)}
+                placeholder="N° de serie del tubo (QR o manual)" className="flex-1"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarCilindroScan() } }} />
+              <Button onClick={agregarCilindroScan} disabled={!scannerInput.trim()}>
+                <Plus className="w-4 h-4 mr-1" /> Agregar
+              </Button>
+            </div>
+            <div className="text-xs text-slate-400 flex items-center gap-2">
+              <span>📷 Escaneá con lector QR — el número aparece acá automáticamente</span>
+            </div>
+            {scannerCilindros.length > 0 ? (
+              <div className="border rounded-lg divide-y">
+                {scannerCilindros.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-semibold">{c.numeroSerie}</span>
+                      {c.gasCodigo && <Badge variant="outline" className="text-[10px]">{c.gasCodigo}</Badge>}
+                      {c.verified
+                        ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Verificado</Badge>
+                        : <Badge variant="destructive" className="text-[10px]">No en inv.</Badge>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => eliminarCilindroScan(c.id)}>
+                      <Trash2 className="w-3 h-3 text-red-400" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                <Package className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                No hay tubos asignados a este pedido
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function PedidoDetalle({ pedido }: { pedido: Pedido }) {
+  const fecha = pedido.fecha ? new Date(pedido.fecha).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+  return (
+    <div className="space-y-6 print:space-y-4">
+      {/* Encabezado imprimible */}
+      <div className="hidden print:block text-center border-b-2 border-slate-800 pb-4 mb-4">
+        <h1 className="text-2xl font-bold uppercase tracking-wide">Orden de Pedido</h1>
+        <p className="text-sm text-slate-500">Control Digital ManejaDatos Districon</p>
+      </div>
+
+      <DialogHeader className="print:hidden">
+        <DialogTitle className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-orange-500" />
+          Pedido — {pedido.cliente}
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div><span className="text-slate-500 text-xs">Cliente</span><p className="font-semibold">{pedido.cliente}</p></div>
+        <div><span className="text-slate-500 text-xs">Fecha</span><p className="font-semibold">{fecha}</p></div>
+        <div><span className="text-slate-500 text-xs">Estado</span>
+          <p><Badge className={`text-xs ${pedido.estado === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : pedido.estado === 'CANCELADO' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{pedido.estado}</Badge></p>
+        </div>
+        <div><span className="text-slate-500 text-xs">Estado de cuenta</span>
+          <p>{pedido.estadoCuenta === 'DEUDA_PENDIENTE' ? <span className="text-red-600 font-semibold">Deuda pendiente</span> : 'Ok'}</p>
+        </div>
+      </div>
+
+      {pedido.observaciones && (
+        <div className="text-sm bg-slate-50 p-2 rounded"><span className="text-slate-500 text-xs">Observaciones:</span><p>{pedido.observaciones}</p></div>
+      )}
+
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-slate-800 text-white px-4 py-2 text-sm font-semibold">Detalle de ítems</div>
+        <div className="divide-y">
+          {pedido.items.map((i) => (
+            <div key={i.id} className="flex justify-between px-4 py-2 text-sm">
+              <span>{i.concepto}</span>
+              <span className="font-mono font-semibold">${i.monto.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+        <div className="bg-orange-50 flex justify-between px-4 py-3 font-bold text-base border-t-2 border-orange-200">
+          <span>Total</span>
+          <span className="text-orange-700 font-mono">${pedido.total.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Tubos asignados */}
+      {pedido.cilindros && pedido.cilindros.length > 0 && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="bg-slate-700 text-white px-4 py-2 text-sm font-semibold">Tubos asignados</div>
+          <div className="divide-y">
+            {pedido.cilindros.map((c) => (
+              <div key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                <span className="font-mono font-semibold">{c.numeroSerie}</span>
+                <div className="flex items-center gap-2">
+                  {c.gasCodigo && <Badge variant="outline" className="text-[10px]">{c.gasCodigo}</Badge>}
+                  {c.verified
+                    ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Verif.</Badge>
+                    : <Badge variant="destructive" className="text-[10px]">No verif.</Badge>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Botón de impresión (solo en pantalla) */}
+      <div className="flex justify-end print:hidden">
+        <Button onClick={() => window.print()} variant="outline" className="gap-2">
+          <FileText className="w-4 h-4" /> Imprimir / PDF
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// Colores para nodos del grafo (hex para SVG)
+const NODE_COLORS: Record<string, { fill: string; stroke: string; text: string }> = {
+  Cylinder: { fill: '#f3e8ff', stroke: '#a855f7', text: '#6b21a8' },
+  Gas: { fill: '#fef3c7', stroke: '#f59e0b', text: '#92400e' },
+  Cliente: { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e40af' },
+  Location: { fill: '#d1fae5', stroke: '#10b981', text: '#065f46' },
+  Movimiento: { fill: '#e0f2fe', stroke: '#0ea5e9', text: '#075985' },
+  Mantenimiento: { fill: '#ffe4e6', stroke: '#f43f5e', text: '#9f1239' },
+}
+
+// Simple SVG graph visualization
+function SimpleGraph({ nodes, edges }: { nodes: any[]; edges: any[] }) {
+  const W = 700, H = 400, CX = W / 2, CY = H / 2, R = 140
+
+  // Position center node (Cylinder) at center, others in a circle
+  const cylNode = nodes.find(n => n.type === 'Cylinder')
+  const others = nodes.filter(n => n.type !== 'Cylinder')
+  const positioned = new Map<string, { x: number; y: number }>()
+  if (cylNode) positioned.set(cylNode.id, { x: CX, y: CY })
+  others.forEach((n, i) => {
+    const angle = (2 * Math.PI * i) / others.length - Math.PI / 2
+    positioned.set(n.id, { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) })
+  })
+
+  // Build mini-label for tooltip
+  function miniLabel(n: any): string {
+    if (n.type === 'Cylinder') return `#${n.label}`
+    return n.label || n.id
+  }
+
+  return (
+    <div className="rounded-lg border bg-white overflow-hidden">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minHeight: 250 }}>
+        {/* Edges */}
+        {edges.map((e, i) => {
+          const s = positioned.get(e.source)
+          const t = positioned.get(e.target)
+          if (!s || !t) return null
+          return (
+            <g key={i}>
+              <line x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                stroke="#94a3b8" strokeWidth={1.5} />
+              <text x={(s.x + t.x) / 2} y={(s.y + t.y) / 2 - 4}
+                textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">
+                {e.type}
+              </text>
+            </g>
+          )
+        })}
+        {/* Nodes */}
+        {nodes.map(n => {
+          const p = positioned.get(n.id)
+          if (!p) return null
+          const c = NODE_COLORS[n.type] || NODE_COLORS.Cylinder
+          const isCyl = n.type === 'Cylinder'
+          const w = isCyl ? 120 : 100
+          return (
+            <g key={n.id}>
+              <title>{miniLabel(n)}</title>
+              <rect x={p.x - w / 2} y={p.y - 14} width={w} height={28} rx={14}
+                fill={c.fill} stroke={c.stroke} strokeWidth={2} />
+              <text x={p.x} y={p.y + 4.5} textAnchor="middle"
+                fill={c.text} fontSize="10" fontFamily="monospace" fontWeight="600">
+                {isCyl ? `#${n.label}` : n.label}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+// ============================================================
+// 10. MANTENIMIENTO
+// ============================================================
+const TIPOS_MANT: Record<string, string> = {
+  CAMBIO_VALVULA: 'Cambio Válvula',
+  PINTURA: 'Pintura',
+  CAMBIO_GAS: 'Cambio Gas',
+  REPARACION: 'Reparación',
+  INSPECCION: 'Inspección',
+  OTRO: 'Otro',
+}
+
+function MantenimientoTab() {
+  const { toast } = useToast()
+  const [records, setRecords] = useState<any[]>([])
+  const [cylinders, setCylinders] = useState<Cylinder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filtroCylinder, setFiltroCylinder] = useState('all')
+  const [filtroTipo, setFiltroTipo] = useState('all')
+  const [filtroGas, setFiltroGas] = useState('all')
+  const [gases, setGases] = useState<Gas[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [form, setForm] = useState({
+    cylinderId: '', tipo: '', descripcion: '', tecnico: '',
+    costo: '', fecha: new Date().toISOString().split('T')[0],
+  })
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const [cylRes, gasRes] = await Promise.all([
+        fetch('/api/cylinders'),
+        fetch('/api/gases'),
+      ])
+      const cyls: Cylinder[] = await cylRes.json()
+      const allRecords: any[] = []
+      for (const cyl of cyls) {
+        const mRes = await fetch(`/api/cylinders/${cyl.id}/mantenimiento`)
+        const mData = await mRes.json()
+        if (Array.isArray(mData)) {
+          for (const r of mData) allRecords.push({ ...r, cylinder: cyl })
+        }
+      }
+      allRecords.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      setRecords(allRecords)
+      setCylinders(cyls)
+      setGases(await gasRes.json())
+    } catch { setRecords([]) }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { loadData() }, [])
+
+  const filtered = records.filter(r => {
+    if (filtroCylinder !== 'all' && r.cylinderId !== filtroCylinder) return false
+    if (filtroTipo !== 'all' && r.tipo !== filtroTipo) return false
+    if (filtroGas !== 'all' && r.cylinder.gasId !== filtroGas) return false
+    return true
+  })
+
+  async function saveMantenimiento() {
+    if (!form.cylinderId || !form.tipo) return
+    try {
+      const res = await fetch(`/api/cylinders/${form.cylinderId}/mantenimiento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Mantenimiento registrado', variant: 'default' })
+      setDialogOpen(false)
+      setForm({ cylinderId: '', tipo: '', descripcion: '', tecnico: '', costo: '', fecha: new Date().toISOString().split('T')[0] })
+      loadData()
+    } catch {
+      toast({ title: 'Error al guardar', variant: 'destructive' })
+    }
+  }
+
+  async function deleteMantenimiento(mantId: string, cylinderId: string) {
+    if (!confirm('¿Eliminar este registro de mantenimiento?')) return
+    try {
+      const res = await fetch(`/api/cylinders/${cylinderId}/mantenimiento?mantenimientoId=${mantId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Registro eliminado', variant: 'default' })
+      loadData()
+    } catch {
+      toast({ title: 'Error al eliminar', variant: 'destructive' })
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-orange-500" />
+          Mantenimiento de Tubos
+        </h2>
+        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-to-r from-orange-500 to-red-600 gap-2">
+          <Wrench className="w-4 h-4" /> Nuevo Registro
+        </Button>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2">
+        <Select value={filtroCylinder} onValueChange={setFiltroCylinder}>
+          <SelectTrigger className="w-64"><SelectValue placeholder="Todos los tubos" /></SelectTrigger>
+          <SelectContent>{cylinders.map(cyl => <SelectItem key={cyl.id} value={cyl.id}>{cyl.numeroSerie} — {cyl.gas.nombre}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Todos los tipos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los tipos</SelectItem>
+            {Object.entries(TIPOS_MANT).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filtroGas} onValueChange={setFiltroGas}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Todos los gases" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los gases</SelectItem>
+            {gases.map(g => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-slate-400">Sin registros de mantenimiento</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Tubo</TableHead>
+                <TableHead>Gas</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Técnico</TableHead>
+                <TableHead className="text-right">Costo</TableHead>
+                <TableHead className="text-center w-16">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(r => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-xs font-mono">{formatDate(r.fecha)}</TableCell>
+                  <TableCell className="font-mono text-xs font-semibold">{r.cylinder.numeroSerie}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.cylinder.gas.colorHex }} />
+                      <span className="text-xs">{r.cylinder.gas.nombre}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell><Badge variant="outline" className="text-[10px]">{TIPOS_MANT[r.tipo] || r.tipo}</Badge></TableCell>
+                  <TableCell className="text-xs max-w-48 truncate">{r.descripcion || '—'}</TableCell>
+                  <TableCell className="text-xs">{r.tecnico || '—'}</TableCell>
+                  <TableCell className="text-right text-xs font-mono tabular-nums">{r.costo != null ? `$${r.costo.toFixed(2)}` : '—'}</TableCell>
+                  <TableCell className="text-center">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500"
+                      onClick={() => deleteMantenimiento(r.id, r.cylinderId)} title="Eliminar">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Dialog: Nuevo mantenimiento */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-orange-500" />
+              Nuevo Registro de Mantenimiento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Tubo</Label>
+              <Select value={form.cylinderId} onValueChange={v => setForm(f => ({ ...f, cylinderId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar tubo" /></SelectTrigger>
+                <SelectContent>
+                  {cylinders.map(cyl => (
+                    <SelectItem key={cyl.id} value={cyl.id}>{cyl.numeroSerie} — {cyl.gas.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPOS_MANT).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Input value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Descripción opcional" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Técnico</Label>
+                <Input value={form.tecnico} onChange={e => setForm(f => ({ ...f, tecnico: e.target.value }))} placeholder="Nombre" />
+              </div>
+              <div>
+                <Label>Costo ($)</Label>
+                <Input type="number" step="0.01" value={form.costo} onChange={e => setForm(f => ({ ...f, costo: e.target.value }))} placeholder="0.00" />
+              </div>
+            </div>
+            <div>
+              <Label>Fecha</Label>
+              <Input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}><X className="w-4 h-4 mr-1" /> Cancelar</Button>
+            <Button onClick={saveMantenimiento} disabled={!form.cylinderId || !form.tipo}
+              className="bg-gradient-to-r from-orange-500 to-red-600">
+              <Save className="w-4 h-4 mr-1" /> Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ============================================================
+// 11. TABLAS (CRUD Gases, Location, AlertConfig)
+// ============================================================
+const TABLAS_DISPONIBLES = [
+  { key: 'gases', label: 'Gases', icon: 'FlaskConical' },
+  { key: 'locations', label: 'Ubicaciones', icon: 'MapPin' },
+  { key: 'alertconfig', label: 'Alertas', icon: 'Bell' },
+] as const
+
+function TablasTab() {
+  const { toast } = useToast()
+  const [tablaActiva, setTablaActiva] = useState('gases')
+  const [gases, setGases] = useState<Gas[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+
+  // Gases form
+  const emptyGas = { codigo: '', nombre: '', descripcion: '', presionBar: '200', colorHex: '#cccccc', usoPrincipal: '', categoria: '', peligro: 'GAS_PRESION' }
+  const [gasForm, setGasForm] = useState(emptyGas)
+
+  // Locations form
+  const emptyLoc = { nombre: '', provincia: '', lat: '', lng: '', tipo: 'BASE', esBase: false, direccion: '', telefono: '' }
+  const [locForm, setLocForm] = useState(emptyLoc)
+
+  // Alert form (usa campos de AlertConfig: diasAlertaRetest, diasMaxCliente, alertaPH, activo)
+  const emptyAlert = { gasId: '', diasAlertaRetest: '60', diasMaxCliente: '90', alertaPH: true, activo: true }
+  const [alertForm, setAlertForm] = useState(emptyAlert)
+
+  async function loadAll() {
+    setLoading(true)
+    try {
+      const [gRes, lRes, aRes] = await Promise.all([
+        fetch('/api/gases'),
+        fetch('/api/locations'),
+        fetch('/api/config-alertas'),
+      ])
+      const [gData, lData, aData] = await Promise.all([
+        gRes.json().catch(() => []),
+        lRes.json().catch(() => []),
+        aRes.json().catch(() => []),
+      ])
+      setGases(Array.isArray(gData) ? gData : [])
+      setLocations(Array.isArray(lData) ? lData : [])
+      setAlerts(Array.isArray(aData) ? aData : [])
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { loadAll() }, [])
+
+  // --- Gases CRUD ---
+  async function saveGas() {
+    const body = { ...gasForm, presionBar: parseFloat(gasForm.presionBar) }
+    try {
+      const res = await fetch(`/api/gases${editId ? `/${editId}` : ''}`, {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: editId ? 'Gas actualizado' : 'Gas creado' })
+      closeAndReload()
+    } catch { toast({ title: 'Error al guardar gas', variant: 'destructive' }) }
+  }
+
+  async function deleteGas(id: string) {
+    if (!confirm('¿Eliminar este gas?')) return
+    try {
+      const res = await fetch(`/api/gases/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Gas eliminado' })
+      loadAll()
+    } catch { toast({ title: 'Error al eliminar', variant: 'destructive' }) }
+  }
+
+  function openGas(gas?: Gas) {
+    if (gas) { setEditId(gas.id); setGasForm({ codigo: gas.codigo, nombre: gas.nombre, descripcion: gas.descripcion, presionBar: String(gas.presionBar), colorHex: gas.colorHex, usoPrincipal: gas.usoPrincipal, categoria: gas.categoria, peligro: gas.peligro }) }
+    else { setEditId(null); setGasForm(emptyGas) }
+    setDialogOpen(true)
+  }
+
+  // --- Locations CRUD ---
+  async function saveLocation() {
+    const body = { ...locForm, lat: parseFloat(locForm.lat), lng: parseFloat(locForm.lng) }
+    try {
+      const res = await fetch(`/api/locations${editId ? `/${editId}` : ''}`, {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: editId ? 'Ubicación actualizada' : 'Ubicación creada' })
+      closeAndReload()
+    } catch { toast({ title: 'Error al guardar ubicación', variant: 'destructive' }) }
+  }
+
+  async function deleteLocation(id: string) {
+    if (!confirm('¿Eliminar esta ubicación?')) return
+    try {
+      const res = await fetch(`/api/locations/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Ubicación eliminada' })
+      loadAll()
+    } catch { toast({ title: 'Error al eliminar', variant: 'destructive' }) }
+  }
+
+  function openLocation(loc?: Location) {
+    if (loc) { setEditId(loc.id); setLocForm({ nombre: loc.nombre, provincia: loc.provincia, lat: String(loc.lat), lng: String(loc.lng), tipo: loc.tipo || 'BASE', esBase: loc.esBase || false, direccion: loc.direccion || '', telefono: loc.telefono || '' }) }
+    else { setEditId(null); setLocForm(emptyLoc) }
+    setDialogOpen(true)
+  }
+
+  // --- Alerts CRUD (usa /api/config-alertas, upsert por gasId) ---
+  async function saveAlert() {
+    const body = {
+      gasId: alertForm.gasId,
+      diasAlertaRetest: parseInt(alertForm.diasAlertaRetest),
+      diasMaxCliente: parseInt(alertForm.diasMaxCliente),
+      alertaPH: alertForm.alertaPH,
+      activo: alertForm.activo,
+    }
+    try {
+      const res = await fetch('/api/config-alertas', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: editId ? 'Alerta actualizada' : 'Alerta creada' })
+      closeAndReload()
+    } catch { toast({ title: 'Error al guardar alerta', variant: 'destructive' }) }
+  }
+
+  async function deleteAlert(id: string) {
+    if (!confirm('¿Eliminar esta configuración de alerta?')) return
+    try {
+      const res = await fetch(`/api/config-alertas/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Alerta eliminada' })
+      loadAll()
+    } catch { toast({ title: 'Error al eliminar', variant: 'destructive' }) }
+  }
+
+  function openAlert(alert?: any) {
+    if (alert) { setEditId(alert.id); setAlertForm({ gasId: alert.gasId, diasAlertaRetest: String(alert.diasAlertaRetest), diasMaxCliente: String(alert.diasMaxCliente), alertaPH: alert.alertaPH, activo: alert.activo }) }
+    else { setEditId(null); setAlertForm(emptyAlert) }
+    setDialogOpen(true)
+  }
+
+  function closeAndReload() {
+    setDialogOpen(false)
+    setEditId(null)
+    loadAll()
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <FileText className="w-5 h-5 text-orange-500" />
+        Tablas de Referencia
+      </h2>
+
+      {/* Pestañas de tablas */}
+      <div className="flex gap-1 border-b pb-1">
+        {TABLAS_DISPONIBLES.map(t => (
+          <button key={t.key}
+            onClick={() => { setTablaActiva(t.key); setDialogOpen(false) }}
+            className={`px-4 py-2 rounded-t text-sm font-medium transition-colors ${tablaActiva === t.key ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-500' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+      ) : (
+        <>
+          {/* Gases */}
+          {tablaActiva === 'gases' && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => openGas()} className="bg-orange-500 hover:bg-orange-600 gap-2">
+                  <Plus className="w-4 h-4" /> Nuevo Gas
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Color</TableHead>
+                      <TableHead>Presión (Bar)</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Peligro</TableHead>
+                      <TableHead className="text-center w-20">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {gases.map(g => (
+                      <TableRow key={g.id}>
+                        <TableCell className="font-mono text-xs font-semibold">{g.codigo}</TableCell>
+                        <TableCell className="text-sm">{g.nombre}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-4 h-4 rounded border" style={{ background: g.colorHex }} />
+                            <span className="text-[10px] text-slate-400">{g.colorHex}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="tabular-nums text-sm">{g.presionBar}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{g.categoria}</Badge></TableCell>
+                        <TableCell><SgaBadge peligro={g.peligro} /></TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openGas(g)}>
+                              <Pencil className="w-3.5 h-3.5 text-sky-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => deleteGas(g.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          {/* Locations */}
+          {tablaActiva === 'locations' && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => openLocation()} className="bg-orange-500 hover:bg-orange-600 gap-2">
+                  <Plus className="w-4 h-4" /> Nueva Ubicación
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Provincia</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Lat</TableHead>
+                      <TableHead>Lng</TableHead>
+                      <TableHead>Base</TableHead>
+                      <TableHead className="text-center w-20">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {locations.map(loc => (
+                      <TableRow key={loc.id}>
+                        <TableCell className="text-sm font-medium">{loc.nombre}</TableCell>
+                        <TableCell className="text-xs">{loc.provincia}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{loc.tipo}</Badge></TableCell>
+                        <TableCell className="font-mono text-xs">{loc.lat}</TableCell>
+                        <TableCell className="font-mono text-xs">{loc.lng}</TableCell>
+                        <TableCell>{loc.esBase ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openLocation(loc)}>
+                              <Pencil className="w-3.5 h-3.5 text-sky-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => deleteLocation(loc.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          {/* AlertConfig */}
+          {tablaActiva === 'alertconfig' && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => openAlert()} className="bg-orange-500 hover:bg-orange-600 gap-2">
+                  <Plus className="w-4 h-4" /> Nueva Alerta
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Gas</TableHead>
+                      <TableHead className="text-right">Días Alerta Retest</TableHead>
+                      <TableHead className="text-right">Días Max Cliente</TableHead>
+                      <TableHead className="text-center">Alerta PH</TableHead>
+                      <TableHead className="text-center">Activo</TableHead>
+                      <TableHead className="text-center w-20">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {alerts.map(a => {
+                      const gas = gases.find(g => g.id === a.gasId)
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ background: gas?.colorHex || '#ccc' }} />
+                              <span className="text-sm">{gas?.nombre || a.gasId}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">{a.diasAlertaRetest}</TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">{a.diasMaxCliente}</TableCell>
+                          <TableCell className="text-center">{a.alertaPH ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : '—'}</TableCell>
+                          <TableCell className="text-center">{a.activo ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-[10px]">No</Badge>}</TableCell>
+                          <TableCell>
+                            <div className="flex justify-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openAlert(a)}>
+                                <Pencil className="w-3.5 h-3.5 text-sky-600" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => deleteAlert(a.id)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Dialog: formulario dinámico según tabla activa */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className={`max-w-lg ${tablaActiva === 'gases' ? '' : 'max-w-md'}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {editId ? 'Editar' : 'Nuevo'} {TABLAS_DISPONIBLES.find(t => t.key === tablaActiva)?.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {tablaActiva === 'gases' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Código</Label><Input value={gasForm.codigo} onChange={e => setGasForm(f => ({ ...f, codigo: e.target.value }))} placeholder="Ej: N2" /></div>
+                  <div><Label>Nombre</Label><Input value={gasForm.nombre} onChange={e => setGasForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nitrógeno" /></div>
+                </div>
+                <div><Label>Descripción</Label><Input value={gasForm.descripcion} onChange={e => setGasForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Presión (Bar)</Label><Input type="number" value={gasForm.presionBar} onChange={e => setGasForm(f => ({ ...f, presionBar: e.target.value }))} /></div>
+                  <div><Label>Color Hex</Label><div className="flex gap-2 items-center"><Input value={gasForm.colorHex} onChange={e => setGasForm(f => ({ ...f, colorHex: e.target.value }))} /><input type="color" value={gasForm.colorHex} onChange={e => setGasForm(f => ({ ...f, colorHex: e.target.value }))} className="w-8 h-8 rounded border cursor-pointer" /></div></div>
+                  <div><Label>Categoría</Label><Select value={gasForm.categoria} onValueChange={v => setGasForm(f => ({ ...f, categoria: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Alta Presión">Alta Presión</SelectItem><SelectItem value="Baja Presión">Baja Presión</SelectItem><SelectItem value="Disuelto">Disuelto</SelectItem><SelectItem value="Líquido Criogénico">Líquido Criogénico</SelectItem><SelectItem value="Mezcla">Mezcla</SelectItem></SelectContent></Select></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Uso Principal</Label><Input value={gasForm.usoPrincipal} onChange={e => setGasForm(f => ({ ...f, usoPrincipal: e.target.value }))} /></div>
+                  <div><Label>Peligro SGA</Label><Select value={gasForm.peligro} onValueChange={v => setGasForm(f => ({ ...f, peligro: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="INFLAMABLE">Inflamable</SelectItem><SelectItem value="COMBURENTE">Comburente</SelectItem><SelectItem value="GAS_PRESION">Gas a Presión</SelectItem><SelectItem value="NINGUNO">Sin Riesgo</SelectItem></SelectContent></Select></div>
+                </div>
+              </>
+            )}
+            {tablaActiva === 'locations' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Nombre</Label><Input value={locForm.nombre} onChange={e => setLocForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Base Central" /></div>
+                  <div><Label>Provincia</Label><Input value={locForm.provincia} onChange={e => setLocForm(f => ({ ...f, provincia: e.target.value }))} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Latitud</Label><Input type="number" step="any" value={locForm.lat} onChange={e => setLocForm(f => ({ ...f, lat: e.target.value }))} /></div>
+                  <div><Label>Longitud</Label><Input type="number" step="any" value={locForm.lng} onChange={e => setLocForm(f => ({ ...f, lng: e.target.value }))} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Tipo</Label><Select value={locForm.tipo} onValueChange={v => setLocForm(f => ({ ...f, tipo: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BASE">Base</SelectItem><SelectItem value="CLIENTE">Cliente</SelectItem><SelectItem value="SUCURSAL">Sucursal</SelectItem><SelectItem value="ALIADO">Aliado</SelectItem></SelectContent></Select></div>
+                  <div className="flex items-end pb-2">
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={locForm.esBase} onChange={e => setLocForm(f => ({ ...f, esBase: e.target.checked }))} className="rounded" />
+                      Es Base
+                    </Label>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Dirección</Label><Input value={locForm.direccion} onChange={e => setLocForm(f => ({ ...f, direccion: e.target.value }))} /></div>
+                  <div><Label>Teléfono</Label><Input value={locForm.telefono} onChange={e => setLocForm(f => ({ ...f, telefono: e.target.value }))} /></div>
+                </div>
+              </>
+            )}
+            {tablaActiva === 'alertconfig' && (
+              <>
+                <div><Label>Gas</Label><Select value={alertForm.gasId} onValueChange={v => setAlertForm(f => ({ ...f, gasId: v }))}><SelectTrigger><SelectValue placeholder="Seleccionar gas" /></SelectTrigger><SelectContent>{gases.map(g => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent></Select></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Días Alerta Retest</Label><Input type="number" value={alertForm.diasAlertaRetest} onChange={e => setAlertForm(f => ({ ...f, diasAlertaRetest: e.target.value }))} /></div>
+                  <div><Label>Días Max Cliente</Label><Input type="number" value={alertForm.diasMaxCliente} onChange={e => setAlertForm(f => ({ ...f, diasMaxCliente: e.target.value }))} /></div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={alertForm.alertaPH} onChange={e => setAlertForm(f => ({ ...f, alertaPH: e.target.checked }))} className="rounded" />
+                    Alerta PH
+                  </Label>
+                  <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={alertForm.activo} onChange={e => setAlertForm(f => ({ ...f, activo: e.target.checked }))} className="rounded" />
+                    Activo
+                  </Label>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}><X className="w-4 h-4 mr-1" /> Cancelar</Button>
+            <Button onClick={() => {
+              if (tablaActiva === 'gases') saveGas()
+              else if (tablaActiva === 'locations') saveLocation()
+              else saveAlert()
+            }}
+              className="bg-gradient-to-r from-orange-500 to-red-600">
+              <Save className="w-4 h-4 mr-1" /> Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -2,8 +2,8 @@
 // Permite personalizar nombre, base operativa, etc. sin tocar código.
 
 export const COMPANY_CONFIG = {
-  name: process.env.COMPANY_NAME || 'GasTrack AR',
-  tagline: process.env.COMPANY_TAGLINE || 'Control de tubos de gases para soldadura',
+  name: process.env.COMPANY_NAME || 'Control Digital ManejaDatos Districon',
+  tagline: process.env.COMPANY_TAGLINE || 'Ferreteria Industrial - Gases para soldadura',
   baseCity: process.env.COMPANY_BASE_CITY || 'San Nicolás de los Arroyos',
   baseProvince: process.env.COMPANY_BASE_PROVINCE || 'Buenos Aires',
   baseLat: parseFloat(process.env.COMPANY_BASE_LAT || '-33.3293'),
