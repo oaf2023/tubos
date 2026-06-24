@@ -385,3 +385,74 @@ model ObservacionArchivo {
   datos          String      // base64 del archivo
   createdAt      DateTime    @default(now())
 }
+
+model Vehiculo {
+  id                String                   @id @default(cuid())
+  codigo            String                   @unique
+  patente           String                   @unique
+  marca             String
+  modelo            String
+  anio              Int
+  vin               String?
+  numeroMotor       String?
+  tipo              String                   // AUTO, CAMIONETA, CAMION, BUS, MAQUINARIA, MONTACARGA, MOTO, OTRO
+  combustible       String                   // NAFTA, GASOIL, GNC, ELECTRICO, HIBRIDO, OTRO
+  capacidad         String?
+  kmActual          Int                      @default(0)
+  horometroActual   Int?
+  estado            String                   @default("ACTIVO") // ACTIVO, EN_TALLER, BAJA, RESERVA
+  areaAsignada      String?
+  conductorAsignado String?
+  centroCosto       String?
+  fechaAdquisicion  DateTime?
+  valorCompra       Float?
+  vidaUtilAnios     Int?
+  fechaBaja         DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  mantenimientos    MantenimientoVehiculo[]
+  cargasCombustible CargaCombustible[]
+  documentos        DocumentoVehiculo[]
+}
+
+model MantenimientoVehiculo {
+  id            String   @id @default(cuid())
+  vehiculoId    String
+  vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo          String   // PREVENTIVO, CORRECTIVO, PREDICTIVO
+  fecha         DateTime
+  kmActual      Int?
+  descripcion   String
+  costo         Float?
+  taller        String?
+  responsable   String?
+  estado        String   @default("PENDIENTE") // PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO
+  observaciones String?
+  createdAt     DateTime @default(now())
+}
+
+model CargaCombustible {
+  id         String   @id @default(cuid())
+  vehiculoId String
+  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha      DateTime
+  litros     Float
+  costo      Float?
+  kmActual   Int?
+  rendimiento Float?
+  tipo       String   @default("CARGA") // CARGA, CARGA_ELECTRICA
+  createdAt  DateTime @default(now())
+}
+
+model DocumentoVehiculo {
+  id               String   @id @default(cuid())
+  vehiculoId       String
+  vehiculo         Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo             String   // REVISION_TECNICA, PERMISO_CIRCULACION, SEGURO, LICENCIA, OTRO
+  numero           String?
+  fechaEmision     DateTime?
+  fechaVencimiento DateTime?
+  estado           String   @default("VIGENTE") // VIGENTE, VENCIDO, PROXIMO_A_VENCER
+  observaciones    String?
+  createdAt        DateTime @default(now())
+}

@@ -286,6 +286,11 @@ const ObservacionesTab = dynamic(() => import('@/components/observaciones-tab'),
   loading: () => <Skeleton className="h-[400px] rounded-xl" />,
 })
 
+const VehiculosTab = dynamic(() => import('@/components/vehiculos-tab'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[400px] rounded-xl" />,
+})
+
 const LoginPage = dynamic(() => import('@/components/login-page'), {
   ssr: false,
   loading: () => (
@@ -395,6 +400,9 @@ export default function Home() {
             <TabsTrigger value="observaciones" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Eye className="w-4 h-4" /><span>Observaciones</span>
             </TabsTrigger>
+            <TabsTrigger value="vehiculos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Truck className="w-4 h-4" /><span>Vehículos</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -441,6 +449,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="observaciones">
             <ObservacionesTab />
+          </TabsContent>
+          <TabsContent value="vehiculos">
+            <VehiculosTab />
           </TabsContent>
         </Tabs>
       </main>
