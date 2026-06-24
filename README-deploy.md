@@ -75,14 +75,15 @@ npx tsx scripts/seed.ts
    ```
 4. **Start command**:
    ```bash
-   node .next/standalone/server.js
+   node start.js
    ```
 5. **Environment variables** en Render:
    | Variable | Valor |
    |---|---|
    | `NODE_ENV` | `production` |
-   | `DATABASE_URL` | `file:./db/custom.db` |
    | `NEO4J_ENABLED` | `false` |
+
+   ⚠️ No es necesario `DATABASE_URL` como variable — `start.js` la calcula automáticamente como ruta absoluta desde el directorio del proyecto.
 
 ⚠️ **Importante**: Render free tier tiene filesystem efímero — la base SQLite se pierde al redeploy. Soluciones: upgrade a Starter ($7/mes con disco persistente) o migrar a Turso (libSQL cloud).
 
@@ -92,9 +93,10 @@ npx tsx scripts/seed.ts
 | Archivo | Cambio |
 |---|---|
 | `.env` | `DATABASE_URL=file:./db/custom.db` (ruta relativa Unix) |
-| `package.json` | `start` usa `node` (no `bun`), `start:dev` agregado |
-| `copy-standalone.js` | **Nuevo** — copia `public/`, `db/`, `.env`, `prisma/` al build standalone |
-| `serve.js` | **Nuevo** — entrypoint para PythonAnywhere |
-| `Procfile` | **Nuevo** — entrypoint para Render |
+| `package.json` | `build` usa `next build && node copy-standalone.js`; `start` usa `node` (no `bun`) |
+| `copy-standalone.js` | **Nuevo** — copia `.next/static/`, `public/`, `db/`, `.env`, `prisma/` al build standalone |
+| `serve.js` | **Nuevo** — entrypoint para PythonAnywhere con ruta absoluta de DB |
+| `start.js` | **Nuevo** — entrypoint para Render con ruta absoluta de DB |
+| `Procfile` | **Nuevo** — `web: node start.js` |
 
 No se modificó ningún archivo de lógica de negocio (`page.tsx`, API routes, etc.).
