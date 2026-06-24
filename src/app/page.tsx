@@ -274,6 +274,15 @@ const LocationPicker = dynamic(() => import('@/components/location-picker'), {
   loading: () => <div className="h-[250px] rounded-lg bg-slate-100 animate-pulse" />,
 })
 
+const LoginPage = dynamic(() => import('@/components/login-page'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+    </div>
+  ),
+})
+
 const ESTADO_COLORS: Record<string, string> = {
   LLENO: 'bg-emerald-500',
   EN_USO: 'bg-amber-500',
@@ -306,9 +315,26 @@ function daysUntil(s: string): number {
 }
 
 export default function Home() {
+  const [user, setUser] = useState<any | null>(null)
+  const [authReady, setAuthReady] = useState(false)
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('opencode_user')
+    if (saved) {
+      try { setUser(JSON.parse(saved)) } catch { /* ignore */ }
+    }
+    setAuthReady(true)
+  }, [])
+
+  if (!authReady) return null
+
+  if (!user) {
+    return <LoginPage onLogin={(u) => { setUser(u); sessionStorage.setItem('opencode_user', JSON.stringify(u)) }} />
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start">
@@ -400,7 +426,7 @@ export default function Home() {
   )
 }
 
-function Header() {
+function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -417,11 +443,27 @@ function Header() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Badge variant="outline" className="hidden md:flex border-orange-300 text-orange-700 bg-orange-50">
             <MapPin className="w-3 h-3 mr-1" />
             Base: San Nicolás de los Arroyos
           </Badge>
+          {user && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 hidden sm:inline">
+                {user.nombre}
+              </span>
+              <button
+                onClick={onLogout}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                title="Cerrar sesión"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -7051,6 +7093,7 @@ function MantenimientoTab() {
 const TABLAS_DISPONIBLES = [
   { key: 'gases', label: 'Gases', icon: 'FlaskConical' },
   { key: 'locations', label: 'Ubicaciones', icon: 'MapPin' },
+  { key: 'usuarios', label: 'Usuarios', icon: 'Users' },
   { key: 'alertconfig', label: 'Alertas', icon: 'Bell' },
 ] as const
 
@@ -7076,21 +7119,29 @@ function TablasTab() {
   const emptyAlert = { gasId: '', diasAlertaRetest: '60', diasMaxCliente: '90', alertaPH: true, activo: true }
   const [alertForm, setAlertForm] = useState(emptyAlert)
 
+  // Users form
+  const emptyUsuario = { nombre: '', usuario: '', password: '', password2: '', direccion: '', telefono: '', ciudad: '', provincia: '', lat: '', lng: '', email: '', nivelAcceso: '1', activo: true }
+  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [userForm, setUserForm] = useState(emptyUsuario)
+
   async function loadAll() {
     setLoading(true)
     try {
-      const [gRes, lRes, aRes] = await Promise.all([
+      const [gRes, lRes, uRes, aRes] = await Promise.all([
         fetch('/api/gases'),
         fetch('/api/locations'),
+        fetch('/api/usuarios'),
         fetch('/api/config-alertas'),
       ])
-      const [gData, lData, aData] = await Promise.all([
+      const [gData, lData, uData, aData] = await Promise.all([
         gRes.json().catch(() => []),
         lRes.json().catch(() => []),
+        uRes.json().catch(() => []),
         aRes.json().catch(() => []),
       ])
       setGases(Array.isArray(gData) ? gData : [])
       setLocations(Array.isArray(lData) ? lData : [])
+      setUsuarios(Array.isArray(uData) ? uData : [])
       setAlerts(Array.isArray(aData) ? aData : [])
     } catch { /* ignore */ }
     finally { setLoading(false) }
@@ -7157,6 +7208,84 @@ function TablasTab() {
   function openLocation(loc?: Location) {
     if (loc) { setEditId(loc.id); setLocForm({ nombre: loc.nombre, provincia: loc.provincia, lat: String(loc.lat), lng: String(loc.lng), tipo: loc.tipo || 'BASE', esBase: loc.esBase || false, direccion: loc.direccion || '', telefono: loc.telefono || '' }) }
     else { setEditId(null); setLocForm(emptyLoc) }
+    setDialogOpen(true)
+  }
+
+  // --- Usuarios CRUD ---
+  async function saveUsuario() {
+    if (userForm.password !== userForm.password2) {
+      toast({ title: 'Las contraseñas no coinciden', variant: 'destructive' })
+      return
+    }
+    const body: Record<string, any> = {
+      nombre: userForm.nombre,
+      usuario: userForm.usuario,
+      direccion: userForm.direccion,
+      telefono: userForm.telefono,
+      ciudad: userForm.ciudad,
+      provincia: userForm.provincia,
+      lat: userForm.lat,
+      lng: userForm.lng,
+      email: userForm.email,
+      nivelAcceso: userForm.nivelAcceso,
+      activo: userForm.activo,
+      password: userForm.password,
+    }
+    if (!editId) {
+      if (!userForm.password) {
+        toast({ title: 'La contraseña es requerida', variant: 'destructive' })
+        return
+      }
+    }
+    try {
+      const res = await fetch(`/api/usuarios${editId ? `/${editId}` : ''}`, {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Error al guardar')
+      }
+      toast({ title: editId ? 'Usuario actualizado' : 'Usuario creado' })
+      closeAndReload()
+    } catch (e: any) {
+      toast({ title: e.message || 'Error al guardar usuario', variant: 'destructive' })
+    }
+  }
+
+  async function deleteUsuario(id: string) {
+    if (!confirm('¿Eliminar este usuario?')) return
+    try {
+      const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Usuario eliminado' })
+      loadAll()
+    } catch { toast({ title: 'Error al eliminar', variant: 'destructive' }) }
+  }
+
+  function openUsuario(u?: any) {
+    if (u) {
+      setEditId(u.id)
+      setUserForm({
+        nombre: u.nombre || '',
+        usuario: u.usuario || '',
+        password: '',
+        password2: '',
+        direccion: u.direccion || '',
+        telefono: u.telefono || '',
+        ciudad: u.ciudad || '',
+        provincia: u.provincia || '',
+        lat: u.lat != null ? String(u.lat) : '',
+        lng: u.lng != null ? String(u.lng) : '',
+        email: u.email || '',
+        nivelAcceso: String(u.nivelAcceso || '1'),
+        activo: u.activo !== false,
+      })
+    } else {
+      setEditId(null)
+      setUserForm(emptyUsuario)
+    }
     setDialogOpen(true)
   }
 
@@ -7327,6 +7456,60 @@ function TablasTab() {
             </div>
           )}
 
+          {/* Usuarios */}
+          {tablaActiva === 'usuarios' && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => openUsuario()} className="bg-orange-500 hover:bg-orange-600 gap-2">
+                  <Plus className="w-4 h-4" /> Nuevo Usuario
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Usuario</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Ciudad</TableHead>
+                      <TableHead>Provincia</TableHead>
+                      <TableHead className="text-center">Nivel</TableHead>
+                      <TableHead className="text-center">Activo</TableHead>
+                      <TableHead className="text-center w-20">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usuarios.map(u => (
+                      <TableRow key={u.id}>
+                        <TableCell className="font-mono text-xs font-semibold">{u.usuario}</TableCell>
+                        <TableCell className="text-sm">{u.nombre}</TableCell>
+                        <TableCell className="text-xs">{u.email || '—'}</TableCell>
+                        <TableCell className="text-xs">{u.ciudad || '—'}</TableCell>
+                        <TableCell className="text-xs">{u.provincia || '—'}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={u.nivelAcceso >= 4 ? 'default' : 'outline'} className="text-[10px]">
+                            {u.nivelAcceso}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">{u.activo ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-[10px]">No</Badge>}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openUsuario(u)}>
+                              <Pencil className="w-3.5 h-3.5 text-sky-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => deleteUsuario(u.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           {/* AlertConfig */}
           {tablaActiva === 'alertconfig' && (
             <div className="space-y-3">
@@ -7448,6 +7631,49 @@ function TablasTab() {
                 </div>
               </>
             )}
+            {tablaActiva === 'usuarios' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Nombre</Label><Input value={userForm.nombre} onChange={e => setUserForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre completo" /></div>
+                  <div><Label>Usuario</Label><Input value={userForm.usuario} onChange={e => setUserForm(f => ({ ...f, usuario: e.target.value }))} placeholder="nombre de usuario" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Contraseña {editId ? '(dejar vacío para no cambiar)' : '*'}</Label>
+                    <Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" />
+                  </div>
+                  <div>
+                    <Label>Confirmar contraseña</Label>
+                    <Input type="password" value={userForm.password2} onChange={e => setUserForm(f => ({ ...f, password2: e.target.value }))} placeholder="••••••••" className={userForm.password && userForm.password !== userForm.password2 ? 'border-red-400' : ''} />
+                  </div>
+                </div>
+                {userForm.password && userForm.password !== userForm.password2 && (
+                  <div className="text-xs text-red-500">Las contraseñas no coinciden</div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Email</Label><Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder="email@ejemplo.com" /></div>
+                  <div><Label>Teléfono</Label><Input value={userForm.telefono} onChange={e => setUserForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+54 336 4567890" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Dirección</Label><Input value={userForm.direccion} onChange={e => setUserForm(f => ({ ...f, direccion: e.target.value }))} /></div>
+                  <div><Label>Ciudad</Label><Input value={userForm.ciudad} onChange={e => setUserForm(f => ({ ...f, ciudad: e.target.value }))} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Provincia</Label><Input value={userForm.provincia} onChange={e => setUserForm(f => ({ ...f, provincia: e.target.value }))} /></div>
+                  <div><Label>Nivel de Acceso (1-5)</Label><Input type="number" min={1} max={5} value={userForm.nivelAcceso} onChange={e => setUserForm(f => ({ ...f, nivelAcceso: e.target.value }))} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Latitud</Label><Input type="number" step="any" value={userForm.lat} onChange={e => setUserForm(f => ({ ...f, lat: e.target.value }))} /></div>
+                  <div><Label>Longitud</Label><Input type="number" step="any" value={userForm.lng} onChange={e => setUserForm(f => ({ ...f, lng: e.target.value }))} /></div>
+                </div>
+                <div>
+                  <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={userForm.activo} onChange={e => setUserForm(f => ({ ...f, activo: e.target.checked }))} className="rounded" />
+                    Activo
+                  </Label>
+                </div>
+              </>
+            )}
             {tablaActiva === 'alertconfig' && (
               <>
                 <div><Label>Gas</Label><Select value={alertForm.gasId} onValueChange={v => setAlertForm(f => ({ ...f, gasId: v }))}><SelectTrigger><SelectValue placeholder="Seleccionar gas" /></SelectTrigger><SelectContent>{gases.map(g => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent></Select></div>
@@ -7473,6 +7699,7 @@ function TablasTab() {
             <Button onClick={() => {
               if (tablaActiva === 'gases') saveGas()
               else if (tablaActiva === 'locations') saveLocation()
+              else if (tablaActiva === 'usuarios') saveUsuario()
               else saveAlert()
             }}
               className="bg-gradient-to-r from-orange-500 to-red-600">

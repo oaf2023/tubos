@@ -345,3 +345,21 @@ model PedidoCilindro {
   verified    Boolean  @default(false) // Si el cilindro existe en inventario
   createdAt   DateTime @default(now())
 }
+
+model Usuario {
+  id          String   @id @default(cuid())
+  nombre      String
+  direccion   String?
+  telefono    String?
+  ciudad      String?
+  provincia   String?
+  lat         Float?
+  lng         Float?
+  email       String?
+  nivelAcceso Int      @default(1)
+  usuario     String   @unique
+  password    String
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
