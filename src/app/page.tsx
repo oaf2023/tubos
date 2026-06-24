@@ -42,6 +42,8 @@ import {
   Receipt,
   ClipboardList,
   Pencil,
+  Printer,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -274,6 +276,16 @@ const LocationPicker = dynamic(() => import('@/components/location-picker'), {
   loading: () => <div className="h-[250px] rounded-lg bg-slate-100 animate-pulse" />,
 })
 
+const ReportesTab = dynamic(() => import('@/components/reportes-tab'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[600px] rounded-xl" />,
+})
+
+const ObservacionesTab = dynamic(() => import('@/components/observaciones-tab'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[400px] rounded-xl" />,
+})
+
 const LoginPage = dynamic(() => import('@/components/login-page'), {
   ssr: false,
   loading: () => (
@@ -374,8 +386,14 @@ export default function Home() {
             <TabsTrigger value="mantenimiento" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Wrench className="w-4 h-4" /><span>Mantenimiento</span>
             </TabsTrigger>
-            <TabsTrigger value="tablas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+             <TabsTrigger value="tablas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <FileText className="w-4 h-4" /><span>Tablas</span>
+            </TabsTrigger>
+            <TabsTrigger value="reportes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Printer className="w-4 h-4" /><span>Reportes</span>
+            </TabsTrigger>
+            <TabsTrigger value="observaciones" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Eye className="w-4 h-4" /><span>Observaciones</span>
             </TabsTrigger>
           </TabsList>
 
@@ -417,6 +435,12 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="tablas">
             <TablasTab />
+          </TabsContent>
+          <TabsContent value="reportes">
+            <ReportesTab />
+          </TabsContent>
+          <TabsContent value="observaciones">
+            <ObservacionesTab />
           </TabsContent>
         </Tabs>
       </main>
