@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal } = body
+    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal, geometry } = body
 
     if (!nombre || !paradas || !Array.isArray(paradas) || paradas.length === 0) {
       return NextResponse.json({ error: 'Faltan campos: nombre, paradas' }, { status: 400 })
@@ -81,6 +81,10 @@ export async function POST(request: NextRequest) {
       finalHoras = Math.round((total / 70) * 10) / 10
     }
 
+    const geometryStr = geometry
+      ? (typeof geometry === 'string' ? geometry : JSON.stringify(geometry))
+      : undefined
+
     const ruta = await db.ruta.create({
       data: {
         nombre,
@@ -90,6 +94,7 @@ export async function POST(request: NextRequest) {
         origenLng: oLng,
         distanciaKm: finalKm,
         duracionHoras: finalHoras,
+        geometry: geometryStr,
         paradas: {
           create: paradas.map((p: any, idx: number) => ({
             orden: idx + 1,

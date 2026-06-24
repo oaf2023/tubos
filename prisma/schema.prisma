@@ -272,6 +272,7 @@ model Ruta {
   origenLng    Float
   distanciaKm  Float        @default(0)
   duracionHoras Float       @default(0)
+  geometry     String?      // OSRM road geometry JSON: [[lat,lng],...]
   paradas      RutaParada[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

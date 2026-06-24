@@ -184,6 +184,7 @@ interface Ruta {
   origenLng: number
   distanciaKm: number
   duracionHoras: number
+  geometry?: string | null
   paradas: RutaParada[]
   createdAt: string
 }
@@ -251,7 +252,10 @@ interface Stats {
 }
 
 // Mapa cargado dinámicamente (sin SSR porque Leaflet usa window)
+import type { MapMarker } from '@/components/map-view'
+
 const MapView = dynamic(() => import('@/components/map-view'), {
+
   ssr: false,
   loading: () => (
     <div className="h-[600px] flex items-center justify-center bg-slate-50 rounded-xl border border-slate-200">
@@ -1867,6 +1871,9 @@ function RutasTab() {
   // Distancia optimizada (OSRM)
   const [optDistance, setOptDistance] = useState<{ km: number; horas: number } | null>(null)
 
+  // Geometría de ruta optimizada (OSRM)
+  const [routeGeometry, setRouteGeometry] = useState<[number, number][] | null>(null)
+
   // Navegación
   const [navegando, setNavegando] = useState<Ruta | null>(null)
   const [currentStopIdx, setCurrentStopIdx] = useState(0)
@@ -1925,19 +1932,23 @@ function RutasTab() {
       toast({ title: 'Seleccioná al menos 2 paradas', variant: 'destructive' })
       return
     }
+    if (!base) {
+      toast({ title: 'Error', description: 'No se encontró la base', variant: 'destructive' })
+      return
+    }
     setOptimizando(true)
     try {
       const res = await fetch('/api/routes/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          origen: { lat: base.lat, lng: base.lng },
           points: selectedParadas.map((p) => ({
             id: p.id,
             lat: p.lat,
             lng: p.lng,
             nombre: p.nombre,
           })),
-          startIndex: 0,
         }),
       })
       if (!res.ok) throw new Error()
@@ -1946,6 +1957,9 @@ function RutasTab() {
         .map((o: any) => selectedParadas.find((p) => p.id === o.id))
         .filter(Boolean) as Location[]
       setSelectedParadas(reordered)
+      if (data.geometry) {
+        setRouteGeometry(data.geometry)
+      }
       setOptDistance({ km: data.distanceTotal, horas: Math.round(data.durationMin / 60 * 10) / 10 })
       const modo = data.usaLiveMatrix ? 'OSRM' : 'Haversine'
       toast({
@@ -1993,6 +2007,10 @@ function RutasTab() {
       body.duracionReal = optDistance.horas
     }
 
+    if (routeGeometry && routeGeometry.length >= 2) {
+      body.geometry = JSON.stringify(routeGeometry)
+    }
+
     const res = await fetch('/api/routes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2008,6 +2026,7 @@ function RutasTab() {
     setNombreRuta('')
     setSelectedParadas([])
     setOptDistance(null)
+    setRouteGeometry(null)
     load()
   }
 
@@ -2049,29 +2068,85 @@ function RutasTab() {
   // Mapa de la ruta seleccionada
   const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null)
   const rutaMarkers = useMemo(() => {
-    if (!rutaSeleccionada || !base) return []
-    const delivered = rutaSeleccionada.paradas.filter((p) => p.estado === 'ENTREGADO').length
-    return [
-      {
-        id: 'base',
+    const markers: MapMarker[] = []
+
+    // Planning markers (selected paradas)
+    if (base && selectedParadas.length > 0) {
+      markers.push({
+        id: 'base-planning',
+        lat: base.lat,
+        lng: base.lng,
+        color: '#dc2626',
+        label: base.nombre,
+        isBase: true,
+        popup: `<strong>Base Operativa</strong><br/>${base.nombre}`,
+      })
+      selectedParadas.forEach((p) => {
+        markers.push({
+          id: `planning-${p.id}`,
+          lat: p.lat,
+          lng: p.lng,
+          color: '#3b82f6',
+          label: p.nombre,
+          popup: p.nombre,
+        })
+      })
+    }
+
+    // Selected saved route markers
+    if (rutaSeleccionada && base) {
+      const delivered = rutaSeleccionada.paradas.filter((p) => p.estado === 'ENTREGADO').length
+      markers.push({
+        id: 'base-saved',
         lat: base.lat,
         lng: base.lng,
         color: '#dc2626',
         label: base.nombre,
         isBase: true,
         popup: `<strong>Base Operativa</strong><br/>${base.nombre}<br/><span style="font-size:11px;color:#64748b;">${delivered}/${rutaSeleccionada.paradas.length} entregados</span>`,
-      },
-    ]
-  }, [rutaSeleccionada, base])
+      })
+    }
+
+    return markers
+  }, [rutaSeleccionada, base, selectedParadas])
 
   const rutaRoutes = useMemo(() => {
-    if (!rutaSeleccionada || !base) return []
-    return [
-      {
+    const routes: any[] = []
+
+    // Planning route (selected paradas + optimized geometry)
+    if (base && selectedParadas.length > 0) {
+      const planningPoints = [
+        { lat: base.lat, lng: base.lng, nombre: base.nombre },
+        ...selectedParadas.map((p) => ({ lat: p.lat, lng: p.lng, nombre: p.nombre })),
+      ]
+
+      routes.push({
+        id: 'planning',
+        color: '#3b82f6',
+        nombre: 'Planificación',
+        distanciaKm: optDistance?.km,
+        points: planningPoints,
+        geometry: routeGeometry || undefined,
+      })
+    }
+
+    // Selected saved route
+    if (rutaSeleccionada && base) {
+      let savedGeometry: [number, number][] | undefined
+      if (rutaSeleccionada.geometry) {
+        try {
+          const parsed = JSON.parse(rutaSeleccionada.geometry)
+          if (Array.isArray(parsed) && parsed.length >= 2) {
+            savedGeometry = parsed
+          }
+        } catch { /* ignore */ }
+      }
+      routes.push({
         id: rutaSeleccionada.id,
         color: '#f97316',
         nombre: rutaSeleccionada.nombre,
         distanciaKm: rutaSeleccionada.distanciaKm,
+        geometry: savedGeometry,
         points: [
           { lat: base.lat, lng: base.lng, nombre: base.nombre },
           ...rutaSeleccionada.paradas.map((p) => ({
@@ -2081,9 +2156,11 @@ function RutasTab() {
           })),
           { lat: base.lat, lng: base.lng, nombre: `Retorno a ${base.nombre}` },
         ],
-      },
-    ]
-  }, [rutaSeleccionada, base])
+      })
+    }
+
+    return routes
+  }, [rutaSeleccionada, base, selectedParadas, optDistance, routeGeometry])
 
   return (
     <div className="space-y-4">
