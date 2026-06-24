@@ -1860,7 +1860,13 @@ function RutasTab() {
 
   // Nueva ruta
   const [nombreRuta, setNombreRuta] = useState('')
-  const [paradasSeleccionadas, setParadasSeleccionadas] = useState<string[]>([])
+  const [selectedParadas, setSelectedParadas] = useState<Location[]>([])
+  const [optimizando, setOptimizando] = useState(false)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  // Navegación
+  const [navegando, setNavegando] = useState<Ruta | null>(null)
+  const [currentStopIdx, setCurrentStopIdx] = useState(0)
 
   const load = useCallback(async () => {
     try {
@@ -1882,12 +1888,71 @@ function RutasTab() {
 
   const base = locations.find((l) => l.esBase)
 
-  function toggleParada(nombre: string) {
-    if (paradasSeleccionadas.includes(nombre)) {
-      setParadasSeleccionadas(paradasSeleccionadas.filter((n) => n !== nombre))
-    } else {
-      setParadasSeleccionadas([...paradasSeleccionadas, nombre])
+  function toggleParada(loc: Location) {
+    setSelectedParadas((prev) => {
+      const exists = prev.find((p) => p.id === loc.id)
+      if (exists) return prev.filter((p) => p.id !== loc.id)
+      return [...prev, loc]
+    })
+  }
+
+  function moveParada(idx: number, direction: -1 | 1) {
+    const newIdx = idx + direction
+    if (newIdx < 0 || newIdx >= selectedParadas.length) return
+    const arr = [...selectedParadas]
+    ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
+    setSelectedParadas(arr)
+  }
+
+  function handleDragStart(idx: number) {
+    setDragIdx(idx)
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === idx) return
+    const arr = [...selectedParadas]
+    ;[arr[dragIdx], arr[idx]] = [arr[idx], arr[dragIdx]]
+    setSelectedParadas(arr)
+    setDragIdx(idx)
+  }
+
+  async function optimizarRuta() {
+    if (selectedParadas.length < 2) {
+      toast({ title: 'Seleccioná al menos 2 paradas', variant: 'destructive' })
+      return
     }
+    setOptimizando(true)
+    try {
+      const res = await fetch('/api/routes/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          points: selectedParadas.map((p) => ({
+            id: p.id,
+            lat: p.lat,
+            lng: p.lng,
+            nombre: p.nombre,
+          })),
+          startIndex: 0,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      // Reorder selectedParadas by TSP result
+      const reordered = data.optimized
+        .map((o: any) => selectedParadas.find((p) => p.id === o.id))
+        .filter(Boolean) as Location[]
+      setSelectedParadas(reordered)
+      const modo = data.usaLiveMatrix ? 'OSRM' : 'Haversine'
+      toast({
+        title: `Ruta optimizada (${modo})`,
+        description: `${data.distanceTotal} km totales, ~${data.durationMin} min`,
+      })
+    } catch {
+      toast({ title: 'Error al optimizar', variant: 'destructive' })
+    }
+    setOptimizando(false)
   }
 
   async function crearRuta() {
@@ -1899,18 +1964,10 @@ function RutasTab() {
       toast({ title: 'Faltan datos', description: 'Ingrese nombre de ruta', variant: 'destructive' })
       return
     }
-    if (paradasSeleccionadas.length === 0) {
-      toast({
-        title: 'Faltan paradas',
-        description: 'Seleccione al menos una parada',
-        variant: 'destructive',
-      })
+    if (selectedParadas.length === 0) {
+      toast({ title: 'Faltan paradas', description: 'Seleccione al menos una parada', variant: 'destructive' })
       return
     }
-
-    const paradas = paradasSeleccionadas
-      .map((nombre) => locations.find((l) => l.nombre === nombre)!)
-      .filter(Boolean)
 
     const res = await fetch('/api/routes', {
       method: 'POST',
@@ -1920,7 +1977,7 @@ function RutasTab() {
         origenNombre: base.nombre,
         origenLat: base.lat,
         origenLng: base.lng,
-        paradas: paradas.map((p) => ({
+        paradas: selectedParadas.map((p) => ({
           lat: p.lat,
           lng: p.lng,
           nombre: p.nombre,
@@ -1936,12 +1993,9 @@ function RutasTab() {
       return
     }
 
-    toast({
-      title: 'Ruta creada',
-      description: `${nombreRuta} con ${paradas.length} paradas`,
-    })
+    toast({ title: 'Ruta creada', description: `${nombreRuta} con ${selectedParadas.length} paradas` })
     setNombreRuta('')
-    setParadasSeleccionadas([])
+    setSelectedParadas([])
     load()
   }
 
@@ -1958,14 +2012,33 @@ function RutasTab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado }),
     })
-    toast({ title: `Ruta marcada como ${estado}` })
+    toast({ title: `Ruta marcada como ${estado.replace('_', ' ')}` })
     load()
+  }
+
+  async function marcarEntregado(paradaId: string) {
+    const r = navegando
+    if (!r) return
+    await fetch(`/api/routes/${r.id}/paradas/${paradaId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'ENTREGADO', llegada: true }),
+    })
+    setCurrentStopIdx((prev) => Math.min(prev + 1, r.paradas.length))
+    load()
+  }
+
+  function iniciarNavegacion(r: Ruta) {
+    setNavegando(r)
+    setCurrentStopIdx(r.paradas.findIndex((p) => p.estado !== 'ENTREGADO'))
+    if (currentStopIdx < 0) setCurrentStopIdx(0)
   }
 
   // Mapa de la ruta seleccionada
   const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null)
   const rutaMarkers = useMemo(() => {
     if (!rutaSeleccionada || !base) return []
+    const delivered = rutaSeleccionada.paradas.filter((p) => p.estado === 'ENTREGADO').length
     return [
       {
         id: 'base',
@@ -1974,7 +2047,7 @@ function RutasTab() {
         color: '#dc2626',
         label: base.nombre,
         isBase: true,
-        popup: `<strong>Base Operativa</strong><br/>${base.nombre}`,
+        popup: `<strong>Base Operativa</strong><br/>${base.nombre}<br/><span style="font-size:11px;color:#64748b;">${delivered}/${rutaSeleccionada.paradas.length} entregados</span>`,
       },
     ]
   }, [rutaSeleccionada, base])
@@ -2014,7 +2087,7 @@ function RutasTab() {
               Origen: San Nicolás de los Arroyos
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <div>
               <Label className="text-xs">Nombre de la ruta</Label>
               <Input
@@ -2023,20 +2096,20 @@ function RutasTab() {
                 onChange={(e) => setNombreRuta(e.target.value)}
               />
             </div>
+
+            {/* Ubicaciones disponibles */}
             <div>
-              <Label className="text-xs">
-                Paradas ({paradasSeleccionadas.length} seleccionadas)
-              </Label>
-              <ScrollArea className="h-[300px] border border-slate-200 rounded-md">
-                <div className="p-2 space-y-1">
+              <Label className="text-xs">Ubicaciones disponibles</Label>
+              <ScrollArea className="h-[200px] border border-slate-200 rounded-md">
+                <div className="p-1.5 space-y-0.5">
                   {locations
                     .filter((l) => !l.esBase)
                     .map((l) => {
-                      const selected = paradasSeleccionadas.includes(l.nombre)
+                      const selected = selectedParadas.some((p) => p.id === l.id)
                       return (
                         <label
                           key={l.id}
-                          className={`flex items-center gap-2 p-2 rounded-md cursor-pointer text-sm ${
+                          className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer text-xs ${
                             selected
                               ? 'bg-orange-50 border border-orange-200'
                               : 'hover:bg-slate-50 border border-transparent'
@@ -2045,23 +2118,86 @@ function RutasTab() {
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => toggleParada(l.nombre)}
-                            className="w-4 h-4 accent-orange-500"
+                            onChange={() => toggleParada(l)}
+                            className="w-3.5 h-3.5 accent-orange-500"
                           />
-                          <MapPin className="w-3 h-3 text-slate-400" />
+                          <MapPin className="w-2.5 h-2.5 text-slate-400" />
                           <span className="font-medium">{l.nombre}</span>
-                          <span className="text-xs text-slate-400 ml-auto">
-                            {l.provincia}
-                          </span>
+                          <span className="text-[10px] text-slate-400 ml-auto">{l.provincia}</span>
                         </label>
                       )
                     })}
                 </div>
               </ScrollArea>
             </div>
+
+            {/* Orden de paradas (drag-and-drop) */}
+            {selectedParadas.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Orden de paradas ({selectedParadas.length})</Label>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={optimizarRuta}
+                      disabled={optimizando}
+                    >
+                      <RefreshCw className={`w-3 h-3 ${optimizando ? 'animate-spin' : ''}`} />
+                      Optimizar
+                    </Button>
+                  </div>
+                </div>
+                <div className="border rounded-md max-h-[220px] overflow-y-auto">
+                  {selectedParadas.map((p, idx) => (
+                    <div
+                      key={p.id}
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={() => setDragIdx(null)}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 text-xs border-b last:border-b-0 cursor-grab active:cursor-grabbing ${
+                        dragIdx === idx ? 'bg-orange-100 opacity-60' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                        {idx + 1}
+                      </span>
+                      <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                      <span className="truncate flex-1">{p.nombre}</span>
+                      <div className="flex gap-0.5 shrink-0">
+                        <button
+                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20"
+                          disabled={idx === 0}
+                          onClick={() => moveParada(idx, -1)}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20"
+                          disabled={idx === selectedParadas.length - 1}
+                          onClick={() => moveParada(idx, 1)}
+                        >
+                          ▼
+                        </button>
+                        <button
+                          className="p-0.5 text-red-300 hover:text-red-500 ml-1"
+                          onClick={() => setSelectedParadas((prev) => prev.filter((x) => x.id !== p.id))}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Button
               onClick={crearRuta}
               className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90"
+              disabled={selectedParadas.length === 0}
             >
               <Plus className="w-4 h-4 mr-1" /> Crear Ruta
             </Button>
@@ -2076,17 +2212,13 @@ function RutasTab() {
               Rutas Planificadas
             </CardTitle>
             <CardDescription>
-              {loading
-                ? 'Cargando...'
-                : `${rutas.length} ruta(s) registrada(s)`}
+              {loading ? 'Cargando...' : `${rutas.length} ruta(s) registrada(s)`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-24" />
-                ))}
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24" />)}
               </div>
             ) : rutas.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
@@ -2094,100 +2226,102 @@ function RutasTab() {
                 No hay rutas creadas todavía
               </div>
             ) : (
-              <div className="space-y-3">
-                {rutas.map((r) => (
-                  <div
-                    key={r.id}
-                    className="border border-slate-200 rounded-lg p-3 hover:shadow-sm transition"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-slate-800 truncate">
-                          {r.nombre}
-                        </h3>
-                        <p className="text-xs text-slate-500">
-                          {new Date(r.createdAt).toLocaleDateString('es-AR')}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={
-                          r.estado === 'COMPLETADA'
-                            ? 'default'
-                            : r.estado === 'EN_PROGRESO'
-                            ? 'secondary'
-                            : 'outline'
-                        }
-                        className="text-xs"
-                      >
-                        {r.estado.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-                      <div className="flex items-center gap-1 text-slate-600">
-                        <RouteIcon className="w-3 h-3" />
-                        <span className="font-semibold tabular-nums">
-                          {r.distanciaKm} km
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-slate-600">
-                        <Calendar className="w-3 h-3" />
-                        <span className="font-semibold tabular-nums">
-                          {r.duracionHoras} h
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-slate-600">
-                        <MapPin className="w-3 h-3" />
-                        <span className="font-semibold">
-                          {r.paradas.length} paradas
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {r.paradas.map((p, idx) => (
+              <div className="space-y-2">
+                {rutas.map((r) => {
+                  const total = r.paradas.length
+                  const entregadas = r.paradas.filter((p) => p.estado === 'ENTREGADO').length
+                  return (
+                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 hover:shadow-sm transition">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-slate-800 truncate text-sm">{r.nombre}</h3>
+                          <p className="text-[10px] text-slate-500">
+                            {new Date(r.createdAt).toLocaleDateString('es-AR')}
+                          </p>
+                        </div>
                         <Badge
-                          key={p.id}
-                          variant="outline"
-                          className="text-[10px] py-0 h-5"
+                          variant={r.estado === 'COMPLETADA' ? 'default' : r.estado === 'EN_PROGRESO' ? 'secondary' : 'outline'}
+                          className="text-[10px]"
                         >
-                          {idx + 1}. {p.nombre}
+                          {r.estado.replace('_', ' ')}
                         </Badge>
-                      ))}
+                      </div>
+
+                      {/* Progress bar for EN_PROGRESO */}
+                      {r.estado === 'EN_PROGRESO' && (
+                        <div className="mb-1.5">
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
+                            <span>{entregadas} de {total} entregados</span>
+                            <span>{total > 0 ? Math.round(entregadas / total * 100) : 0}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${total > 0 ? entregadas / total * 100 : 0}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 text-[10px] mb-1.5 text-slate-600">
+                        <span className="tabular-nums">{r.distanciaKm} km</span>
+                        <span className="tabular-nums">{r.duracionHoras} h</span>
+                        <span>{r.paradas.length} paradas</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {r.paradas.map((p, idx) => (
+                          <Badge
+                            key={p.id}
+                            variant={p.estado === 'ENTREGADO' ? 'default' : 'outline'}
+                            className={`text-[9px] py-0 h-4 ${p.estado === 'ENTREGADO' ? 'bg-emerald-500' : ''}`}
+                          >
+                            {p.estado === 'ENTREGADO' ? '✓' : idx + 1}. {p.nombre}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-1 pt-1.5 border-t border-slate-100">
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setRutaSeleccionada(r)}>
+                          <MapIcon className="w-3 h-3 mr-1" /> Mapa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[10px]"
+                          onClick={() => cambiarEstado(r, 'EN_PROGRESO')}
+                          disabled={r.estado === 'EN_PROGRESO' || r.estado === 'COMPLETADA'}
+                        >
+                          Iniciar
+                        </Button>
+                        {r.estado === 'EN_PROGRESO' && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 text-[10px]"
+                            onClick={() => iniciarNavegacion(r)}
+                          >
+                            <Truck className="w-3 h-3 mr-1" /> Navegar
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[10px]"
+                          onClick={() => cambiarEstado(r, 'COMPLETADA')}
+                          disabled={r.estado === 'COMPLETADA'}
+                        >
+                          Completar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[10px] text-red-500 hover:bg-red-50 ml-auto"
+                          onClick={() => eliminarRuta(r.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 pt-2 border-t border-slate-100">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRutaSeleccionada(r)}
-                      >
-                        <MapIcon className="w-3 h-3 mr-1" /> Ver en mapa
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => cambiarEstado(r, 'EN_PROGRESO')}
-                        disabled={r.estado === 'EN_PROGRESO'}
-                      >
-                        Iniciar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => cambiarEstado(r, 'COMPLETADA')}
-                        disabled={r.estado === 'COMPLETADA'}
-                      >
-                        Completar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-500 hover:bg-red-50 ml-auto"
-                        onClick={() => eliminarRuta(r.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -2200,29 +2334,139 @@ function RutasTab() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">
-                  Mapa de Ruta: {rutaSeleccionada.nombre}
-                </CardTitle>
+                <CardTitle className="text-base">Mapa de Ruta: {rutaSeleccionada.nombre}</CardTitle>
                 <CardDescription>
                   {rutaSeleccionada.distanciaKm} km · {rutaSeleccionada.duracionHoras} h ·{' '}
-                  {rutaSeleccionada.paradas.length} paradas · Origen y retorno a San
-                  Nicolás de los Arroyos
+                  {rutaSeleccionada.paradas.length} paradas · Origen y retorno
                 </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setRutaSeleccionada(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                {rutaSeleccionada.estado === 'EN_PROGRESO' && (
+                  <Button size="sm" onClick={() => iniciarNavegacion(rutaSeleccionada)}>
+                    <Truck className="w-3 h-3 mr-1" /> Navegar
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => setRutaSeleccionada(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <MapView markers={rutaMarkers} routes={rutaRoutes} height="500px" />
+            <MapView markers={rutaMarkers} routes={rutaRoutes} height="450px" />
           </CardContent>
         </Card>
       )}
+
+      {/* Diálogo de navegación */}
+      <Dialog open={!!navegando} onOpenChange={(o) => { if (!o) { setNavegando(null); setCurrentStopIdx(0); load() } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          {navegando && (() => {
+            const r = navegando
+            const current = r.paradas[currentStopIdx]
+            const restantes = r.paradas.filter((p) => p.estado !== 'ENTREGADO')
+            const actual = restantes[0] || r.paradas[r.paradas.length - 1]
+
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-orange-500" />
+                    Navegando: {r.nombre}
+                  </DialogTitle>
+                </DialogHeader>
+
+                {/* Parada actual */}
+                {actual && (
+                  <Card className="border-emerald-300 bg-emerald-50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
+                          {restantes.indexOf(actual) + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-emerald-600 font-medium">PRÓXIMA PARADA</p>
+                          <h3 className="font-bold text-lg">{actual.nombre}</h3>
+                          <p className="text-xs text-slate-500">{actual.provincia}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Lista de paradas */}
+                <div>
+                  <Label className="text-xs text-slate-500 mb-1 block">
+                    Paradas ({restantes.length} restantes de {r.paradas.length})
+                  </Label>
+                  <div className="space-y-1">
+                    {r.paradas.map((p, idx) => {
+                      const delivered = p.estado === 'ENTREGADO'
+                      const isCurrent = restantes.length > 0 && p.id === restantes[0].id && !delivered
+                      return (
+                        <div
+                          key={p.id}
+                          className={`flex items-center gap-2 p-2 rounded-md text-sm border ${
+                            delivered
+                              ? 'bg-emerald-50 border-emerald-200'
+                              : isCurrent
+                              ? 'bg-orange-50 border-orange-300'
+                              : 'border-slate-200'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            delivered ? 'bg-emerald-500 text-white' : isCurrent ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            {delivered ? '✓' : idx + 1}
+                          </div>
+                          <span className={`flex-1 ${delivered ? 'line-through text-slate-400' : ''}`}>{p.nombre}</span>
+                          <span className="text-[10px] text-slate-400">{p.provincia}</span>
+                          {!delivered && isCurrent && (
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
+                              onClick={() => marcarEntregado(p.id)}
+                            >
+                              Entregado
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Resumen */}
+                <div className="bg-slate-50 rounded-lg p-3 border text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Distancia total</span>
+                    <span className="font-mono">{r.distanciaKm} km</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Duración estimada</span>
+                    <span className="font-mono">{r.duracionHoras} h</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Entregados</span>
+                    <span className="font-mono text-emerald-600">{r.paradas.filter((p) => p.estado === 'ENTREGADO').length} / {r.paradas.length}</span>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { setNavegando(null); setCurrentStopIdx(0); load() }}>
+                    Cerrar navegación
+                  </Button>
+                  {restantes.length === 0 && (
+                    <Button onClick={() => cambiarEstado(r, 'COMPLETADA').then(() => { setNavegando(null); setCurrentStopIdx(0) })}>
+                      Finalizar ruta
+                    </Button>
+                  )}
+                </DialogFooter>
+              </>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

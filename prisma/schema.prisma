@@ -289,6 +289,22 @@ model RutaParada {
   cylinderIds String  // IDs separados por coma
   estado      String  // PENDIENTE, ENTREGADO, EN_PROGRESO
   notas       String?
+  llegada     DateTime? // Timestamp de llegada real
+  salida      DateTime? // Timestamp de salida real
+}
+
+model RouteCache {
+  id         String   @id @default(cuid())
+  hash       String   @unique // MD5-like hash of origin+dest coords
+  origenLat  Float
+  origenLng  Float
+  destLat    Float
+  destLng    Float
+  distanciaKm Float
+  duracionMin Int
+  geometry   String   // JSON of coordinate pairs
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime // Cache valid for 30 days
 }
 
 model Pedido {

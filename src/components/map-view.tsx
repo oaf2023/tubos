@@ -21,6 +21,7 @@ export interface MapRoute {
   points: { lat: number; lng: number; nombre: string }[]
   nombre: string
   distanciaKm?: number
+  geometry?: [number, number][] // OSRM road-following coords
 }
 
 interface MapViewProps {
@@ -99,14 +100,18 @@ export default function MapView({
     // Dibujar rutas primero (debajo de los marcadores)
     routes.forEach((route) => {
       if (route.points.length < 2) return
-      const latlngs = route.points.map((p) => [p.lat, p.lng]) as [number, number][]
 
-      // Línea de ruta
+      // Use OSRM geometry if available, otherwise straight-line
+      const latlngs: [number, number][] = route.geometry && route.geometry.length >= 2
+        ? route.geometry
+        : route.points.map((p) => [p.lat, p.lng]) as [number, number][]
+
+      // Línea de ruta (solid if OSRM, dashed if straight-line)
       L.polyline(latlngs, {
         color: route.color,
-        weight: 4,
+        weight: route.geometry ? 4 : 3,
         opacity: 0.7,
-        dashArray: '10, 8',
+        dashArray: route.geometry ? undefined : '10, 8',
       }).addTo(layerRef.current!)
 
       // Marcadores numerados para cada parada
@@ -125,6 +130,7 @@ export default function MapView({
               <strong style="color:${route.color}">Parada ${idx}</strong><br/>
               <strong>${p.nombre}</strong><br/>
               <span style="color:#64748b;font-size:11px;">${route.nombre}</span>
+              ${route.distanciaKm ? `<br/><span style="color:#f97316;font-size:10px;">${route.distanciaKm} km</span>` : ''}
             </div>`
           )
           .addTo(layerRef.current!)

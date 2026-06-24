@@ -27,6 +27,8 @@ export async function PUT(
     const data: Record<string, unknown> = {}
     if (body.estado !== undefined) data.estado = body.estado
     if (body.nombre !== undefined) data.nombre = body.nombre
+    if (body.distanciaKm !== undefined) data.distanciaKm = body.distanciaKm
+    if (body.duracionHoras !== undefined) data.duracionHoras = body.duracionHoras
 
     const updated = await db.ruta.update({
       where: { id },
