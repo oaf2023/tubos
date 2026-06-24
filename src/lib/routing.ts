@@ -34,7 +34,7 @@ export async function osrmTable(
   const url = `${OSRM_BASE}/table/v1/driving/${coords}?annotations=duration,distance`
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) })
     if (!res.ok) return null
     const data: OSRMTableResponse = await res.json()
     if (data.code !== 'Ok') return null
@@ -82,7 +82,7 @@ export async function osrmTrip(
   const url = `${OSRM_BASE}/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) })
     if (!res.ok) return null
     const data: OSRMRouteResponse = await res.json()
     if (data.code !== 'Ok' || !data.routes[0]) return null

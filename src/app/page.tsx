@@ -1864,6 +1864,9 @@ function RutasTab() {
   const [optimizando, setOptimizando] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
+  // Distancia optimizada (OSRM)
+  const [optDistance, setOptDistance] = useState<{ km: number; horas: number } | null>(null)
+
   // Navegación
   const [navegando, setNavegando] = useState<Ruta | null>(null)
   const [currentStopIdx, setCurrentStopIdx] = useState(0)
@@ -1939,11 +1942,11 @@ function RutasTab() {
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
-      // Reorder selectedParadas by TSP result
       const reordered = data.optimized
         .map((o: any) => selectedParadas.find((p) => p.id === o.id))
         .filter(Boolean) as Location[]
       setSelectedParadas(reordered)
+      setOptDistance({ km: data.distanceTotal, horas: Math.round(data.durationMin / 60 * 10) / 10 })
       const modo = data.usaLiveMatrix ? 'OSRM' : 'Haversine'
       toast({
         title: `Ruta optimizada (${modo})`,
@@ -1969,23 +1972,31 @@ function RutasTab() {
       return
     }
 
+    const body: any = {
+      nombre: nombreRuta,
+      origenNombre: base.nombre,
+      origenLat: base.lat,
+      origenLng: base.lng,
+      paradas: selectedParadas.map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        nombre: p.nombre,
+        provincia: p.provincia,
+        cylinderIds: '',
+        notas: '',
+      })),
+    }
+
+    // Pass optimized real distance if available
+    if (optDistance) {
+      body.distanciaReal = optDistance.km
+      body.duracionReal = optDistance.horas
+    }
+
     const res = await fetch('/api/routes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: nombreRuta,
-        origenNombre: base.nombre,
-        origenLat: base.lat,
-        origenLng: base.lng,
-        paradas: selectedParadas.map((p) => ({
-          lat: p.lat,
-          lng: p.lng,
-          nombre: p.nombre,
-          provincia: p.provincia,
-          cylinderIds: '',
-          notas: '',
-        })),
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!res.ok) {
@@ -1996,6 +2007,7 @@ function RutasTab() {
     toast({ title: 'Ruta creada', description: `${nombreRuta} con ${selectedParadas.length} paradas` })
     setNombreRuta('')
     setSelectedParadas([])
+    setOptDistance(null)
     load()
   }
 

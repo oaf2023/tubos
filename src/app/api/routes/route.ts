@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { osrmTrip } from '@/lib/routing'
 
-// Distancia Haversine en km
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371
   const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -14,7 +14,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-// GET /api/routes - listar todas las rutas
+// GET /api/routes
 export async function GET() {
   try {
     const routes = await db.ruta.findMany({
@@ -28,45 +28,70 @@ export async function GET() {
   }
 }
 
-// POST /api/routes - crear una nueva ruta
+// POST /api/routes - create route with OSRM real distances if available
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nombre, origenNombre, origenLat, origenLng, paradas } = body
+    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal } = body
 
     if (!nombre || !paradas || !Array.isArray(paradas) || paradas.length === 0) {
-      return NextResponse.json(
-        { error: 'Faltan campos: nombre, paradas' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Faltan campos: nombre, paradas' }, { status: 400 })
     }
 
-    // Calcular distancia total: origen -> parada1 -> parada2 -> ... -> origen
-    let distanciaTotal = 0
-    let anterior = { lat: parseFloat(origenLat), lng: parseFloat(origenLng) }
+    const oLat = parseFloat(origenLat)
+    const oLng = parseFloat(origenLng)
 
-    for (const p of paradas) {
-      const dist = haversineKm(anterior.lat, anterior.lng, p.lat, p.lng)
-      distanciaTotal += dist
-      anterior = { lat: p.lat, lng: p.lng }
+    // 1. Try OSRM real distance (if not pre-computed)
+    let finalKm = 0
+    let finalHoras = 0
+    let fuente = 'haversine'
+
+    if (distanciaReal && duracionReal) {
+      finalKm = distanciaReal
+      finalHoras = duracionReal
+      fuente = 'precalculada (OSRM)'
+    } else {
+      try {
+        const tripPoints = [
+          { lat: oLat, lng: oLng },
+          ...paradas.map((p: any) => ({ lat: p.lat, lng: p.lng })),
+          { lat: oLat, lng: oLng },
+        ]
+        const osrm = await osrmTrip(tripPoints)
+        if (osrm) {
+          finalKm = osrm.distanceKm
+          finalHoras = Math.round((osrm.durationMin / 60) * 10) / 10
+          fuente = 'OSRM'
+        }
+      } catch {
+        // fall through to Haversine
+      }
     }
 
-    // Retorno a base
-    distanciaTotal += haversineKm(anterior.lat, anterior.lng, parseFloat(origenLat), parseFloat(origenLng))
-
-    const duracionHoras = distanciaTotal / 70 // promedio 70 km/h en rutas argentinas
+    // 2. Fallback to Haversine
+    if (finalKm === 0) {
+      let total = 0
+      let ant = { lat: oLat, lng: oLng }
+      for (const p of paradas) {
+        total += haversineKm(ant.lat, ant.lng, p.lat, p.lng)
+        ant = { lat: p.lat, lng: p.lng }
+      }
+      total += haversineKm(ant.lat, ant.lng, oLat, oLng)
+      finalKm = Math.round(total * 10) / 10
+      finalHoras = Math.round((total / 70) * 10) / 10
+    }
 
     const ruta = await db.ruta.create({
       data: {
         nombre,
         estado: 'PLANIFICADA',
         origenNombre,
-        origenLat: parseFloat(origenLat),
-        origenLng: parseFloat(origenLng),
-        distanciaKm: Math.round(distanciaTotal * 10) / 10,
-        duracionHoras: Math.round(duracionHoras * 10) / 10,
+        origenLat: oLat,
+        origenLng: oLng,
+        distanciaKm: finalKm,
+        duracionHoras: finalHoras,
         paradas: {
-          create: paradas.map((p: { lat: number; lng: number; nombre: string; provincia: string; cylinderIds?: string; notas?: string }, idx: number) => ({
+          create: paradas.map((p: any, idx: number) => ({
             orden: idx + 1,
             lat: p.lat,
             lng: p.lng,
@@ -81,7 +106,7 @@ export async function POST(request: NextRequest) {
       include: { paradas: { orderBy: { orden: 'asc' } } },
     })
 
-    return NextResponse.json(ruta, { status: 201 })
+    return NextResponse.json({ ...ruta, _fuente: fuente }, { status: 201 })
   } catch (e) {
     console.error('POST /api/routes', e)
     return NextResponse.json({ error: 'Error al crear ruta' }, { status: 500 })
