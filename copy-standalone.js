@@ -49,4 +49,20 @@ if (existsSync(envSrc)) {
   console.log('  ✓ .env copied')
 }
 
+// 6. Copy config.json (always overwrite)
+const cfgSrc = join(root, 'config.json')
+const cfgDst = join(standalone, 'config.json')
+if (existsSync(cfgSrc)) {
+  cpSync(cfgSrc, cfgDst)
+  console.log('  ✓ config.json copied')
+}
+
+// 7. Copy start.js (convenience for standalone)
+const startSrc = join(root, 'start.js')
+const startDst = join(standalone, 'start.js')
+if (existsSync(startSrc)) {
+  cpSync(startSrc, startDst)
+  console.log('  ✓ start.js copied')
+}
+
 console.log('copy-standalone: done')

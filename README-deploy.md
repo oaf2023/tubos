@@ -1,102 +1,66 @@
 ---
-title: Instalación en PythonAnywhere
+title: Despliegue en Render y PythonAnywhere
 ---
 
-## Requisitos
-- PythonAnywhere account (gratuita o de pago)
-- Node.js 20+ habilitado (ver debajo)
+## Para Render (recomendado)
 
-## Paso a paso
+1. Crear Web Service desde GitHub
+2. Configurar:
 
-### 1. Subir el proyecto
-- En PythonAnywhere, ve a **Files** tab
-- Sube `gastrack-portable.zip`
-- En **Bash console**:
-  ```bash
-  cd ~/
-  unzip gastrack-portable.zip -d gastrack
-  cd gastrack
-  ```
+   - **Runtime**: Node
+   - **Build Command**:
+     ```bash
+     npm install && npx prisma generate && npm run build
+     ```
+   - **Start Command**:
+     ```bash
+     node start.js
+     ```
+   - **Environment Variables** (opcionales, el proyecto usa defaults):
+     | Variable | Valor | Motivo |
+     |---|---|---|
+     | `NEO4J_ENABLED` | `false` | Render no tiene Neo4j |
+     | `NODE_ENV` | `production` | (default) |
+     | `PORT` | `10000` | Render asigna automáticamente |
 
-### 2. Instalar dependencias
-```bash
-npm install
-npx prisma generate
-npx prisma db push
-```
+3. Hacer **Manual Deploy → Deploy latest commit**
 
-### 3. Build (producción)
-```bash
-npm run build
-```
-Esto compila Next.js y copia `public/`, `db/`, `.env` y `prisma/schema.prisma` dentro de `.next/standalone/`.
+### Notas importantes
+- `DATABASE_URL` **no necesita configurarse** — `start.js` calcula la ruta absoluta automáticamente.
+- La base SQLite `db/custom.db` viene con datos de prueba (80 cilindros, 15 clientes, etc.).
+- En el tier free de Render, el filesystem es efímero: los datos se pierden al redeploy. Para persistencia, usar Starter+ ($7/mes) con disco persistente.
 
-### 4. Configurar Web App
-- En PythonAnywhere, ve a **Web** tab → **Add a new web app**
-- Elige **Manual Configuration** → **Node.js** (versión 20+)
-- En **Code**:
-  - **Startup command**: `node serve.js`
-  - **Working directory**: `/home/tu-usuario/gastrack`
-- En **Virtualenv**: dejalo vacío (no es Python)
+---
 
-### 5. Variables de entorno (Web → Environment variables)
-| Variable | Valor |
+## Para PythonAnywhere
+
+1. Subir el zip del proyecto y descomprimirlo
+2. En Bash console:
+   ```bash
+   cd ~/gastrack
+   npm install
+   npx prisma generate
+   npx prisma db push
+   npm run build
+   ```
+3. En **Web** → **Manual Configuration** → **Node.js**:
+   - **Startup command**: `node serve.js`
+   - **Working directory**: `/home/tu-usuario/gastrack`
+   - **Environment vars**:
+     - `NODE_ENV=production`
+     - `PORT=8080`
+     - `NEO4J_ENABLED=false`
+
+4. Reload la web app
+
+---
+
+## Archivos clave para deploy
+
+| Archivo | Rol |
 |---|---|
-| `NODE_ENV` | `production` |
-| `PORT` | `8080` (el que asigna PythonAnywhere) |
-| `NEO4J_ENABLED` | `false` (Neo4j no está disponible en PythonAnywhere) |
-
-### 6. Iniciar la app
-- **Reload** la web app desde el Web tab
-- Tu app estará en: `https://tu-usuario.pythonanywhere.com`
-
-### 7. Sincronizar base de datos inicial
-```bash
-npx tsx scripts/seed.ts
-```
-
----
-
-## Para Render
-
-### Opción recomendada (más simple)
-
-1. Subir el repo a GitHub:
-   ```bash
-   git init
-   git add .
-   git commit -m "gastrack v1.2"
-   gh repo create gastrack --private --push
-   ```
-2. En Render → New Web Service → conectar repo
-3. **Build command**:
-   ```bash
-   npm install && npx prisma generate && npm run build
-   ```
-4. **Start command**:
-   ```bash
-   node start.js
-   ```
-5. **Environment variables** en Render:
-   | Variable | Valor |
-   |---|---|
-   | `NODE_ENV` | `production` |
-   | `NEO4J_ENABLED` | `false` |
-
-   ⚠️ No es necesario `DATABASE_URL` como variable — `start.js` la calcula automáticamente como ruta absoluta desde el directorio del proyecto.
-
-⚠️ **Importante**: Render free tier tiene filesystem efímero — la base SQLite se pierde al redeploy. Soluciones: upgrade a Starter ($7/mes con disco persistente) o migrar a Turso (libSQL cloud).
-
----
-
-## Archivos modificados para el port
-| Archivo | Cambio |
-|---|---|
-| `.env` | `DATABASE_URL=file:./db/custom.db` (ruta relativa Unix) |
-| `package.json` | `build` usa `next build && node copy-standalone.js`; `start` usa `node` (no `bun`) |
-| `copy-standalone.js` | **Nuevo** — copia `.next/static/`, `public/`, `db/`, `.env`, `prisma/` al build standalone |
-| `serve.js` | **Nuevo** — entrypoint para PythonAnywhere con ruta absoluta de DB |
-| `start.js` | **Nuevo** — entrypoint para Render con ruta absoluta de DB |
-| `Procfile` | **Nuevo** — `web: node start.js` |
-
-No se modificó ningún archivo de lógica de negocio (`page.tsx`, API routes, etc.).
+| `start.js` | Entrypoint para Render — setea `DATABASE_URL` absoluta y arranca el servidor |
+| `serve.js` | Entrypoint para PythonAnywhere — corre `prisma db push` + `prisma generate` + arranca |
+| `Procfile` | Declara `web: node start.js` para Render |
+| `copy-standalone.js` | Post-build: copia assets, db, config y env al directorio standalone |
+| `.env` | Config local + build (ruta relativa de DB, desactivar Neo4j en prod) |
