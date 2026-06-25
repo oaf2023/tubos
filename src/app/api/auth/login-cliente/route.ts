@@ -10,20 +10,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuario y contraseña requeridos' }, { status: 400 })
     }
 
-    const user = await db.usuario.findUnique({ where: { usuario } })
-    if (!user || !user.activo) {
+    const acceso = await db.clienteAcceso.findUnique({
+      where: { usuario },
+      include: { cliente: true },
+    })
+
+    if (!acceso || !acceso.activo) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
-    const match = await bcrypt.compare(password, user.password)
+    if (!acceso.cliente.activo) {
+      return NextResponse.json({ error: 'Cuenta de cliente desactivada' }, { status: 401 })
+    }
+
+    const match = await bcrypt.compare(password, acceso.password)
     if (!match) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
-    const { password: _, ...safeUser } = user
-    return NextResponse.json({ user: { ...safeUser, tipo: 'usuario' } })
+    return NextResponse.json({
+      user: {
+        id: acceso.id,
+        clienteId: acceso.clienteId,
+        nombre: acceso.cliente.nombre,
+        usuario: acceso.usuario,
+        tipo: 'cliente',
+      },
+    })
   } catch (e) {
-    console.error('POST /api/auth/login', e)
+    console.error('POST /api/auth/login-cliente', e)
     return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 })
   }
 }

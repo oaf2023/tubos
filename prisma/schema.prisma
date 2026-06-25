@@ -260,6 +260,7 @@ model Cliente {
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   cylinders             Cylinder[]     @relation("ClienteCylinders")
+  acceso                ClienteAcceso?
 }
 
 model AlertConfig {
@@ -355,6 +356,17 @@ model PedidoCilindro {
   gasCodigo   String?  // Denormalizado: AR, O2, etc.
   verified    Boolean  @default(false) // Si el cilindro existe en inventario
   createdAt   DateTime @default(now())
+}
+
+model ClienteAcceso {
+  id         String   @id @default(cuid())
+  clienteId  String   @unique
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuario    String   @unique
+  password   String
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Usuario {

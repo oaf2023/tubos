@@ -94,6 +94,7 @@ const DepositoTab = dynamic(() => import('@/components/deposito-tab'), { ssr: fa
 const CabinaTab = dynamic(() => import('@/components/cabina-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const FinanzasTab = dynamic(() => import('@/components/finanzas-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const ClientePedidoTab = dynamic(() => import('@/components/cliente-pedido-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
@@ -111,6 +112,53 @@ export default function Home() {
 
   if (!user) {
     return <LoginPage onLogin={(u) => { setUser(u); sessionStorage.setItem('opencode_user', JSON.stringify(u)) }} />
+  }
+
+  const esCliente = user.tipo === 'cliente'
+
+  if (esCliente) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
+                <Factory className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                  Control Digital
+                </h1>
+                <p className="text-xs text-slate-500">Portal de Clientes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
+                {user.nombre}
+              </Badge>
+              <button
+                onClick={() => { setUser(null); sessionStorage.removeItem('opencode_user') }}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                title="Cerrar sesión"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <ClientePedidoTab clienteId={user.clienteId} clienteNombre={user.nombre} />
+        </main>
+        <footer className="mt-auto border-t border-slate-200 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-500">
+            Control Digital · Portal de Clientes · ManejaDatos Districon · San Nicolás de los Arroyos (Buenos Aires)
+          </div>
+        </footer>
+        <Toaster />
+      </div>
+    )
   }
 
   return (

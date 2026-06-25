@@ -10,6 +10,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
+  const [tab, setTab] = useState<'usuario' | 'cliente'>('usuario')
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -24,7 +25,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/auth/login', {
+      const endpoint = tab === 'usuario' ? '/api/auth/login' : '/api/auth/login-cliente'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, password }),
@@ -44,14 +46,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-orange-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md mx-4">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 mb-4">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -62,10 +62,29 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-sm text-slate-400 mt-1">ManejaDatos Districon</p>
         </div>
 
-        {/* Login card */}
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10">
-          <h2 className="text-lg font-semibold text-white mb-1">Iniciar sesión</h2>
-          <p className="text-sm text-slate-400 mb-6">Ingresá tus credenciales para acceder</p>
+          {/* Tabs */}
+          <div className="flex mb-6 bg-white/5 rounded-lg p-1">
+            <button
+              onClick={() => { setTab('usuario'); setError('') }}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${tab === 'usuario' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+            >
+              Usuarios
+            </button>
+            <button
+              onClick={() => { setTab('cliente'); setError('') }}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${tab === 'cliente' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+            >
+              Clientes
+            </button>
+          </div>
+
+          <h2 className="text-lg font-semibold text-white mb-1">
+            {tab === 'usuario' ? 'Acceso interno' : 'Acceso clientes'}
+          </h2>
+          <p className="text-sm text-slate-400 mb-6">
+            {tab === 'usuario' ? 'Ingresá tus credenciales de empleado' : 'Ingresá con tu usuario de cliente'}
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -73,7 +92,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <Input
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
-                placeholder="tu usuario"
+                placeholder={tab === 'usuario' ? 'tu usuario' : 'usuario cliente'}
                 className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
               />
             </div>
@@ -113,7 +132,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </Button>
           </form>
 
-          <p className="text-center text-xs text-slate-500 mt-6">
+          {tab === 'cliente' && (
+            <p className="text-center text-xs text-slate-500 mt-6">
+              ¿No tenés usuario? Solicitá tus credenciales en la empresa
+            </p>
+          )}
+          <p className="text-center text-xs text-slate-500 mt-2">
             Sistema de Gestión de Tubos de Gas
           </p>
         </div>

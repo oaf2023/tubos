@@ -19,6 +19,7 @@ import {
   Truck,
   FileText,
   DollarSign,
+  Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -79,6 +80,74 @@ export default function ClientesTab() {
   const [viewHistoryCliente, setViewHistoryCliente] = useState<Cliente | null>(null)
   const [historyData, setHistoryData] = useState<{ gas: string; mes: string; cantidad: number }[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+
+  // Acceso dialog
+  const [viewAccesoCliente, setViewAccesoCliente] = useState<Cliente | null>(null)
+  const [accesoData, setAccesoData] = useState<{ id: string; usuario: string; activo: boolean } | null>(null)
+  const [accesoForm, setAccesoForm] = useState({ usuario: '', password: '', activo: true })
+  const [loadingAcceso, setLoadingAcceso] = useState(false)
+
+  async function loadAcceso(clienteId: string) {
+    setLoadingAcceso(true)
+    try {
+      const res = await fetch('/api/clientes-acceso')
+      const lista: any[] = await res.json()
+      const miAcceso = lista.find((a: any) => a.clienteId === clienteId) || null
+      setAccesoData(miAcceso)
+      setAccesoForm({
+        usuario: miAcceso?.usuario || '',
+        password: '',
+        activo: miAcceso?.activo ?? true,
+      })
+    } catch { setAccesoData(null) }
+    finally { setLoadingAcceso(false) }
+  }
+
+  async function guardarAcceso() {
+    if (!viewAccesoCliente) return
+    setLoadingAcceso(true)
+    try {
+      if (accesoData) {
+        const body: Record<string, unknown> = {
+          usuario: accesoForm.usuario,
+          activo: accesoForm.activo,
+        }
+        if (accesoForm.password) body.password = accesoForm.password
+        await fetch(`/api/clientes-acceso/${accesoData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      } else {
+        await fetch('/api/clientes-acceso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clienteId: viewAccesoCliente.id,
+            usuario: accesoForm.usuario,
+            password: accesoForm.password,
+          }),
+        })
+      }
+      await loadAcceso(viewAccesoCliente.id)
+      toast({ title: accesoData ? 'Acceso actualizado' : 'Acceso creado' })
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar el acceso', variant: 'destructive' })
+    } finally { setLoadingAcceso(false) }
+  }
+
+  async function eliminarAcceso() {
+    if (!accesoData || !confirm('¿Eliminar el acceso de este cliente?')) return
+    setLoadingAcceso(true)
+    try {
+      await fetch(`/api/clientes-acceso/${accesoData.id}`, { method: 'DELETE' })
+      setAccesoData(null)
+      setAccesoForm({ usuario: '', password: '', activo: true })
+      toast({ title: 'Acceso eliminado' })
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo eliminar', variant: 'destructive' })
+    } finally { setLoadingAcceso(false) }
+  }
 
   async function loadCylindersForCliente(clienteId: string) {
     setLoadingCylinders(true)
@@ -354,6 +423,7 @@ export default function ClientesTab() {
                     <TableHead>Gases</TableHead>
                     <TableHead className="text-center">Stock Crítico</TableHead>
                     <TableHead>Estado Cuenta</TableHead>
+                    <TableHead className="text-center">Acceso</TableHead>
                     <TableHead className="text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -411,6 +481,15 @@ export default function ClientesTab() {
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-600"
+                            onClick={() => { setViewAccesoCliente(c); loadAcceso(c.id) }}
+                            title="Gestionar credenciales de acceso">
+                            <Key className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
@@ -819,6 +898,67 @@ export default function ClientesTab() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Acceso */}
+      <Dialog open={!!viewAccesoCliente} onOpenChange={(o) => { if (!o) setViewAccesoCliente(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-indigo-600" />
+              Acceso de {viewAccesoCliente?.nombre}
+            </DialogTitle>
+            <DialogDescription>
+              {accesoData ? 'Modificar o eliminar las credenciales de inicio de sesión' : 'Crear credenciales para que el cliente acceda al portal'}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingAcceso ? (
+            <div className="py-8 text-center text-slate-400">Cargando...</div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs font-medium">Usuario</Label>
+                <Input value={accesoForm.usuario} onChange={(e) => setAccesoForm(f => ({ ...f, usuario: e.target.value }))}
+                  placeholder="nombre de usuario" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs font-medium">{accesoData ? 'Nueva contraseña (dejar vacío para mantener)' : 'Contraseña'}</Label>
+                <Input type="password" value={accesoForm.password} onChange={(e) => setAccesoForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder={accesoData ? '•••••••• (dejar vacío)' : '••••••••'} className="mt-1" />
+                <p className="text-xs text-slate-400 mt-1">Mínimo 6 caracteres</p>
+              </div>
+              {accesoData && (
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="accesoActivo" checked={accesoForm.activo}
+                    onChange={(e) => setAccesoForm(f => ({ ...f, activo: e.target.checked }))}
+                    className="rounded border-slate-300" />
+                  <Label htmlFor="accesoActivo" className="text-xs">Cuenta activa</Label>
+                </div>
+              )}
+              <div className="flex justify-between pt-2">
+                <div>
+                  {accesoData && (
+                    <Button variant="destructive" size="sm" onClick={eliminarAcceso} disabled={loadingAcceso}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar acceso
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setViewAccesoCliente(null)}>Cancelar</Button>
+                  <Button size="sm" onClick={guardarAcceso} disabled={!accesoForm.usuario || (!accesoData && !accesoForm.password) || loadingAcceso}
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90">
+                    <Save className="w-3.5 h-3.5 mr-1" /> {accesoData ? 'Actualizar' : 'Crear acceso'}
+                  </Button>
+                </div>
+              </div>
+              {accesoData && (
+                <p className="text-xs text-slate-400 text-center pt-2 border-t">
+                  Usuario actual: <strong>{accesoData.usuario}</strong> — {accesoData.activo ? 'Activo' : 'Inactivo'}
+                </p>
+              )}
             </div>
           )}
         </DialogContent>
