@@ -442,5 +442,38 @@ Leído el archivo y actualizado con esta conversación.</div>
 
 Archivos creados/modificados: schema.prisma (15 modelos), page.tsx (2 tabs), deposito-tab.tsx, cabina-tab.tsx, 17 archivos API. Build exitoso, DB sincronizada.</div>
 
+<!-- ====================================================================== -->
+<h2>15. Módulo Análisis — 8 sub-tabs con recharts (tab #20)</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Crearemos una opcion "Analisis" con analisis de datos y graficos aplicados a la app para mejora continua.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+<strong>Implementación completa del módulo Análisis con 8 sub-tabs:</strong>
+
+<strong>API — 8 endpoints bajo /api/stats/analytics/:</strong>
+<ul>
+<li><code>panel-general</code> — KPIs globales (cilindros, clientes, ingresos mes, movimientos, facturas pendientes/vencidas) + distribución por estado + top 5 clientes</li>
+<li><code>tendencias</code> — Series temporales: movimientos por mes, facturación mensual (apilada pagada/pendiente/vencida), pedidos por mes, costos mantenimiento. Acepta ?meses=3/6/12/24</li>
+<li><code>clientes</code> — Top 10 por ingresos, estado de cuenta (AL_DIA/PENDIENTE/MOROSO), clientes con más cilindros con detalle</li>
+<li><code>financiero</code> — Ingresos por mes, por tipo (ALQUILER/GAS/FLETE/etc), estado de facturas, aging de cuentas por cobrar (0-30/31-60/61-90/90+)</li>
+<li><code>operaciones</code> — Estado por tipo de gas (matriz), costos mantenimiento por tipo, calendario próximos 12 meses de retests</li>
+<li><code>logistica</code> — Rutas por mes, rendimiento combustible, tabla de vehículos con sesiones/kilometraje</li>
+<li><code>calidad</code> — Validaciones por día, diagnósticos (OK/INCONSISTENCIA/NO_REGISTRADO), alertas por tipo y nivel, scatter peso real vs esperado</li>
+<li><code>rfid</code> — Eventos RFID por zona, stock apilado por gas, tags asociados/no asociados, estado lectores</li>
+</ul>
+
+<strong>UI — analisis-tab.tsx (~700 líneas):</strong>
+<ul>
+<li>8 sub-tabs con recharts: BarChart, PieChart, LineChart, AreaChart, ScatterChart, BarChart apilado/agrupado</li>
+<li>Selector de período (3/6/12/24 meses) que recarga todas las series temporales</li>
+<li>Botón Exportar CSV por sub-tab (genera .csv con datos del gráfico)</li>
+<li>Botón Exportar PDF (window.print con @page A4)</li>
+<li>KPI Cards con indicador de variación vs mes anterior</li>
+<li>ReferenceLine en gráficos de facturación para metas</li>
+</ul>
+
+<strong>Archivos creados:</strong> 8 API routes + analisis-tab.tsx + page.tsx (modificado). Build exitoso, commit a493f7d, push a Render. 20 tabs en total.</div>
+
 </body>
 </html>
