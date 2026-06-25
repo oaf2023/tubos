@@ -38,7 +38,8 @@ export default function LogisticaTab() {
     setLoading(true)
     try {
       const res = await fetch('/api/vehiculos')
-      setVehiculos(Array.isArray(await res.json()) ? await res.json() : [])
+      const data = await res.json()
+      setVehiculos(Array.isArray(data) ? data : [])
     } catch { /* ignore */ }
     setLoading(false)
   }
