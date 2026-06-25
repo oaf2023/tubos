@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (e) {
     console.error('POST /api/auth/login-cliente', e)
-    return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 })
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : 'Error al iniciar sesión'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

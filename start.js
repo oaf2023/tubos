@@ -7,7 +7,6 @@ const standaloneDir = join(root, '.next', 'standalone')
 const serverPath = join(standaloneDir, 'server.js')
 const dbDir = join(root, 'prisma', 'db')
 const dbPath = join(dbDir, 'custom.db')
-const prismaSchema = join(root, 'prisma', 'schema.prisma')
 
 if (!existsSync(serverPath)) {
   console.error('ERROR: Standalone server not found at', serverPath)
@@ -29,15 +28,14 @@ console.log(`[start] Port: ${process.env.PORT || 3000}`)
 
 // Sync database schema (creates missing tables)
 try {
-  const prismaBin = join(root, 'node_modules', '.bin', 'prisma')
-  execSync(`${prismaBin} db push --skip-generate --accept-data-loss 2>&1`, {
+  execSync(`npx prisma db push --skip-generate --accept-data-loss 2>&1`, {
     cwd: root,
     env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
     stdio: 'inherit',
   })
   console.log('[start] Database schema synced')
-} catch {
-  console.warn('[start] Database sync failed (non-fatal, continuing)')
+} catch (e) {
+  console.warn('[start] Database sync failed:', e.message || e)
 }
 
 const server = spawn('node', [serverPath], {

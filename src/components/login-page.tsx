@@ -33,7 +33,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Error al iniciar sesión')
+        setError(data.error || (res.status === 500 ? 'Error interno del servidor' : 'Credenciales inválidas'))
         return
       }
       onLogin(data.user)

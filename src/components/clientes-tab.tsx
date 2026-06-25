@@ -107,32 +107,33 @@ export default function ClientesTab() {
     if (!viewAccesoCliente) return
     setLoadingAcceso(true)
     try {
-      if (accesoData) {
-        const body: Record<string, unknown> = {
-          usuario: accesoForm.usuario,
-          activo: accesoForm.activo,
-        }
-        if (accesoForm.password) body.password = accesoForm.password
-        await fetch(`/api/clientes-acceso/${accesoData.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-      } else {
-        await fetch('/api/clientes-acceso', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clienteId: viewAccesoCliente.id,
-            usuario: accesoForm.usuario,
-            password: accesoForm.password,
-          }),
-        })
+      const res = accesoData
+        ? await fetch(`/api/clientes-acceso/${accesoData.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              usuario: accesoForm.usuario,
+              activo: accesoForm.activo,
+              ...(accesoForm.password ? { password: accesoForm.password } : {}),
+            }),
+          })
+        : await fetch('/api/clientes-acceso', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clienteId: viewAccesoCliente.id,
+              usuario: accesoForm.usuario,
+              password: accesoForm.password,
+            }),
+          })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Error del servidor')
       }
       await loadAcceso(viewAccesoCliente.id)
       toast({ title: accesoData ? 'Acceso actualizado' : 'Acceso creado' })
-    } catch {
-      toast({ title: 'Error', description: 'No se pudo guardar el acceso', variant: 'destructive' })
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'No se pudo guardar', variant: 'destructive' })
     } finally { setLoadingAcceso(false) }
   }
 
@@ -140,7 +141,8 @@ export default function ClientesTab() {
     if (!accesoData || !confirm('¿Eliminar el acceso de este cliente?')) return
     setLoadingAcceso(true)
     try {
-      await fetch(`/api/clientes-acceso/${accesoData.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/clientes-acceso/${accesoData.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar')
       setAccesoData(null)
       setAccesoForm({ usuario: '', password: '', activo: true })
       toast({ title: 'Acceso eliminado' })
