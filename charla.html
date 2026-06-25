@@ -213,8 +213,161 @@ Creando archivo HTML con la conversación completa.</div>
 <strong>OSRM:</strong> <code>router.project-osrm.org</code> (público, rate-limited, timeout 20s)<br>
 <strong>Colores IRAM 2588:</strong> C₂H₂=#FFD700, AR=#8B4513, N₂=#008000, etc.<br>
 <br>
-<strong>Último commit:</strong> <code>9a418b6</code> — gitignore factura.md + fixes de ruteo
+<strong>Último commit:</strong> <code>d1693a8</code> — feat: reportes A4 imprimibles + observaciones
 </div>
+
+<!-- ====================================================================== -->
+<h2>7. Location picker con mapa en formulario de ubicaciones</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Agrega mapa para seleccionar lat/lng en el CRUD de ubicaciones.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Se creó <code>src/components/location-picker.tsx</code> — componente Leaflet con marcador clickeable y arrastrable. Se integró en el diálogo de Ubicaciones (Tablas): clic en el mapa o arrastrar el marcador actualiza Lat/Lng automáticamente, y viceversa.</div>
+
+<!-- ====================================================================== -->
+<h2>8. Error al abrir Tablas — Pencil no importado</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Application error: client-side exception al ingresar a Tablas.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+El ícono <code>Pencil</code> de lucide-react se usaba en las acciones de las tablas (Gases, Ubicaciones, Alertas) pero nunca se importó. Al renderizar, React tiraba "Pencil is not defined" y rompía toda la página. Además se corrigieron errores TS: <code>clienteId</code> faltante en interface Cylinder y tipo opcional en <code>solveTSP</code>.</div>
+
+<!-- ====================================================================== -->
+<h2>9. Login + Usuarios CRUD</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Agregar login atractivo con usuario y password, verificado en tabla usuarios. CRUD en Tablas → Usuarios con nombre, dirección, teléfono, ciudad, provincia, lat/lng, email, nivel de acceso (1-5), usuario y password con doble verificación.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+<strong>Implementación completa:</strong>
+
+<ul>
+<li><strong>Login page</strong> (<code>src/components/login-page.tsx</code>): pantalla completa con fondo degradado oscuro, tarjeta vidriada, logo con gradiente naranja. Verifica contra <code>POST /api/auth/login</code> con bcrypt. Sesión persistida en sessionStorage.</li>
+<li><strong>Modelo Usuario</strong> en Prisma: nombre, dirección, teléfono, ciudad, provincia, lat, lng, email, nivelAcceso (1-5), usuario (único), password (hasheado), activo.</li>
+<li><strong>CRUD</strong> en Tablas → Usuarios con doble verificación de contraseña (password + confirmar).</li>
+<li><strong>Seed</strong>: admin / admin123 (nivel 5) creado automáticamente.</li>
+<li>Header muestra nombre del usuario + botón de cerrar sesión.</li>
+</ul></div>
+
+<!-- ====================================================================== -->
+<h2>10. Reportes A4 + Observaciones</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>1) Agregar "Reportes" con 7 listados en formato A4 imprimible (Clientes, Tubos, Mantenimiento, Rutas, Catálogo, Pedidos, Facturación), con título, fecha/hora, n° de página, usuario al pie. 2) Agregar "Observaciones" con sub-opciones "Imágenes" (subir foto/video + audio/texto) y "Otras Cosas" (notas escritas o audio). Dejar tablas preparadas en DB.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+<strong>Reportes</strong> (<code>src/components/reportes-tab.tsx</code>):
+<ul>
+<li>7 sub-tabs con listados específicos (columnas según cada entidad).</li>
+<li>Formato A4 con @page CSS: título "Control Digital ManejaDatos", fecha/hora y "Pág. 1" arriba, "Impreso por: [usuario]" y fecha al pie.</li>
+<li>Botón "Imprimir" que abre el diálogo de impresión nativo.</li>
+</ul>
+
+<strong>Observaciones</strong> (<code>src/components/observaciones-tab.tsx</code>):
+<ul>
+<li><strong>Imágenes</strong>: formulario para subir imágenes (cámara en mobile con capture="environment"), videos, grabar audio (pide permiso micrófono), agregar texto descriptivo. Todo se guarda como base64 en la DB.</li>
+<li><strong>Otras Cosas</strong>: notas de texto o grabación de audio.</li>
+<li>Tablas <code>Observacion</code> (tipo, título, descripción, audioUrl, createdBy) y <code>ObservacionArchivo</code> (tipo IMAGE/VIDEO, nombre, datos base64) con API CRUD completa.</li>
+</ul>
+
+<strong>15 tabs ahora:</strong> Dashboard, Mapa, Inventario, Rutas, Catálogo, Clientes, Laboratorio, Configuración, Pedidos, Facturación, Entrega/Remitos, Mantenimiento, Tablas, <strong>Reportes</strong>, <strong>Observaciones</strong>.</div>
+
+<!-- ====================================================================== -->
+<h2>11. Vehículos / Mantenimiento (CRUD completo + tab #16)</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>¿Qué hicimos hasta ahora?</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Actualicé el resumen anclado con todo el progreso: Login + Usuarios CRUD, Location picker (mapa), Reportes A4, Observaciones (imágenes/audio/notas), modelos Vehículo en Prisma.</div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+Necesito crear la UI de vehículos/mantenimiento siguiendo el spec.</div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Creé <code>src/components/vehiculos-tab.tsx</code> (413 líneas) con:
+<ul>
+<li>Panel izquierdo: lista de vehículos con búsqueda, editar, eliminar.</li>
+<li>Panel derecho: detalle del vehículo seleccionado con 3 sub-tabs: Mantenimiento, Combustible, Documentos.</li>
+<li>4 diálogos modales para crear/editar cada entidad.</li>
+<li>Badges de colores para estado (ACTIVO/EN_TALLER/BAJA/RESERVA) y tipo mantenimiento.</li>
+<li>Alertas de documentos vencidos/próximos a vencer.</li>
+</ul>
+También creé las rutas API faltantes: <code>/api/vehiculos/[id]/cargas</code> y <code>/api/vehiculos/[id]/documentos</code>.<br>
+Agregué tab #16 "Vehículos" en <code>page.tsx</code>. Build OK, commit y push a Render.</div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>No aparece la opcion Vehiculo/Mantenimiento</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Estaba en Render, no local. Commit y push para deploy automático: <code>11f8a6a</code> → main.</div>
+
+<!-- ====================================================================== -->
+<h2>12. Logística — Carga de Tubos (tab #17)</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>1) Agregar una opcion "Logistica" que tratara el tema guiado por [PDF 1] para el proceso de carga. 2) En esa opcion deberemos generar la simulacion del vehiculo en un grafico, dibujo o imagen que de acuerdo a los tubos que vayamos cargando se ira completando su capacidad (vista superior de la caja del camion con circulos que se iran pintando del color de los gases que lleva el tubo con los datos del mismo, peso, presion, gas y una pequeña x en rojo o un icono que indicara el lugar ocupado).</strong>
+[PDF no pudo leerse — formato no soportado]</div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Hice preguntas para entender el layout del camión, el flujo de carga y si debe registrar movimientos reales.</div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Te paso medidas clave. Seleccionar desde inventario. Sí, mover tubos reales.</strong></div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Debemos agregar las medidas de la caja del camion en la opcion vehiculos/mantenimiento, como la cantidad de tubos y el diametro de los tubos debe estar en inventario es una propiedad de los tubos, los tubos van parados o acostado debe ser seteado en la misma opcion de vehiculos/mantenimiento.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Plan de implementación completo con schema, API, y UI.</div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Toda esta implementacion ira en la opcion "Logistica" y las demas modificaciones necesarias ya sabes donde y que necesidad de modificar tablas existe. Comenza.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+<strong>Implementación completa:</strong>
+
+<strong>Schema (prisma/schema.prisma):</strong>
+<ul>
+<li><code>Vehiculo</code>: nuevos campos <code>largoCajaCm</code>, <code>anchoCajaCm</code>, <code>altoCajaCm</code>, <code>maxTubos</code>, <code>orientacionTubos</code> (PARADOS/ACOSTADOS).</li>
+<li><code>Cylinder</code>: nuevo campo <code>diametroMm</code>.</li>
+<li>Nuevos modelos: <code>CargaVehiculo</code> (id, vehiculoId, fecha, estado) y <code>CargaVehiculoItem</code> (id, cargaId, cylinderId, posicion) con unique compuestos.</li>
+</ul>
+
+<strong>API (5 nuevos endpoints bajo /api/vehiculos/[id]/carga-tubos/):</strong>
+<ul>
+<li>GET/POST — listar/crear sesiones de carga.</li>
+<li>GET/DELETE [cargaId] — detalle/eliminar sesión.</li>
+<li>POST /items — asignar tubo a posición.</li>
+<li>DELETE /items/[itemId] — sacar tubo.</li>
+<li>POST /confirmar — crea CylinderMovimiento CARGA y cambia estado a EN_USO.</li>
+</ul>
+
+<strong>Modificaciones UI:</strong>
+<ul>
+<li><code>vehiculos-tab.tsx</code>: formulario de vehículo ahora tiene sección "Configuración de Carga" con campos de dimensiones, maxTubos y orientación.</li>
+<li><code>page.tsx</code> (Inventario): formulario de cilindro ahora tiene campo "Diámetro (mm)" en Pesos y Capacidades.</li>
+<li><code>logistica-tab.tsx</code> (nuevo, ~340 líneas): 3 paneles — selector vehículo + barra progreso (izquierda), SVG truck bed top view con círculos coloreados por gas + red X (centro), buscador de tubos y asignación (derecha).</li>
+<li>Tab #17 "Logística" agregado en page.tsx con dynamic import.</li>
+</ul>
+
+<strong>Routes registrados en build:</strong>
+<ul>
+<li><code>/api/vehiculos/[id]/carga-tubos</code></li>
+<li><code>/api/vehiculos/[id]/carga-tubos/[cargaId]</code></li>
+<li><code>/api/vehiculos/[id]/carga-tubos/[cargaId]/items</code></li>
+<li><code>/api/vehiculos/[id]/carga-tubos/[cargaId]/items/[itemId]</code></li>
+<li><code>/api/vehiculos/[id]/carga-tubos/[cargaId]/confirmar</code></li>
+</ul>
+Build exitoso, commit <code>dafdd79</code>, push a Render.</div>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Actualiza charla.html con toda esta conversacion</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Hecho.</div>
 
 </body>
 </html>
