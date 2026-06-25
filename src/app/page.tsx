@@ -1,7 +1,22 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { Component, useEffect, useState } from 'react'
+
+class TabErrorBoundary extends Component<{ children: React.ReactNode; name: string }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  componentDidCatch(error: Error, info: any) { console.error(`Error in ${this.props.name}:`, error, info) }
+  render() {
+    if (this.state.error) {
+      return <div className="p-6 text-red-600 bg-red-50 rounded-xl border border-red-200">
+        <h3 className="font-bold mb-2">Error en {this.props.name}</h3>
+        <pre className="text-sm whitespace-pre-wrap">{this.state.error.message}</pre>
+      </div>
+    }
+    return this.props.children
+  }
+}
 import {
   Activity,
   Map as MapIcon,
@@ -227,7 +242,9 @@ export default function Home() {
             <CabinaTab />
           </TabsContent>
           <TabsContent value="finanzas">
-            <FinanzasTab />
+            <TabErrorBoundary name="Finanzas">
+              <FinanzasTab />
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="analisis">
             <AnalisisTab />
