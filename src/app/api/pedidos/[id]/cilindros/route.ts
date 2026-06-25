@@ -11,7 +11,15 @@ export async function GET(
       where: { pedidoId: id },
       orderBy: { createdAt: 'asc' },
     })
-    return NextResponse.json(cilindros)
+    // Attach full cylinder data for each
+    const enriched = await Promise.all(cilindros.map(async (c) => {
+      const cylinder = await db.cylinder.findUnique({
+        where: { numeroSerie: c.numeroSerie },
+        include: { gas: true },
+      })
+      return { ...c, cylinder }
+    }))
+    return NextResponse.json(enriched)
   } catch (e) {
     console.error('GET /api/pedidos/[id]/cilindros', e)
     return NextResponse.json({ error: 'Error al obtener cilindros' }, { status: 500 })
