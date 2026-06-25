@@ -74,7 +74,7 @@ function ExportBar({ onCSV, onPrint }: { onCSV: () => void; onPrint: () => void 
 }
 
 function formatPeso(n: number) {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 0 }).format(n)
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 }
 
 export default function FinanzasTab() {
