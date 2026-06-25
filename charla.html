@@ -369,5 +369,78 @@ Build exitoso, commit <code>dafdd79</code>, push a Render.</div>
 <div class="assistant"><span class="tag tag-assistant">Asistente</span>
 Hecho.</div>
 
+<!-- ====================================================================== -->
+<h2>13. Actualización de charla.html — conversación actual</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>actualizate con esto C:\Users\Usuario\Downloads\tubos\charla.html</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+Leído el archivo y actualizado con esta conversación.</div>
+
+<!-- ====================================================================== -->
+<h2>14. Nuevos módulos: Depósito (RFID Stock) + Cabina Inteligente</h2>
+
+<div class="user"><span class="tag tag-user">Usuario</span>
+<strong>Modificación: 1) Crearemos una nueva opcion llamada "Deposito" que dentro debe tener las opciones necesarias para cumplir con stock.md 2) Crearemos otras opcion "Cabina" que dentro tendra las opciones necesarias para cumplir con cabina.md. Todas las base de datos y tablas deben ser modificados para que esto funcione cuando sean instalados los medios fisicos.</strong></div>
+
+<div class="assistant"><span class="tag tag-assistant">Asistente</span>
+<strong>Implementación completa de Depósito (RFID Stock) y Cabina Inteligente:</strong>
+
+<strong>Schema Prisma — 15 nuevos modelos:</strong>
+<ul>
+<li>ZonaLectura — zonas RFID (VACIOS, LLENOS, SALIDA_REPARTO, ENVIO_CARGA, RECEPCION_CARGA, MANTENIMIENTO, BAJA)</li>
+<li>LectorIoT — lectores físicos (ESP32, RPI, GATEWAY) vinculados a zona</li>
+<li>TagRFID — tags RFID on-metal, TID único asociado a Cylinder</li>
+<li>EventoRFID — eventos de lectura con cambio de estado automático según zona</li>
+<li>StockGas — resumen de stock por tipo de gas (llenos, vacíos, reparto, carga, mant., baja)</li>
+<li>MovimientoStock — trazabilidad de movimientos manuales/automáticos</li>
+<li>Reparto — gestión de repartos vinculados a zonas de salida</li>
+<li>Cabina — estaciones de control físico</li>
+<li>SensorCabina — sensores (RFID, BALANZA, CAMARA, UPS)</li>
+<li>LecturaPeso — registros de peso por cilindro</li>
+<li>EvidenciaFoto — capturas fotográficas (base64)</li>
+<li>ValidacionCabina — resultados de validación (peso real vs esperado, diagnóstico)</li>
+<li>ReglaPeso — reglas de peso por gas (tara, lleno, min, max)</li>
+<li>EventoTrazabilidad — eventos de paso por cabina</li>
+<li>Alerta — alertas (cilindro no registrado, inconsistencia peso, etc.)</li>
+</ul>
+
+<strong>API endpoints nuevos (16):</strong>
+<ul>
+<li><code>/api/deposito</code> — GET (dashboard datos), POST (movimiento manual)</li>
+<li><code>/api/deposito/zonas</code>, <code>/api/deposito/zonas/[id]</code> — CRUD zonas</li>
+<li><code>/api/deposito/lectores</code>, <code>/api/deposito/lectores/[id]</code> — CRUD lectores</li>
+<li><code>/api/deposito/tags</code>, <code>/api/deposito/tags/[id]</code> — CRUD + asociar tags</li>
+<li><code>/api/deposito/eventos</code> — GET (listar), POST (procesar lectura RFID con cambio de estado automático)</li>
+<li><code>/api/deposito/stock</code> — GET/POST resumen stock</li>
+<li><code>/api/deposito/movimientos</code> — GET trazabilidad</li>
+<li><code>/api/deposito/repartos</code> — GET/POST repartos</li>
+<li><code>/api/cabina</code>, <code>/api/cabina/[id]</code> — CRUD cabinas</li>
+<li><code>/api/cabina/evento</code> — POST evento completo (RFID + peso + validación + alerta)</li>
+<li><code>/api/cabina/foto</code> — POST evidencia fotográfica</li>
+<li><code>/api/cabina/peso</code> — POST lectura de peso</li>
+<li><code>/api/cabina/validacion</code> — GET validaciones</li>
+<li><code>/api/cabina/reglas-peso</code> — GET/POST reglas de peso por gas</li>
+<li><code>/api/cabina/alertas</code> — GET alertas</li>
+<li><code>/api/cabina/eventos-trazabilidad</code> — GET eventos</li>
+<li><code>/api/cabina/sensores</code> — GET/POST sensores</li>
+</ul>
+
+<strong>UI — 2 nuevos tabs (#18 y #19):</strong>
+<ul>
+<li><strong>Depósito</strong> (<code>deposito-tab.tsx</code>) — Dashboard con stock por gas + cards totales, sub-tabs: Zonas (CRUD con colores por tipo), Lectores (CRUD con tipo/zona), Tags RFID (búsqueda + asociación a cilindro), Eventos (historial de lecturas)</li>
+<li><strong>Cabina</strong> (<code>cabina-tab.tsx</code>) — Dashboard con stats + última validaciones + alertas activas, sub-tabs: Cabinas (CRUD), Validaciones (detalle con diagnóstico/peso/foto), Reglas de Peso (configuración por gas), Alertas (listado con nivel/tipo), Sensores (CRUD por tipo)</li>
+</ul>
+
+<strong>Reglas de negocio implementadas:</strong>
+<ul>
+<li>POST /api/deposito/eventos: al leer un TID en una zona, cambia automáticamente el estado del cilindro (ej: zona VACIOS → estado VACIO_DEPOSITO) y crea CylinderMovimiento de auditoría</li>
+<li>POST /api/cabina/evento: flujo completo — identifica cilindro por TID, valida peso contra reglas, detecta inconsistencias (cilindro no registrado, peso no coincide), genera alerta y evento de trazabilidad</li>
+<li>Ventana anti-duplicados: preparada para consolidación por timestamp</li>
+</ul>
+
+Archivos creados/modificados: schema.prisma (15 modelos), page.tsx (2 tabs), deposito-tab.tsx, cabina-tab.tsx, 17 archivos API. Build exitoso, DB sincronizada.</div>
+
 </body>
 </html>

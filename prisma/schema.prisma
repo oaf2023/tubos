@@ -31,6 +31,9 @@ model Gas {
   cylinders            Cylinder[]
   alertConfig          AlertConfig?
   pedidos              Pedido[]
+  stockGas             StockGas?
+  movimientosStock     MovimientoStock[]
+  reglaPeso            ReglaPeso?
 }
 
 model Cylinder {
@@ -104,6 +107,12 @@ model Cylinder {
   movimientos         CylinderMovimiento[]
   mantenimientos      Mantenimiento[]
   cargasVehiculo      CargaVehiculoItem[]
+  tagsRFID            TagRFID[]
+  lecturasPeso        LecturaPeso[]
+  evidenciasFoto      EvidenciaFoto[]
+  validacionesCabina   ValidacionCabina[]
+  eventosTrazabilidad EventoTrazabilidad[]
+  alertas             Alerta[]
 }
 
 model CylinderMovimiento {
@@ -489,4 +498,218 @@ model DocumentoVehiculo {
   estado           String   @default("VIGENTE") // VIGENTE, VENCIDO, PROXIMO_A_VENCER
   observaciones    String?
   createdAt        DateTime @default(now())
+}
+
+// ============ DEPÓSITO / RFID STOCK ============
+
+model ZonaLectura {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  nombre      String
+  descripcion String?
+  tipo        String   // VACIOS, LLENOS, SALIDA_REPARTO, ENVIO_CARGA, RECEPCION_CARGA, MANTENIMIENTO, BAJA
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lectores    LectorIoT[]
+  eventos     EventoRFID[]
+}
+
+model LectorIoT {
+  id            String      @id @default(cuid())
+  codigo        String      @unique
+  nombre        String
+  tipo          String      // ESP32, RPI, GATEWAY
+  ip            String?
+  zonaLecturaId String
+  zona          ZonaLectura @relation(fields: [zonaLecturaId], references: [id])
+  activo        Boolean     @default(true)
+  ultimoHeartbeat DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  eventos       EventoRFID[]
+}
+
+model TagRFID {
+  id                String       @id @default(cuid())
+  tid               String       @unique // TID del chip RFID
+  cylinderId        String?
+  cylinder          Cylinder?    @relation(fields: [cylinderId], references: [id])
+  fechaAsociacion   DateTime?
+  activo            Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  eventos           EventoRFID[]
+}
+
+model EventoRFID {
+  id            String      @id @default(cuid())
+  tid           String
+  tag           TagRFID?    @relation(fields: [tid], references: [tid])
+  cylinderId    String?
+  lectorId      String
+  lector        LectorIoT   @relation(fields: [lectorId], references: [id])
+  zonaId        String
+  zona          ZonaLectura @relation(fields: [zonaId], references: [id])
+  timestamp     DateTime    @default(now())
+  estadoAnterior String?
+  estadoNuevo   String?
+  origen        String      @default("AUTOMATICO") // AUTOMATICO, MANUAL
+  usuario       String?
+  observacion   String?
+  createdAt     DateTime    @default(now())
+  movimientosStock MovimientoStock[]
+}
+
+model StockGas {
+  id          String   @id @default(cuid())
+  gasId       String   @unique
+  gas         Gas      @relation(fields: [gasId], references: [id])
+  llenos      Int      @default(0)
+  vacios      Int      @default(0)
+  enReparto   Int      @default(0)
+  enCarga     Int      @default(0)
+  mantenimiento Int    @default(0)
+  baja        Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model MovimientoStock {
+  id            String   @id @default(cuid())
+  gasId         String
+  gas           Gas      @relation(fields: [gasId], references: [id])
+  tipo          String   // ENTRADA, SALIDA, TRANSFERENCIA
+  cantidad      Int
+  estadoAnterior String?
+  estadoNuevo   String?
+  eventoRfidId  String?
+  eventoRfid    EventoRFID? @relation(fields: [eventoRfidId], references: [id])
+  usuario       String?
+  observacion   String?
+  createdAt     DateTime @default(now())
+}
+
+model Reparto {
+  id            String   @id @default(cuid())
+  codigo        String   @unique
+  fecha         DateTime @default(now())
+  clienteId     String?
+  cliente       String?  // Denormalizado
+  vehiculoId    String?
+  estado        String   @default("PENDIENTE") // PENDIENTE, EN_CURSO, COMPLETADO, CANCELADO
+  origenZonaId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============ CABINA INTELIGENTE ============
+
+model Cabina {
+  id          String          @id @default(cuid())
+  codigo      String          @unique
+  nombre      String
+  ubicacion   String?
+  activo      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  sensores    SensorCabina[]
+  validaciones ValidacionCabina[]
+  alertas     Alerta[]
+  eventos     EventoTrazabilidad[]
+  lecturasPeso LecturaPeso[]
+  evidenciasFoto EvidenciaFoto[]
+}
+
+model SensorCabina {
+  id            String   @id @default(cuid())
+  cabinaId      String
+  cabina        Cabina   @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
+  tipo          String   // RFID, BALANZA, CAMARA, UPS
+  codigo        String
+  configuracion String?  // JSON con config específica
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model LecturaPeso {
+  id          String   @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  pesoKg      Float
+  fecha       DateTime @default(now())
+  sensorId    String?  // Sensor que registró la lectura
+  createdAt   DateTime @default(now())
+  validaciones ValidacionCabina[]
+}
+
+model EvidenciaFoto {
+  id          String   @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  fecha       DateTime @default(now())
+  imagen      String   // base64
+  createdAt   DateTime @default(now())
+  validaciones ValidacionCabina[]
+}
+
+model ValidacionCabina {
+  id              String   @id @default(cuid())
+  cabinaId        String
+  cabina          Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId      String?
+  cylinder        Cylinder? @relation(fields: [cylinderId], references: [id])
+  eventoRfidId    String?
+  lecturaPesoId   String?
+  lecturaPeso     LecturaPeso? @relation(fields: [lecturaPesoId], references: [id])
+  evidenciaFotoId String?
+  evidenciaFoto   EvidenciaFoto? @relation(fields: [evidenciaFotoId], references: [id])
+  pesoRealKg      Float?
+  pesoEsperadoKg  Float?
+  diagnostico     String   @default("OK") // OK, INCONSISTENCIA, NO_REGISTRADO, SOSPECHOSO
+  estadoFinal     String?
+  alertaGenerada  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model ReglaPeso {
+  id          String   @id @default(cuid())
+  gasId       String   @unique
+  gas         Gas      @relation(fields: [gasId], references: [id])
+  pesoMinKg   Float?
+  pesoMaxKg   Float?
+  pesoTaraKg  Float?
+  pesoLlenoKg Float?
+  updatedAt   DateTime @updatedAt
+}
+
+model EventoTrazabilidad {
+  id          String   @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  tipo        String   // PASO_CABINA, VALIDACION, ALERTA, INGRESO, EGRESO
+  descripcion String?
+  fecha       DateTime @default(now())
+  usuario     String?
+  createdAt   DateTime @default(now())
+}
+
+model Alerta {
+  id          String   @id @default(cuid())
+  tipo        String   // CILINDRO_NO_REGISTRADO, INCONSISTENCIA_PESO, ZONA_NO_AUTORIZADA, LECTURA_MULTIPLE, OTRO
+  cabinaId    String?
+  cabina      Cabina?  @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  mensaje     String
+  nivel       String   // INFO, WARNING, CRITICAL
+  resuelta    Boolean  @default(false)
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
 }

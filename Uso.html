@@ -85,7 +85,7 @@
 
 <div class="sidebar">
   <h1>Control Digital<br>ManejaDatos</h1>
-  <div class="subtitle">Manual de Usuario — v1.0</div>
+  <div class="subtitle">Manual de Usuario — v2.0</div>
   <nav>
     <a class="section" href="#intro">Introducci&oacute;n</a>
     <a href="#que-es">&iquest;Qu&eacute; es esta aplicaci&oacute;n?</a>
@@ -102,6 +102,12 @@
     <a href="#pedidos">Pedidos</a>
     <a href="#mantenimiento">Mantenimiento</a>
     <a href="#tablas">Tablas</a>
+    <a href="#facturacion">Facturaci&oacute;n</a>
+    <a href="#remitos">Remitos</a>
+    <a href="#reportes">Reportes</a>
+    <a href="#observaciones">Observaciones</a>
+    <a href="#vehiculos">Veh&iacute;culos</a>
+    <a href="#logistica">Log&iacute;stica</a>
     <a class="section" href="#pwa">App M&oacute;vil (PWA)</a>
     <a href="#instalar">Instalar en el celular</a>
     <a href="#responsive">Uso responsive</a>
@@ -118,7 +124,7 @@
 
 <div class="info-box">
   <strong>Aplicaci&oacute;n:</strong> Control Digital ManejaDatos Districon &mdash;
-  <strong>Versi&oacute;n:</strong> 1.0 &mdash;
+  <strong>Versi&oacute;n:</strong> 2.0 &mdash;
   <strong>Base operativa:</strong> San Nicol&aacute;s de los Arroyos, Buenos Aires, Argentina
 </div>
 
@@ -145,7 +151,7 @@
 <!-- ============================================================ -->
 <h2 id="tabs">Tabs del Sistema</h2>
 
-<p>La aplicaci&oacute;n se organiza en 11 pesta&ntilde;as (tabs) accesibles desde la barra superior (con scroll horizontal en m&oacute;viles):</p>
+<p>  La aplicaci&oacute;n se organiza en 17 pesta&ntilde;as (tabs) accesibles desde la barra superior (con scroll horizontal en m&oacute;viles):</p>
 
 <!-- ============================================================ -->
 <h3 id="dashboard">1. Dashboard <span class="tag tag-orange">Vista principal</span></h3>
@@ -470,7 +476,91 @@
 </p>
 
 <!-- ============================================================ -->
-<h3 id="mantenimiento">10. Mantenimiento <span class="tag tag-amber">Gesti&oacute;n t&eacute;cnica</span></h3>
+<h3 id="facturacion">10. Facturaci&oacute;n <span class="tag tag-green">Gesti&oacute;n contable</span></h3>
+
+<p>
+  Sistema de facturaci&oacute;n vinculado a remitos y pedidos. Genera facturas con
+  c&aacute;lculo autom&aacute;tico de <strong>alquiler de cilindros</strong> por d&iacute;as.
+</p>
+
+<h4>Nueva Factura</h4>
+<ul>
+  <li><strong>Cliente:</strong> Selector con b&uacute;squeda, muestra saldo pendiente si existe.</li>
+  <li><strong>Per&iacute;odo:</strong> Fecha desde / hasta para facturaci&oacute;n peri&oacute;dica (mensual, bimestral, etc.).</li>
+  <li><strong>Remitos asociados:</strong> Seleccion&aacute; uno o m&aacute;s remitos del cliente. Los items se importan autom&aacute;ticamente.</li>
+</ul>
+
+<h4>Items y c&aacute;lculo de alquiler</h4>
+<ul>
+  <li><strong>Concepto:</strong> Descripci&oacute;n del item (ej: "Alquiler cilindro Ox&iacute;geno").</li>
+  <li><strong>D&iacute;as facturados:</strong> Cantidad de d&iacute;as del per&iacute;odo de alquiler.</li>
+  <li><strong>Precio unitario:</strong> Valor por d&iacute;a (se auto-completa desde el tipo de operaci&oacute;n del remito).</li>
+  <li><strong>Subtotal:</strong> Se calcula como cantidad &times; precio unitario.</li>
+</ul>
+
+<h4>Totales y ajustes</h4>
+<ul>
+  <li><strong>Descuento:</strong> Porcentaje o monto fijo de descuento.</li>
+  <li><strong>Impuestos:</strong> Porcentaje adicional (IVA, ingresos brutos, etc.).</li>
+  <li><strong>Saldo anterior:</strong> Si el cliente tiene deuda pendiente, se arrastra autom&aacute;ticamente.</li>
+  <li><strong>Notas de cr&eacute;dito:</strong> Ajustes positivos a favor del cliente.</li>
+  <li><strong>Pagos aplicados:</strong> Montos ya abonados para descontar del total.</li>
+  <li><strong>Total general:</strong> C&aacute;lculo final = subtotal &minus; descuento + impuestos + saldo anterior &minus; notas cr&eacute;dito &minus; pagos.</li>
+</ul>
+
+<h4>Vista previa de impresi&oacute;n <span class="tag tag-blue">Nuevo</span></h4>
+<p>
+  Bot&oacute;n 🖨️ &rarr; abre la factura en formato de impresi&oacute;n optimizado
+  con encabezado corporativo, tabla de items, totales desglosados, condici&oacute;n
+  de pago (01/15/30 d&iacute;as) y pie de firma.
+</p>
+
+<h4>Historial</h4>
+<p>
+  Tabla de todas las facturas con n&uacute;mero de factura, cliente, per&iacute;odo,
+  subtotal, total, fecha de emisi&oacute;n y estado.
+  Botones de acci&oacute;n: ✏️ Editar, 🖨️ Imprimir, 🗑️ Eliminar.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="remitos">11. Remitos <span class="tag tag-orange">Entrega / recepci&oacute;n</span></h3>
+
+<p>
+  Gesti&oacute;n de <strong>remitos de entrega y recepci&oacute;n</strong> de cilindros.
+  Vinculados al workflow de pedidos y facturaci&oacute;n.
+</p>
+
+<h4>Nuevo Remito</h4>
+<ul>
+  <li><strong>Cliente:</strong> Selector con b&uacute;squeda.</li>
+  <li><strong>Tipo:</strong> ENTREGA (env&iacute;o de cilindros al cliente) o RECEPCI&Oacute;N (devoluci&oacute;n del cliente).</li>
+  <li><strong>T&eacute;cnico:</strong> Nombre del responsable que realiz&oacute; la entrega/recepci&oacute;n.</li>
+  <li><strong>Items m&uacute;ltiples:</strong> Cada rengl&oacute;n tiene gas (con SGA y color IRAM), tipo de operaci&oacute;n
+    (ALQUILER, VENTA_NUEVA, CANJE), cantidad, fecha de devoluci&oacute;n, precio unitario.</li>
+  <li><strong>Cilindros asociados:</strong> Se pueden asignar cilindros concretos del inventario a cada item del remito.</li>
+</ul>
+
+<h4>Filtros</h4>
+<ul>
+  <li><strong>Tipo:</strong> Todos / Entrega / Recepci&oacute;n.</li>
+  <li><strong>Estado:</strong> Todos / Pendiente / Completado / Cancelado.</li>
+</ul>
+
+<h4>Tabla de remitos</h4>
+<p>
+  Muestra: N&deg; Remito, Cliente, Tipo (con badge), Fecha, T&eacute;cnico,
+  Items y botones de acci&oacute;n: ✏️ Editar, 🗑️ Eliminar.
+</p>
+
+<h4>Workflow integrado</h4>
+<ul>
+  <li>Los remitos se vinculan a <strong>pedidos</strong> para la trazabilidad completa del ciclo: Pedido &rarr; Remito &rarr; Factura.</li>
+  <li>La <strong>facturaci&oacute;n</strong> puede importar items desde remitos del cliente.</li>
+  <li>El estado del remito se actualiza manualmente (Pendiente &rarr; Completado).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="mantenimiento">12. Mantenimiento <span class="tag tag-amber">Gesti&oacute;n t&eacute;cnica</span></h3>
 
 <p>
   Registro centralizado de <strong>mantenimiento de cilindros</strong> en todos los tubos
@@ -510,7 +600,7 @@
 </div>
 
 <!-- ============================================================ -->
-<h3 id="tablas">11. Tablas <span class="tag tag-blue">Referencia CRUD</span></h3>
+<h3 id="tablas">13. Tablas <span class="tag tag-blue">Referencia CRUD</span></h3>
 
 <p>
   Mantenimiento de <strong>tablas de referencia</strong> del sistema con operaciones
@@ -548,6 +638,171 @@
   cilindro lo est&eacute; usando. Al eliminar una ubicaci&oacute;n, verifica que no haya
   cilindros asignados a ella. Esto protege la integridad referencial de los datos.
 </div>
+
+<!-- ============================================================ -->
+<h3 id="reportes">14. Reportes <span class="tag tag-blue">Imprimibles</span></h3>
+
+<p>
+  M&oacute;dulo de <strong>reportes imprimibles</strong> con 7 tipos de informe
+  pre-dise&ntilde;ados en formato A4. Todos los reportes incluyen encabezado corporativo,
+  tabla de datos, n&uacute;mero de p&aacute;gina y pie con usuario impresor.
+</p>
+
+<ul>
+  <li><strong>Clientes:</strong> Listado completo con nombre, direcci&oacute;n, tel&eacute;fono, email y CUIT.</li>
+  <li><strong>Tubos:</strong> Inventario con serie, gas, ubicaci&oacute;n, estado, cliente y pr&oacute;ximo retest.</li>
+  <li><strong>Mantenimiento:</strong> Registros de mantenimiento agrupados por cilindro.</li>
+  <li><strong>Rutas:</strong> Rutas con nombre, fecha, estado, paradas, distancia y duraci&oacute;n.</li>
+  <li><strong>Cat&aacute;logo:</strong> Gases con c&oacute;digo, nombre, color (muestra visual), presi&oacute;n, categor&iacute;a y peligro SGA.</li>
+  <li><strong>Pedidos:</strong> Pedidos con n&uacute;mero, cliente, fecha, estado, cilindros y total.</li>
+  <li><strong>Facturaci&oacute;n:</strong> Facturas con n&uacute;mero, cliente, per&iacute;odo, subtotal y total.</li>
+</ul>
+
+<p>
+  Bot&oacute;n 🖨️ "Imprimir" &rarr; vista de impresi&oacute;n del navegador con
+  formato A4 (@page size: A4, margin 15mm). Los botones y men&uacute;s se ocultan
+  autom&aacute;ticamente en la impresi&oacute;n.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="observaciones">15. Observaciones <span class="tag tag-purple">Notas multimedia</span></h3>
+
+<p>
+  Sistema de <strong>observaciones multimedia</strong> para registrar notas,
+  im&aacute;genes, videos y audio directamente desde el navegador o la c&aacute;mara del celular.
+</p>
+
+<h4>Sub-pesta&ntilde;as</h4>
+<ul>
+  <li><strong>Im&aacute;genes:</strong> Captura de fotos/video con la c&aacute;mara del dispositivo,
+    vista previa con miniaturas, reproductor de video integrado.</li>
+  <li><strong>Otras Cosas:</strong> Notas de texto con grabaci&oacute;n de audio integrada
+    (usando la API MediaRecorder del navegador).</li>
+</ul>
+
+<h4>Nueva observaci&oacute;n</h4>
+<ul>
+  <li><strong>T&iacute;tulo:</strong> Nombre identificatorio de la observaci&oacute;n.</li>
+  <li><strong>Descripci&oacute;n:</strong> Texto detallado de la nota.</li>
+  <li><strong>Adjuntar archivo:</strong> Botones para c&aacute;mara (foto), video o micr&oacute;fono (audio).
+    Los archivos se codifican en base64 y se almacenan en la base de datos.</li>
+  <li><strong>Grabar audio:</strong> Bot&oacute;n de micr&oacute;fono que usa la API getUserMedia.
+    Al detener la grabaci&oacute;n, se muestra un reproductor de audio para escuchar antes de guardar.</li>
+</ul>
+
+<h4>Lista de observaciones</h4>
+<p>
+  Panel desplazable con todas las observaciones ordenadas por fecha.
+  Cada tarjeta muestra: t&iacute;tulo, fecha, creador, descripci&oacute;n,
+  miniaturas de im&aacute;genes, reproductores de video/audio y bot&oacute;n 🗑️ para eliminar.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="vehiculos">16. Veh&iacute;culos <span class="tag tag-orange">Flota</span></h3>
+
+<p>
+  Gesti&oacute;n completa de la <strong>flota de veh&iacute;culos</strong> con
+  detalle maestro y tres sub-m&oacute;dulos: mantenimiento, combustible y documentaci&oacute;n.
+</p>
+
+<h4>Datos del veh&iacute;culo</h4>
+<ul>
+  <li><strong>Identificaci&oacute;n:</strong> C&oacute;digo interno, patente, marca, modelo, a&ntilde;o, VIN, motor.</li>
+  <li><strong>Clasificaci&oacute;n:</strong> Tipo (UTILITARIO, CAMION, CAMIONETA, AUTO, MOTO, OTRO),
+    combustible (NAFTA, GASOIL, GNC, ELECTRICO, HIBRIDO).</li>
+  <li><strong>M&eacute;tricas:</strong> KM actual, hor&iacute;metro, capacidad de carga (kg).</li>
+  <li><strong>Asignaci&oacute;n:</strong> Estado (ACTIVO, MANTENIMIENTO, FUERA_SERVICIO, VENDIDO),
+    &aacute;rea, centro de costo, conductor.</li>
+  <li><strong>Configuraci&oacute;n de caja:</strong> Largo, ancho y alto de la caja (cm),
+    m&aacute;ximo de tubos y orientaci&oacute;n (PARADOS / ACOSTADOS).</li>
+</ul>
+
+<h4>Mantenimiento del veh&iacute;culo</h4>
+<ul>
+  <li><strong>Tipo:</strong> PREVENTIVO, CORRECTIVO o PREDICTIVO.</li>
+  <li><strong>Campos:</strong> Fecha, KM, descripci&oacute;n, costo, taller, responsable.</li>
+  <li><strong>Estado:</strong> PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO.</li>
+</ul>
+
+<h4>Combustible / Carga</h4>
+<ul>
+  <li><strong>Tipo:</strong> CARGA (combustible tradicional) o CARGA_ELECTRICA.</li>
+  <li><strong>Campos:</strong> Fecha, litros/kWh, costo, KM del evento, rendimiento calculado (km/L).</li>
+</ul>
+
+<h4>Documentos</h4>
+<ul>
+  <li><strong>Tipo:</strong> REVISION_TECNICA, PERMISO_CIRCULACION, SEGURO, LICENCIA, OTRO.</li>
+  <li><strong>Campos:</strong> N&uacute;mero, fecha de emisi&oacute;n, fecha de vencimiento, observaciones.</li>
+  <li><strong>Estado:</strong> Sem&aacute;foro autom&aacute;tico:
+    <span class="tag tag-green">VIGENTE</span> (no vencido),
+    <span class="tag tag-amber">PR&Oacute;XIMO A VENCER</span> (&lt;30 d&iacute;as),
+    <span class="tag tag-red">VENCIDO</span> (fecha expirada).</li>
+</ul>
+
+<h4>Interfaz maestro-detalle</h4>
+<p>
+  Panel izquierdo con lista de veh&iacute;culos (b&uacute;squeda por patente/marca/c&oacute;digo)
+  y bot&oacute;n ➕ para agregar. Panel derecho con informaci&oacute;n detallada y
+  sub-pesta&ntilde;as de Mantenimiento / Combustible / Documentos.
+  Cada sub-m&oacute;dulo tiene su propio formulario de alta y tabla de registros.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="logistica">17. Log&iacute;stica <span class="tag tag-green">Carga de tubos</span></h3>
+
+<p>
+  Sistema de <strong>carga y descarga de cilindros</strong> en veh&iacute;culos
+  con representaci&oacute;n visual SVG del plano de carga. Es el m&oacute;dulo
+  m&aacute;s complejo del sistema.
+</p>
+
+<h4>Modos de operaci&oacute;n</h4>
+<ul>
+  <li><strong>Cargar:</strong> Iniciar una sesi&oacute;n de carga, asignar tubos a posiciones del veh&iacute;culo.</li>
+  <li><strong>Consultar:</strong> Revisar sesiones de carga completadas y sus detalles.</li>
+  <li><strong>Historial:</strong> Navegar todas las sesiones pasadas, reimprimir &oacute;rdenes o descargar tubos.</li>
+</ul>
+
+<h4>Plano de carga SVG</h4>
+<p>
+  Representaci&oacute;n gr&aacute;fica de la caja del veh&iacute;culo con c&iacute;rculos
+  que representan cada posici&oacute;n de tubo:
+</p>
+<ul>
+  <li><strong>Vac&iacute;o:</strong> C&iacute;rculo gris claro con n&uacute;mero de posici&oacute;n.</li>
+  <li><strong>Ocupado:</strong> C&iacute;rculo del color del gas (IRAM 2588) con una X roja,
+    tooltip al pasar el mouse con n&deg; de serie, gas, presi&oacute;n y peso.</li>
+  <li><strong>Seleccionado:</strong> Borde azul resaltado.</li>
+  <li>El c&aacute;lculo de filas y columnas se adapta autom&aacute;ticamente a las dimensiones
+    de la caja (<code>largoCajaCm</code>, <code>anchoCajaCm</code>) y <code>maxTubos</code> del veh&iacute;culo.</li>
+</ul>
+
+<h4>Ciclo de carga</h4>
+<ol style="margin:0.3rem 0 1rem 1.5rem; font-size:0.9rem;">
+  <li>Seleccionar veh&iacute;culo y crear una <strong>nueva sesi&oacute;n</strong> de carga.</li>
+  <li>Hacer clic en una posici&oacute;n vac&iacute;a del SVG para seleccionarla.</li>
+  <li>Buscar tubos disponibles filtrando por <strong>serie, gas o capacidad</strong>.
+    Tambi&eacute;n se puede cargar desde un <strong>pedido pendiente</strong> usando el selector de pedidos.</li>
+  <li>Hacer clic en el tubo deseado para asignarlo a la posici&oacute;n seleccionada.</li>
+  <li>Repetir hasta completar la carga.</li>
+  <li><strong>Confirmar</strong> la carga (&rarr; los tubos pasan a estado TR&Aacute;NSITO).</li>
+  <li>Opcional: <strong>Descargar</strong> todos los tubos (&rarr; vuelven a estado VAC&Iacute;O).</li>
+</ol>
+
+<h4>Orden de despacho / Remito imprimible</h4>
+<p>
+  Bot&oacute;n 🖨️ <strong>"Imprimir"</strong> &rarr; genera un documento HTML en nueva
+  ventana con estilo Courier New, formato A4, listando todos los tubos cargados con:
+  posici&oacute;n, n&deg; de serie, gas, capacidad, presi&oacute;n, peso, di&aacute;metro,
+  cantidad total y peso total. Se imprime autom&aacute;ticamente.
+</p>
+
+<h4>Barra de progreso</h4>
+<p>
+  Indicador visual del porcentaje de la caja ocupado (posiciones llenas / capacidad total).
+  Se actualiza en tiempo real al asignar o quitar tubos.
+</p>
 
 <!-- ============================================================ -->
 <h2 id="pwa">App M&oacute;vil (PWA)</h2>
@@ -695,7 +950,7 @@
 
 <p style="margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem;">
   Manual de Usuario — Control Digital ManejaDatos &copy; 2026 &mdash;
-  &Uacute;ltima actualizaci&oacute;n: Junio 2026 &mdash; v1.2 (11 tabs, grafo por tubo, CRUD tablas)
+  &Uacute;ltima actualizaci&oacute;n: Junio 2026 &mdash; v2.0 (17 tabs: +Facturaci&oacute;n, Remitos, Reportes, Observaciones, Veh&iacute;culos, Log&iacute;stica)
 </p>
 
 </div>

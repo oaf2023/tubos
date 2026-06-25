@@ -22,6 +22,8 @@ import {
   Printer,
   Eye,
   RefreshCw,
+  Warehouse,
+  ScanLine,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -71,6 +73,8 @@ const ReportesTab = dynamic(() => import('@/components/reportes-tab'), { ssr: fa
 const ObservacionesTab = dynamic(() => import('@/components/observaciones-tab'), { ssr: false, loading: () => <Skeleton className="h-[400px] rounded-xl" /> })
 const VehiculosTab = dynamic(() => import('@/components/vehiculos-tab'), { ssr: false, loading: () => <Skeleton className="h-[400px] rounded-xl" /> })
 const LogisticaTab = dynamic(() => import('@/components/logistica-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const DepositoTab = dynamic(() => import('@/components/deposito-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const CabinaTab = dynamic(() => import('@/components/cabina-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
@@ -147,6 +151,12 @@ export default function Home() {
             <TabsTrigger value="logistica" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Package className="w-4 h-4" /><span>Logística</span>
             </TabsTrigger>
+            <TabsTrigger value="deposito" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Warehouse className="w-4 h-4" /><span>Depósito</span>
+            </TabsTrigger>
+            <TabsTrigger value="cabina" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <ScanLine className="w-4 h-4" /><span>Cabina</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -199,6 +209,12 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="logistica">
             <LogisticaTab />
+          </TabsContent>
+          <TabsContent value="deposito">
+            <DepositoTab />
+          </TabsContent>
+          <TabsContent value="cabina">
+            <CabinaTab />
           </TabsContent>
         </Tabs>
       </main>
