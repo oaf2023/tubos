@@ -68,6 +68,8 @@ export async function PUT(
     // Pesos
     if (body.capacidadLitros !== undefined)
       data.capacidadLitros = parseInt(body.capacidadLitros, 10)
+    if (body.diametroMm !== undefined)
+      data.diametroMm = body.diametroMm ? parseFloat(body.diametroMm) : null
     if (body.pesoVacioKg !== undefined)
       data.pesoVacioKg = body.pesoVacioKg ? parseFloat(body.pesoVacioKg) : null
     if (body.pesoTaraKg !== undefined)

@@ -20,6 +20,9 @@ const emptyVehiculo = {
   vin: '', numeroMotor: '', tipo: 'AUTO', combustible: 'GASOIL',
   capacidad: '', kmActual: 0, horometroActual: undefined as number | undefined,
   estado: 'ACTIVO', areaAsignada: '', conductorAsignado: '', centroCosto: '',
+  largoCajaCm: undefined as number | undefined, anchoCajaCm: undefined as number | undefined,
+  altoCajaCm: undefined as number | undefined, maxTubos: undefined as number | undefined,
+  orientacionTubos: 'PARADOS',
 }
 
 export default function VehiculosTab() {
@@ -80,6 +83,9 @@ export default function VehiculosTab() {
         vin: v.vin || '', numeroMotor: v.numeroMotor || '', tipo: v.tipo, combustible: v.combustible,
         capacidad: v.capacidad || '', kmActual: v.kmActual || 0, horometroActual: v.horometroActual || undefined,
         estado: v.estado, areaAsignada: v.areaAsignada || '', conductorAsignado: v.conductorAsignado || '', centroCosto: v.centroCosto || '',
+        largoCajaCm: v.largoCajaCm ?? undefined, anchoCajaCm: v.anchoCajaCm ?? undefined,
+        altoCajaCm: v.altoCajaCm ?? undefined, maxTubos: v.maxTubos ?? undefined,
+        orientacionTubos: v.orientacionTubos || 'PARADOS',
       })
     } else { setEditId(null); setForm(emptyVehiculo) }
     setDialogOpen('vehiculo')
@@ -90,7 +96,16 @@ export default function VehiculosTab() {
       const res = await fetch(`/api/vehiculos${editId ? `/${editId}` : ''}`, {
         method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, anio: parseInt(String(form.anio)), kmActual: parseInt(String(form.kmActual)), horometroActual: form.horometroActual ? parseInt(String(form.horometroActual)) : null }),
+        body: JSON.stringify({
+          ...form,
+          anio: parseInt(String(form.anio)),
+          kmActual: parseInt(String(form.kmActual)),
+          horometroActual: form.horometroActual ? parseInt(String(form.horometroActual)) : null,
+          largoCajaCm: form.largoCajaCm ? parseFloat(String(form.largoCajaCm)) : null,
+          anchoCajaCm: form.anchoCajaCm ? parseFloat(String(form.anchoCajaCm)) : null,
+          altoCajaCm: form.altoCajaCm ? parseFloat(String(form.altoCajaCm)) : null,
+          maxTubos: form.maxTubos ? parseInt(String(form.maxTubos)) : null,
+        }),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
       toast({ title: editId ? 'Vehículo actualizado' : 'Vehículo creado' })
@@ -322,6 +337,17 @@ export default function VehiculosTab() {
               <div><Label className="text-xs">C. Costo</Label><Input value={form.centroCosto} onChange={e => setForm(f=>({...f,centroCosto:e.target.value}))} /></div>
             </div>
             <div><Label className="text-xs">Conductor asignado</Label><Input value={form.conductorAsignado} onChange={e => setForm(f=>({...f,conductorAsignado:e.target.value}))} /></div>
+            <hr className="my-1 border-slate-200" />
+            <p className="text-xs font-semibold text-slate-500">CONFIGURACIÓN DE CARGA</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Label className="text-xs">Largo caja (cm)</Label><Input type="number" value={form.largoCajaCm ?? ''} onChange={e => setForm(f=>({...f,largoCajaCm:e.target.value?parseFloat(e.target.value):undefined}))} /></div>
+              <div><Label className="text-xs">Ancho caja (cm)</Label><Input type="number" value={form.anchoCajaCm ?? ''} onChange={e => setForm(f=>({...f,anchoCajaCm:e.target.value?parseFloat(e.target.value):undefined}))} /></div>
+              <div><Label className="text-xs">Alto caja (cm)</Label><Input type="number" value={form.altoCajaCm ?? ''} onChange={e => setForm(f=>({...f,altoCajaCm:e.target.value?parseFloat(e.target.value):undefined}))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Máx. tubos</Label><Input type="number" value={form.maxTubos ?? ''} onChange={e => setForm(f=>({...f,maxTubos:e.target.value?parseInt(e.target.value):undefined}))} /></div>
+              <div><Label className="text-xs">Orientación</Label><Select value={form.orientacionTubos} onValueChange={v => setForm(f=>({...f,orientacionTubos:v}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PARADOS">Parados</SelectItem><SelectItem value="ACOSTADOS">Acostados</SelectItem></SelectContent></Select></div>
+            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(null)}><X className="w-4 h-4 mr-1" />Cancelar</Button>
               <Button onClick={saveVehiculo} className="bg-yellow-600 hover:bg-yellow-700"><Save className="w-4 h-4 mr-1" />Guardar</Button>

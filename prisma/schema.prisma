@@ -52,6 +52,7 @@ model Cylinder {
 
   // ============ PESOS Y CAPACIDADES ============
   capacidadLitros     Int      // Capacidad de agua en litros
+  diametroMm          Float?   // Diámetro exterior (para layout de carga)
   pesoVacioKg         Float?   // Sin válvula ni protector
   pesoTaraKg          Float?   // Vacío + válvula + solvente + masa porosa
   pesoMaxLlenadoKg    Float?   // Peso máximo de gas licuado
@@ -102,6 +103,7 @@ model Cylinder {
   // ============ AUDITORÍA ============
   movimientos         CylinderMovimiento[]
   mantenimientos      Mantenimiento[]
+  cargasVehiculo      CargaVehiculoItem[]
 }
 
 model CylinderMovimiento {
@@ -408,11 +410,43 @@ model Vehiculo {
   valorCompra       Float?
   vidaUtilAnios     Int?
   fechaBaja         DateTime?
+
+  // ============ CONFIGURACIÓN DE CARGA ============
+  largoCajaCm       Float?   // Largo útil de la caja
+  anchoCajaCm       Float?   // Ancho útil de la caja
+  altoCajaCm        Float?   // Alto útil de la caja (para orientacion PARADOS)
+  maxTubos          Int?     // Capacidad máxima de tubos
+  orientacionTubos  String   @default("PARADOS") // PARADOS | ACOSTADOS
+
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
   mantenimientos    MantenimientoVehiculo[]
   cargasCombustible CargaCombustible[]
   documentos        DocumentoVehiculo[]
+  sesionesCarga     CargaVehiculo[]
+}
+
+model CargaVehiculo {
+  id          String               @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo             @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha       DateTime             @default(now())
+  estado      String               @default("ACTIVA") // ACTIVA, COMPLETADA, CANCELADA
+  createdAt   DateTime             @default(now())
+  items       CargaVehiculoItem[]
+}
+
+model CargaVehiculoItem {
+  id            String         @id @default(cuid())
+  cargaId       String
+  carga         CargaVehiculo  @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+  cylinderId    String
+  cylinder      Cylinder       @relation(fields: [cylinderId], references: [id])
+  posicion      Int            // Número de posición en la caja (1-based)
+  createdAt     DateTime       @default(now())
+
+  @@unique([cargaId, cylinderId])
+  @@unique([cargaId, posicion])
 }
 
 model MantenimientoVehiculo {

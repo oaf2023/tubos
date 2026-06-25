@@ -136,6 +136,7 @@ interface Cylinder {
   espesorMinParedMm: number | null
   materialAleacion: string | null
   capacidadLitros: number
+  diametroMm: number | null
   pesoVacioKg: number | null
   pesoTaraKg: number | null
   pesoMaxLlenadoKg: number | null
@@ -291,6 +292,11 @@ const VehiculosTab = dynamic(() => import('@/components/vehiculos-tab'), {
   loading: () => <Skeleton className="h-[400px] rounded-xl" />,
 })
 
+const LogisticaTab = dynamic(() => import('@/components/logistica-tab'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[500px] rounded-xl" />,
+})
+
 const LoginPage = dynamic(() => import('@/components/login-page'), {
   ssr: false,
   loading: () => (
@@ -403,6 +409,9 @@ export default function Home() {
             <TabsTrigger value="vehiculos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Truck className="w-4 h-4" /><span>Vehículos</span>
             </TabsTrigger>
+            <TabsTrigger value="logistica" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Package className="w-4 h-4" /><span>Logística</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -452,6 +461,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="vehiculos">
             <VehiculosTab />
+          </TabsContent>
+          <TabsContent value="logistica">
+            <LogisticaTab />
           </TabsContent>
         </Tabs>
       </main>
@@ -1188,6 +1200,7 @@ function InventarioTab() {
     espesorMinParedMm: '',
     materialAleacion: '',
     capacidadLitros: '40',
+    diametroMm: '',
     pesoVacioKg: '',
     pesoTaraKg: '',
     pesoMaxLlenadoKg: '',
@@ -1280,6 +1293,7 @@ function InventarioTab() {
       espesorMinParedMm: c.espesorMinParedMm != null ? String(c.espesorMinParedMm) : '',
       materialAleacion: c.materialAleacion || '',
       capacidadLitros: String(c.capacidadLitros),
+      diametroMm: c.diametroMm != null ? String(c.diametroMm) : '',
       pesoVacioKg: c.pesoVacioKg != null ? String(c.pesoVacioKg) : '',
       pesoTaraKg: c.pesoTaraKg != null ? String(c.pesoTaraKg) : '',
       pesoMaxLlenadoKg: c.pesoMaxLlenadoKg != null ? String(c.pesoMaxLlenadoKg) : '',
@@ -1699,6 +1713,10 @@ function InventarioTab() {
                 <div>
                   <Label className="text-xs">Peso vacío (kg)</Label>
                   <Input type="number" step="0.1" value={form.pesoVacioKg} onChange={(e) => setForm({ ...form, pesoVacioKg: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Diámetro (mm)</Label>
+                  <Input type="number" step="1" value={form.diametroMm} onChange={(e) => setForm({ ...form, diametroMm: e.target.value })} />
                 </div>
                 <div>
                   <Label className="text-xs">Peso tara (kg)</Label>

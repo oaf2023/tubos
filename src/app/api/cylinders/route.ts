@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
         materialAleacion: body.materialAleacion || null,
         // Pesos
         capacidadLitros: parseInt(body.capacidadLitros, 10),
+        diametroMm: body.diametroMm ? parseFloat(body.diametroMm) : null,
         pesoVacioKg: body.pesoVacioKg ? parseFloat(body.pesoVacioKg) : null,
         pesoTaraKg: body.pesoTaraKg ? parseFloat(body.pesoTaraKg) : null,
         pesoMaxLlenadoKg: body.pesoMaxLlenadoKg ? parseFloat(body.pesoMaxLlenadoKg) : null,
