@@ -87,6 +87,7 @@ export default function FinanzasTab() {
     try {
       const res = await fetch(`/api/stats/finanzas?meses=${meses}`)
       const json = await res.json()
+      if (json.error) { console.error('API error:', json.error); setData(null); return }
       setData(json)
     } catch (e) {
       console.error('Error loading finanzas', e)
@@ -100,7 +101,7 @@ export default function FinanzasTab() {
   if (loading) return <div className="space-y-6"><ChartSkeleton /><ChartSkeleton /><ChartSkeleton /></div>
   if (!data) return <p className="text-slate-500 text-center py-10">No hay datos financieros disponibles.</p>
 
-  const { resumen, ingresosPorTipo, estadoFacturas, serieComparativa, mantPorTipo, gastosVehiculosMensual, ultimosMantCilindros, ultimosGastosVehiculos } = data
+  const { resumen = {}, ingresosPorTipo = [], estadoFacturas = [], serieComparativa = [], mantPorTipo = [], gastosVehiculosMensual = [], ultimosMantCilindros = [], ultimosGastosVehiculos = [] } = data || {}
 
   return (
     <Tabs defaultValue="panel" className="w-full">
@@ -546,12 +547,12 @@ export default function FinanzasTab() {
         )}
       </TabsContent>
 
-      <style jsx global>{`
-        @media print {
-          @page { size: A4; margin: 15mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-      `}</style>
+      <style>{`
+@media print {
+  @page { size: A4; margin: 15mm; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+`}</style>
     </Tabs>
   )
 }
