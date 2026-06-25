@@ -5,7 +5,7 @@ const { spawn } = require('child_process')
 const root = __dirname
 const standaloneDir = join(root, '.next', 'standalone')
 const serverPath = join(standaloneDir, 'server.js')
-const dbPath = join(root, 'db', 'custom.db')
+const dbPath = join(root, 'prisma', 'db', 'custom.db')
 
 if (!existsSync(serverPath)) {
   console.error('ERROR: Standalone server not found at', serverPath)

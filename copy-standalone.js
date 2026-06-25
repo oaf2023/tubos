@@ -31,14 +31,13 @@ if (existsSync(dbSrc)) {
   console.log('  ✓ db/ copied')
 }
 
-// 4. Copy prisma/schema.prisma (always refresh)
-const prismaSrc = join(root, 'prisma', 'schema.prisma')
+// 4. Copy prisma/ folder (schema + db)
+const prismaSrcDir = join(root, 'prisma')
 const prismaDstDir = join(standalone, 'prisma')
-const prismaDst = join(prismaDstDir, 'schema.prisma')
-if (existsSync(prismaSrc)) {
-  if (!existsSync(prismaDstDir)) mkdirSync(prismaDstDir, { recursive: true })
-  cpSync(prismaSrc, prismaDst)
-  console.log('  ✓ prisma/schema.prisma copied')
+if (existsSync(prismaSrcDir)) {
+  if (existsSync(prismaDstDir)) rmSync(prismaDstDir, { recursive: true })
+  cpSync(prismaSrcDir, prismaDstDir, { recursive: true })
+  console.log('  ✓ prisma/ copied (schema + db)')
 }
 
 // 5. Copy .env (always overwrite)
