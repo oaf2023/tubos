@@ -50,9 +50,10 @@ export default function VehiculosTab() {
     setLoading(true)
     try {
       const res = await fetch('/api/vehiculos')
+      if (!res.ok) { console.error('loadVehiculos error', res.status); setLoading(false); return }
       const data = await res.json()
       setVehiculos(Array.isArray(data) ? data : [])
-    } catch { /* ignore */ }
+    } catch (e) { console.error('loadVehiculos', e) }
     setLoading(false)
   }
 
@@ -186,8 +187,8 @@ export default function VehiculosTab() {
                 </div>
                 <span className="text-slate-500">{v.marca} {v.modelo} · {v.kmActual?.toLocaleString()} km</span>
                 <div className="flex gap-1 mt-1">
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); openVehiculo(v) }}><Pencil className="w-3 h-3 text-sky-600" /></Button>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={(e) => { e.stopPropagation(); deleteVehiculo(v.id) }}><Trash2 className="w-3 h-3" /></Button>
+                  <Button variant="outline" size="sm" className="h-6 text-[11px] px-2 text-sky-600 border-sky-200" onClick={(e) => { e.stopPropagation(); openVehiculo(v) }}><Pencil className="w-3 h-3 mr-1" />Editar</Button>
+                  <Button variant="outline" size="sm" className="h-6 text-[11px] px-2 text-red-600 border-red-200" onClick={(e) => { e.stopPropagation(); deleteVehiculo(v.id) }}><Trash2 className="w-3 h-3 mr-1" />Eliminar</Button>
                 </div>
               </div>
             ))}

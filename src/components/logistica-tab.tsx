@@ -38,9 +38,11 @@ export default function LogisticaTab() {
     setLoading(true)
     try {
       const res = await fetch('/api/vehiculos')
+      if (!res.ok) { console.error('Error vehiculos', res.status); setLoading(false); return }
       const data = await res.json()
       setVehiculos(Array.isArray(data) ? data : [])
-    } catch { /* ignore */ }
+      console.log('Vehículos cargados:', Array.isArray(data) ? data.length : 0)
+    } catch (e) { console.error('Error loadVehiculos', e) }
     setLoading(false)
   }
 
@@ -218,8 +220,9 @@ export default function LogisticaTab() {
               }}
             >
               <option value="">Seleccionar vehículo...</option>
-              {vehiculos.filter(v => v.estado === 'ACTIVO').map(v => (
-                <option key={v.id} value={v.id}>{v.patente} — {v.marca} {v.modelo}</option>
+              {vehiculos.length === 0 && <option disabled>Sin vehículos disponibles</option>}
+              {vehiculos.map(v => (
+                <option key={v.id} value={v.id}>{v.patente} — {v.marca} {v.modelo} [{v.estado}]</option>
               ))}
             </select>
           )}
