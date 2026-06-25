@@ -108,6 +108,10 @@
     <a href="#observaciones">Observaciones</a>
     <a href="#vehiculos">Veh&iacute;culos</a>
     <a href="#logistica">Log&iacute;stica</a>
+    <a href="#finanzas">Finanzas</a>
+    <a href="#deposito">Dep&oacute;sito RFID</a>
+    <a href="#cabina">Cabina Inteligente</a>
+    <a href="#analisis">An&aacute;lisis</a>
     <a class="section" href="#pwa">App M&oacute;vil (PWA)</a>
     <a href="#instalar">Instalar en el celular</a>
     <a href="#responsive">Uso responsive</a>
@@ -151,7 +155,7 @@
 <!-- ============================================================ -->
 <h2 id="tabs">Tabs del Sistema</h2>
 
-<p>  La aplicaci&oacute;n se organiza en 17 pesta&ntilde;as (tabs) accesibles desde la barra superior (con scroll horizontal en m&oacute;viles):</p>
+<p>  La aplicaci&oacute;n se organiza en <strong>21 pesta&ntilde;as</strong> (tabs) accesibles desde la barra superior (con scroll horizontal en m&oacute;viles):</p>
 
 <!-- ============================================================ -->
 <h3 id="dashboard">1. Dashboard <span class="tag tag-orange">Vista principal</span></h3>
@@ -805,6 +809,190 @@
 </p>
 
 <!-- ============================================================ -->
+<h3 id="finanzas">18. Finanzas <span class="tag tag-green">Panel financiero</span></h3>
+
+<p>
+  Módulo de análisis financiero que consolida facturación, mantenimiento de cilindros
+  y gastos vehiculares (mantenimiento de flota + combustible) en un solo panel con
+  gráficos y métricas comparativas.
+</p>
+
+<h4>Panel General</h4>
+<ul>
+  <li><strong>KPIs:</strong> Facturado del período, ingresos del mes (con variación % vs mes anterior), total gastos, margen bruto, pendiente de cobro, vencido.</li>
+  <li><strong>Ingresos vs Gastos:</strong> BarChart mensual comparativo con ingresos en verde y gastos en rojo.</li>
+  <li><strong>Estado Facturas:</strong> PieChart con distribución PAGADA / PENDIENTE / VENCIDA.</li>
+  <li><strong>Últimos gastos:</strong> Listas de últimos mantenimientos de cilindros y gastos vehiculares.</li>
+</ul>
+
+<h4>Ingresos</h4>
+<ul>
+  <li><strong>Evolución:</strong> AreaChart de ingresos mensuales.</li>
+  <li><strong>Por tipo:</strong> PieChart de ingresos por tipo (ALQUILER / GAS / FLETE / etc).</li>
+  <li><strong>BarChart mensual:</strong> Ingresos por mes en barras.</li>
+  <li><strong>Resumen:</strong> Tabla con facturado, pagado, pendiente, vencido, ingresos del mes y variación.</li>
+</ul>
+
+<h4>Gastos</h4>
+<ul>
+  <li><strong>KPIs específicos:</strong> Mantenimiento cilindros, mantenimiento vehículos, combustible, total.</li>
+  <li><strong>Gastos apilados:</strong> BarChart por mes con mant. cilindros + mant. vehículos + combustible.</li>
+  <li><strong>Mantenimiento por tipo:</strong> BarChart horizontal con costo por tipo de mantenimiento.</li>
+  <li><strong>Evolución vehicular:</strong> LineChart de gastos de mantenimiento y combustible por mes.</li>
+</ul>
+
+<h4>Comparativa</h4>
+<ul>
+  <li><strong>Ingresos vs Gastos:</strong> BarChart agrupado por mes.</li>
+  <li><strong>Margen por mes:</strong> BarChart con línea de referencia en 0.</li>
+  <li><strong>Distribución gastos:</strong> PieChart de composición (mant. cilindros / mant. vehículos / combustible).</li>
+  <li><strong>Resumen:</strong> Totales, margen bruto y porcentaje, composición detallada de gastos.</li>
+</ul>
+
+<h4>Detalle</h4>
+<ul>
+  <li>Tabla de gastos vehiculares por mes (mantenimiento, combustible, total).</li>
+  <li>Tabla de mantenimiento de cilindros por tipo con totales.</li>
+  <li>Selector de período 3/6/12/24 meses en todas las vistas.</li>
+  <li>Exportación a CSV y PDF en cada sub-tab.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h3 id="deposito">19. Dep&oacute;sito <span class="tag tag-purple">RFID Stock</span></h3>
+
+<p>
+  Gestión automatizada del stock de cilindros mediante lectores RFID. Registra
+  cada ingreso/egreso por zona (LLENOS, VACIOS, MANTENIMIENTO, REPARACION, CUARENTENA,
+  EXPENDIO) y actualiza el inventario en tiempo real.
+</p>
+
+<h4>Dashboard</h4>
+<ul>
+  <li><strong>Cards:</strong> Total tags RFID, lectores activos, eventos hoy, stock actual.</li>
+  <li><strong>Stock por gas:</strong> Tabla con cantidad, capacidad total y peso total por tipo de gas.</li>
+</ul>
+
+<h4>Zonas</h4>
+<p>CRUD de zonas de lectura con nombre y tipo. Cada zona representa un área del depósito.</p>
+
+<h4>Lectores IoT</h4>
+<p>CRUD de lectores RFID con modelo, estado (ACTIVO/INACTIVO/MANTENIMIENTO), zona asignada.</p>
+
+<h4>Tags RFID</h4>
+<ul>
+  <li>Alta de tags con código único y asociación opcional a un cilindro del inventario.</li>
+  <li>Búsqueda por código de tag, serie del cilindro o gas.</li>
+  <li>Visualización del cilindro vinculado con su estado y color IRAM.</li>
+</ul>
+
+<h4>Eventos RFID</h4>
+<p>
+  Historial de lecturas registradas por los lectores: código del tag, lector, zona,
+  fecha/hora, y cambio de estado automático del cilindro según la zona donde se detectó.
+</p>
+
+<!-- ============================================================ -->
+<h3 id="cabina">20. Cabina Inteligente <span class="tag tag-purple">Control f&iacute;sico</span></h3>
+
+<p>
+  Módulo de control de entrada/salida de cilindros con validación por peso,
+  captura de evidencia fotográfica y trazabilidad completa.
+</p>
+
+<h4>Dashboard</h4>
+<ul>
+  <li><strong>Stats:</strong> Total cabinas, sensores activos, validaciones hoy, eventos hoy.</li>
+  <li><strong>Alertas activas:</strong> Lista de inconsistencias detectadas (peso no coincide, cilindro no registrado).</li>
+</ul>
+
+<h4>Cabinas</h4>
+<p>CRUD de cabinas con ubicación, estado (ACTIVA/INACTIVA/MANTENIMIENTO) y sensores asociados.</p>
+
+<h4>Validaciones</h4>
+<p>
+  Registro de cada validación: cabina, cilindro, peso medido vs esperado, resultado
+  (OK/INCONSISTENCIA/NO_REGISTRADO), evidencia fotográfica y técnico responsable.
+</p>
+
+<h4>Reglas de Peso</h4>
+<p>Configuración de pesos esperados por gas con tolerancia (±kg) para validación automática.</p>
+
+<h4>Alertas</h4>
+<p>Historial de alertas generadas por validaciones fallidas con tipo, nivel y acción tomada.</p>
+
+<h4>Sensores</h4>
+<p>CRUD de sensores (balanzas, fotocélulas) con tipo, modelo, estado y cabina asignada.</p>
+
+<!-- ============================================================ -->
+<h3 id="analisis">21. An&aacute;lisis <span class="tag tag-orange">8 sub-tabs recharts</span></h3>
+
+<p>
+  Módulo de análisis de datos y mejora continua con 8 sub-tabs y gráficos interactivos
+  usando <strong>Recharts</strong>. Todos los gráficos incluyen selector de período
+  (3/6/12/24 meses) y exportación a CSV y PDF.
+</p>
+
+<h4>Panel General</h4>
+<ul>
+  <li><strong>KPIs:</strong> Cilindros totales, clientes activos, ingresos del mes, movimientos, facturas pendientes/vencidas.</li>
+  <li><strong>Distribución por estado:</strong> PieChart con la proporción de cilindros en cada estado.</li>
+  <li><strong>Top 5 clientes:</strong> BarChart de ingresos por cliente.</li>
+</ul>
+
+<h4>Tendencias</h4>
+<ul>
+  <li><strong>Movimientos por mes:</strong> LineChart de la evolución mensual.</li>
+  <li><strong>Facturación mensual:</strong> BarChart apilado (pagado/pendiente/vencido).</li>
+  <li><strong>Pedidos por mes:</strong> ÁreaChart de pedidos.</li>
+  <li><strong>Costos de mantenimiento:</strong> LineChart mensual.</li>
+</ul>
+
+<h4>Clientes</h4>
+<ul>
+  <li>Top 10 por ingresos (BarChart horizontal).</li>
+  <li>Estado de cuenta (PieChart: AL_DIA / PENDIENTE / MOROSO).</li>
+  <li>Clientes con más cilindros (BarChart).</li>
+</ul>
+
+<h4>Financiero</h4>
+<ul>
+  <li>Ingresos por mes (AreaChart).</li>
+  <li>Ingresos por tipo (ALQUILER/GAS/FLETE — PieChart).</li>
+  <li>Estado de facturas (PieChart: pagada/pendiente/vencida).</li>
+  <li>Aging cuentas por cobrar (BarChart: 0-30 / 31-60 / 61-90 / 90+ días).</li>
+</ul>
+
+<h4>Operaciones</h4>
+<ul>
+  <li>Estado por tipo de gas (matriz de barras agrupadas).</li>
+  <li>Costos de mantenimiento por tipo (BarChart).</li>
+  <li>Próximos 12 meses de retests (calendario de vencimientos).</li>
+</ul>
+
+<h4>Logística</h4>
+<ul>
+  <li>Rutas por mes (LineChart).</li>
+  <li>Rendimiento de combustible (LineChart km/L).</li>
+  <li>Tabla de vehículos con sesiones y kilometraje.</li>
+</ul>
+
+<h4>Calidad</h4>
+<ul>
+  <li>Validaciones por día (BarChart).</li>
+  <li>Diagnósticos (PieChart: OK / INCONSISTENCIA / NO_REGISTRADO).</li>
+  <li>Alertas por tipo y nivel (BarChart agrupado).</li>
+  <li>Scatter peso real vs esperado por cilindro.</li>
+</ul>
+
+<h4>RFID</h4>
+<ul>
+  <li>Eventos RFID por zona (BarChart).</li>
+  <li>Stock por gas (BarChart apilado).</li>
+  <li>Tags asociados vs no asociados (PieChart).</li>
+  <li>Estado de lectores (PieChart: activo/inactivo/mantenimiento).</li>
+</ul>
+
+<!-- ============================================================ -->
 <h2 id="pwa">App M&oacute;vil (PWA)</h2>
 
 <p>
@@ -950,7 +1138,7 @@
 
 <p style="margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem;">
   Manual de Usuario — Control Digital ManejaDatos &copy; 2026 &mdash;
-  &Uacute;ltima actualizaci&oacute;n: Junio 2026 &mdash; v2.0 (17 tabs: +Facturaci&oacute;n, Remitos, Reportes, Observaciones, Veh&iacute;culos, Log&iacute;stica)
+  &Uacute;ltima actualizaci&oacute;n: Junio 2026 &mdash; v2.1 (21 tabs: +Dep&oacute;sito RFID, Cabina Inteligente, Finanzas, An&aacute;lisis)
 </p>
 
 </div>

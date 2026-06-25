@@ -25,6 +25,7 @@ import {
   Warehouse,
   ScanLine,
   BarChart3,
+  Wallet,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -76,6 +77,7 @@ const VehiculosTab = dynamic(() => import('@/components/vehiculos-tab'), { ssr: 
 const LogisticaTab = dynamic(() => import('@/components/logistica-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const DepositoTab = dynamic(() => import('@/components/deposito-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const CabinaTab = dynamic(() => import('@/components/cabina-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const FinanzasTab = dynamic(() => import('@/components/finanzas-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
@@ -159,6 +161,9 @@ export default function Home() {
             <TabsTrigger value="cabina" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <ScanLine className="w-4 h-4" /><span>Cabina</span>
             </TabsTrigger>
+            <TabsTrigger value="finanzas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Wallet className="w-4 h-4" /><span>Finanzas</span>
+            </TabsTrigger>
             <TabsTrigger value="analisis" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <BarChart3 className="w-4 h-4" /><span>Análisis</span>
             </TabsTrigger>
@@ -220,6 +225,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="cabina">
             <CabinaTab />
+          </TabsContent>
+          <TabsContent value="finanzas">
+            <FinanzasTab />
           </TabsContent>
           <TabsContent value="analisis">
             <AnalisisTab />
