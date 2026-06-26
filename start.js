@@ -24,6 +24,18 @@ if (isPostgres) {
   console.log(`[start] Server: ${serverPath}`)
   console.log(`[start] Port: ${process.env.PORT || 3000}`)
 
+  // Regenerate Prisma client for PostgreSQL (engine binary differs from SQLite)
+  try {
+    execSync(`npx prisma generate --schema=prisma/schema.postgres.prisma 2>&1`, {
+      cwd: root,
+      env: { ...process.env },
+      stdio: 'inherit',
+    })
+    console.log('[start] Prisma client regenerated for PostgreSQL')
+  } catch (e) {
+    console.warn('[start] Prisma generate failed:', e.message || e)
+  }
+
   // Run controlled migrations for PostgreSQL
   try {
     execSync(`npx prisma migrate deploy --schema=prisma/schema.postgres.prisma 2>&1`, {
@@ -35,7 +47,7 @@ if (isPostgres) {
   } catch (e) {
     console.warn('[start] Migration failed, trying db push:', e.message || e)
     try {
-      execSync(`npx prisma db push --skip-generate --schema=prisma/schema.postgres.prisma 2>&1`, {
+      execSync(`npx prisma db push --schema=prisma/schema.postgres.prisma 2>&1`, {
         cwd: root,
         env: { ...process.env },
         stdio: 'inherit',
@@ -44,6 +56,36 @@ if (isPostgres) {
     } catch (e2) {
       console.warn('[start] PostgreSQL sync failed:', e2.message || e2)
     }
+  }
+
+  // Seed initial admin user if database is empty
+  try {
+    execSync(`node -e "
+      const { PrismaClient } = require('@prisma/client')
+      const bcrypt = require('bcryptjs')
+      async function seed() {
+        const p = new PrismaClient()
+        const count = await p.usuario.count()
+        if (count === 0) {
+          const hash = await bcrypt.hash('admin123', 10)
+          await p.usuario.create({
+            data: { nombre: 'Administrador', usuario: 'admin', password: hash, nivelAcceso: 5, activo: true },
+          })
+          console.log('[seed] Admin user created: admin / admin123')
+        } else {
+          console.log('[seed] Users exist (' + count + '), skipping seed')
+        }
+        await p.\$disconnect()
+      }
+      seed().catch(e => { console.error('[seed] Error:', e.message); process.exit(1) })
+    "`, {
+      cwd: root,
+      env: { ...process.env },
+      stdio: 'inherit',
+    })
+    console.log('[start] Seed check complete')
+  } catch (e) {
+    console.warn('[start] Seed check failed (non-fatal):', e.message || e)
   }
 } else {
   // SQLite fallback
