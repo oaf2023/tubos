@@ -183,17 +183,24 @@
 
 <div class="card">
   <h2>8. Sprint 6 — Tablero gerencial</h2>
-  <span class="badge-sprint">SPRINT 6</span> <span class="tag">pendiente</span>
+  <span class="badge-sprint">SPRINT 6</span> <span class="badge-hito">completado</span>
 
   <table>
-    <tr><th>KPI</th><th>Para qué sirve</th></tr>
-    <tr><td>Rotación de tubos</td><td>Capital inmovilizado</td></tr>
-    <tr><td>Stock crítico por gas</td><td>Disponibilidad comercial</td></tr>
-    <tr><td>Clientes con mayor retención</td><td>Riesgo comercial</td></tr>
-    <tr><td>Vencimientos PH próximos</td><td>Plan de mantenimiento</td></tr>
-    <tr><td>Pérdidas / no localizados</td><td>Riesgo patrimonial</td></tr>
-    <tr><td>% utilización de tubos</td><td>Rentabilidad de activos</td></tr>
-    <tr><td>Costo por tubo entregado</td><td>Rentabilidad operativa</td></tr>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">src/app/api/stats/analytics/tablero/route.ts</td><td>API unificada con 7 KPIs gerenciales</td></tr>
+    <tr><td class="file">src/components/tablero-tab.tsx</td><td>Tablero ejecutivo con KPI cards, pie/bar charts, 6 sub-tabs</td></tr>
+    <tr><td class="file">src/app/page.tsx</td><td>+ import + TabsTrigger + TabsContent para tablero</td></tr>
+  </table>
+
+  <table>
+    <tr><th>KPI</th><th>Implementado</th></tr>
+    <tr><td>Rotación de tubos (30 días)</td><td>✅ entregas / stock promedio</td></tr>
+    <tr><td>Stock crítico por gas</td><td>✅ % llenos + alerta &lt;3 cilindros</td></tr>
+    <tr><td>Clientes con mayor retención</td><td>✅ días promedio + riesgo ALTO/MEDIO/BAJO</td></tr>
+    <tr><td>Vencimientos PH próximos</td><td>✅ 30/60/90 días + lista ordenada</td></tr>
+    <tr><td>Pérdidas / no localizados</td><td>✅ extraviados + baja + % del total</td></tr>
+    <tr><td>% utilización de tubos</td><td>✅ activos / total + desglose por estado</td></tr>
+    <tr><td>Costo por tubo entregado</td><td>✅ $/tubo desde rutas completadas</td></tr>
   </table>
 </div>
 
