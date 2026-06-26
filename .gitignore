@@ -56,3 +56,6 @@ server.log
 # Local spec docs
 factura.md
 vehiculos.md
+
+# Backups
+backup-*/

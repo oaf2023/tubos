@@ -1,10 +1,13 @@
 // GasTrack AR - Control de Tubos de Gases para Soldadura
-// Schema POSTGRESQL â€” usar con: npx prisma generate --schema=prisma/schema.postgres.prisma
-// Base operativa: San NicolÃ¡s de los Arroyos, Buenos Aires
+// Schema ampliado con campos normativos:
+//   - ISO 18119 (inspección y recalificación)
+//   - NTC 5719 (cilindros para gases - requisitos)
+//   - Resolución 2876/2013 (reglamento técnico argentino)
+// Base operativa: San Nicolás de los Arroyos, Buenos Aires
 
 generator client {
+  output = "../node_modules/.prisma/client"
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -14,17 +17,17 @@ datasource db {
 
 model Gas {
   id                   String     @id @default(cuid())
-  codigo               String     @unique
+  codigo               String     @unique // AR, CO2, O2, C2H2, N2, He, H2, MIX-7525, AR-HE
   nombre               String
   descripcion          String
-  presionBar           Int
-  colorHex             String
+  presionBar           Int        // Presión típica de carga del tubo
+  colorHex             String     // Color de identificación (norma EN 1089-3)
   usoPrincipal         String
-  categoria            String
-  peligro              String     @default("GAS_PRESION")
-  precioAlquilerDiario Float?
-  precioAlquilerMensual Float?
-  precioVenta          Float?
+  categoria            String     // INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE
+  peligro              String     @default("GAS_PRESION") // INFLAMABLE, COMBURENTE, GAS_PRESION, NINGUNO
+  precioAlquilerDiario Float?    // Tarifa de alquiler diario del tubo
+  precioAlquilerMensual Float?   // Tarifa de alquiler mensual del tubo
+  precioVenta          Float?    // Precio de venta del gas (carga)
   createdAt            DateTime   @default(now())
   cylinders            Cylinder[]
   alertConfig          AlertConfig?
@@ -38,58 +41,71 @@ model Cylinder {
   id                  String   @id @default(cuid())
   numeroSerie         String   @unique
 
-  propietario         String?
-  fabricante          String?
-  paisFabricacion     String?
-  marcaUN             Boolean  @default(false)
+  // ============ IDENTIFICACIÓN GENERAL ============
+  propietario         String?  // Persona o empresa dueña del cilindro
+  fabricante          String?  // Marca o fabricante
+  paisFabricacion     String?  // País de origen
+  marcaUN             Boolean  @default(false) // Símbolo UN (regulación internacional)
 
-  normaFabricacion    String?
-  presionTrabajoBar   Int?
-  roscacilindro       String?
-  espesorMinParedMm   Float?
-  materialAleacion    String?
+  // ============ ESPECIFICACIONES DE DISEÑO ============
+  normaFabricacion    String?  // ISO 9809, DOT 3AA, etc.
+  presionTrabajoBar   Int?     // PW - presión máxima a 15°C
+  roscacilindro       String?  // 25E, 3/4-14 NGT, etc.
+  espesorMinParedMm   Float?   // Espesor mínimo garantizado
+  materialAleacion    String?  // Acero (H/HG), Aluminio 6061, etc.
 
-  capacidadLitros     Int
-  diametroMm          Float?
-  pesoVacioKg         Float?
-  pesoTaraKg          Float?
-  pesoMaxLlenadoKg    Float?
+  // ============ PESOS Y CAPACIDADES ============
+  capacidadLitros     Int      // Capacidad de agua en litros
+  diametroMm          Float?   // Diámetro exterior (para layout de carga)
+  pesoVacioKg         Float?   // Sin válvula ni protector
+  pesoTaraKg          Float?   // Vacío + válvula + solvente + masa porosa
+  pesoMaxLlenadoKg    Float?   // Peso máximo de gas licuado
 
-  presionEnsayoBar    Int?
-  fechaEnsayoInicial  String?
-  fechaUltimoRetest   DateTime?
-  fechaProximoRetest  DateTime
-  resultadoInspeccion String   @default("APROBADO")
-  inspectorId         String?
-  laboratorio         String?
-  metodoPrueba        String?
+  // ============ INSPECCIÓN Y RECALIFICACIÓN ============
+  presionEnsayoBar    Int?     // PH - presión de prueba hidrostática
+  fechaEnsayoInicial  String?  // MM/AAAA
+  fechaUltimoRetest   DateTime? // Última inspección periódica
+  fechaProximoRetest  DateTime  // Vencimiento de recalificación
+  resultadoInspeccion String   @default("APROBADO") // APROBADO | RECHAZADO | CONDENADO
+  inspectorId         String?  // ID del organismo inspector
+  laboratorio         String?  // Centro de revisión acreditado
+  metodoPrueba        String?  // HIDROSTATICA | ULTRASONIDO | PRESION_PRUEBA
 
+  // ============ ESPECÍFICOS DE GAS ============
   gasId               String
   gas                 Gas      @relation(fields: [gasId], references: [id])
-  presionActualBar    Int
+  presionActualBar    Int      // Presión actual (0 a presionBar del gas)
 
-  masaPorosaId        String?
-  tipoSolvente        String?
-  solventeMasaKg      Float?
-  vidaUtilLimite      DateTime?
-  reparaciones        String?
-  observaciones       String?
+  // Para acetileno
+  masaPorosaId        String?  // Identificación de masa porosa interna
+  tipoSolvente        String?  // ACETONA | DMF
+  solventeMasaKg      Float?   // Masa de solvente en kg
 
+  // Vida útil límite (cilindros compuestos)
+  vidaUtilLimite      DateTime? // Fecha de expiración definitiva
+
+  // Reparaciones y observaciones
+  reparaciones        String?  // Detalles de reparaciones admitidas
+  observaciones       String?  // Corrosión, abolladuras, daños por calor
+
+  // ============ ESTADO OPERATIVO ============
   // LLENO, VACIO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, BAJA, EXTRAVIADO
   estado              String   @default("LLENO")
   ubicacionLat        Float
   ubicacionLng        Float
   ubicacionNombre     String
   provincia           String
-  cliente             String?
-  clienteId           String?
+  cliente             String?  // Nombre denormalizado (búsqueda rápida)
+  clienteId           String?  // Relación con tabla Clientes
   clienteRel          Cliente? @relation("ClienteCylinders", fields: [clienteId], references: [id])
   fechaCarga          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  compatibleH2        Boolean  @default(false)
+  // Para gases fragilizantes (H2)
+  compatibleH2        Boolean  @default(false) // Estampe H o HG
 
+  // ============ AUDITORÍA ============
   movimientos         CylinderMovimiento[]
   mantenimientos      Mantenimiento[]
   cargasVehiculo      CargaVehiculoItem[]
@@ -106,7 +122,7 @@ model CylinderMovimiento {
   cylinderId  String
   cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
   fecha       DateTime @default(now())
-  tipo        String
+  tipo        String   // CARGA, DESCARGA, TRASLADO, INSPECCION, REPARACION, ALTA, BAJA
   descripcion String
   usuario     String?
   latOrigen   Float?
@@ -120,7 +136,7 @@ model Mantenimiento {
   id          String   @id @default(cuid())
   cylinderId  String
   cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
-  tipo        String
+  tipo        String   // CAMBIO_VALVULA, PINTURA, CAMBIO_GAS, REPARACION, INSPECCION, OTRO
   descripcion String?
   tecnico     String?
   costo       Float?
@@ -135,20 +151,21 @@ model Location {
   lat       Float
   lng       Float
   esBase    Boolean  @default(false)
-  tipo      String
+  tipo      String   // BASE, CLIENTE, SUCURSAL, ALIADO
   direccion String?
   telefono  String?
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 }
 
+// ============ REMITOS / ENTREGAS ============
 model Remito {
   id            String       @id @default(cuid())
-  numero        Int          @default(0)
+  numero        Int          @default(0) // Número de remito autoincremental
   clienteId     String
-  cliente       String
+  cliente       String       // Nombre denormalizado
   fecha         DateTime     @default(now())
-  tipo          String
-  estado        String       @default("PENDIENTE")
+  tipo          String       // ENTREGA, DEVOLUCION, CAMBIO
+  estado        String       @default("PENDIENTE") // PENDIENTE, COMPLETADO, PARCIAL
   tecnico       String?
   observaciones String?
   items         RemitoItem[]
@@ -160,70 +177,215 @@ model RemitoItem {
   id              String   @id @default(cuid())
   remitoId        String
   remito          Remito   @relation(fields: [remitoId], references: [id], onDelete: Cascade)
-  cylinderId      String?
-  numeroSerie     String?
-  gasCodigo       String?
-  estado          String?
+  cylinderId      String?  // Cilindro entregado (nullable: entrega por gas sin tubo asignado)
+  numeroSerie     String?  // Denormalizado
+  gasId           String
+  gasCodigo       String   // AR, O2, C2H2, etc.
+  tipoOperacion   String   // ALQUILER, VENTA, CAMBIO, DEVOLUCION
+  cantidad        Int      @default(1)
+  fechaDevolucion DateTime? // Cuándo se devolvió
+  diasAlquiler    Int?     // Calculado al facturar
+  precioUnitario  Float?
+  subtotal        Float?
   createdAt       DateTime @default(now())
 }
 
+// ============ FACTURACIÓN ============
 model Factura {
-  id            String        @id @default(cuid())
-  numero        Int           @default(0)
-  tipo          String        @default("B")
-  clienteId     String
-  cliente       String
-  fecha         DateTime      @default(now())
-  total         Float
-  condicionIva  String?
-  cuit          String?
-  items         FacturaItem[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  numero           Int           @default(0) // Número de factura autoincremental
+  clienteId        String
+  cliente          String        // Nombre denormalizado
+  fecha            DateTime      @default(now())
+  fechaVencimiento  DateTime?
+  fechaDesde       DateTime?     // Inicio del período facturado
+  fechaHasta       DateTime?     // Fin del período facturado
+  tipoPeriodo      String?       // DIARIO, MENSUAL, QUINCENAL, SEMANAL, PERSONALIZADO
+  remitoIds        String        // IDs de remitos relacionados (separados por coma)
+  subtotal         Float         @default(0)
+  descuento        Float         @default(0)
+  impuestos        Float         @default(0)
+  total            Float         @default(0)
+  saldoAnterior    Float         @default(0)  // Deuda previa del cliente
+  notasCredito     Float         @default(0)  // Notas de crédito aplicadas
+  pagosAplicados   Float         @default(0)  // Pagos recibidos
+  totalGeneral     Float         @default(0)  // total + saldoAnterior - notasCredito - pagosAplicados
+  estado           String        @default("PENDIENTE") // PENDIENTE, PAGADA, VENCIDA, ANULADA, BORRADOR
+  observaciones    String?
+  items            FacturaItem[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model FacturaItem {
   id              String   @id @default(cuid())
   facturaId       String
   factura         Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
-  concepto        String
-  cantidad        Int
-  precioUnitario  Float
-  importe         Float
+  concepto        String   // Ej: "Alquiler tubo N2 - 15 días"
+  tipo            String   @default("ALQUILER") // ALQUILER, GAS, FLETE, PENALIZACION, DESCUENTO, OTRO
+  remitoItemId    String?  // Link al ítem de remito origen
+  cylinderId      String?  // Link al cilindro
+  numeroSerie     String?  // Número de serie del cilindro
+  diasFacturados  Int?     // Días de alquiler facturados
+  cantidad        Int      @default(1)
+  precioUnitario  Float    @default(0)
+  subtotal        Float    @default(0)
   createdAt       DateTime @default(now())
 }
 
 model Cliente {
-  id             String          @id @default(cuid())
-  nombre         String          @unique
-  direccion      String?
-  telefono       String?
-  email          String?
-  provincia      String?
-  ciudad         String?
-  lat            Float?
-  lng            Float?
-  cuit           String?
-  condicionIva   String?
-  activo         Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  cylinders      Cylinder[]      @relation("ClienteCylinders")
-  accesos        ClienteAcceso[]
-  pedidos        Pedido[]
-  facturas       Factura[]
-  remitos        Remito[]
+  id                    String         @id @default(cuid())
+  nombre                String         @unique // Razón social
+  taxId                 String?        // CUIT / Tax ID
+  contacto              String?        // Persona de contacto / receptor autorizado
+  firmaDigital          String?        // Registro de aceptación de responsabilidad
+  tipologia             String?        // Construcción pesada, Farmacéutico, Taller, etc.
+  procesoSoldadura      String?        // TIG, MIG/MAG, Oxicorte, Electrodo
+  materialesBase        String?        // Acero, inox, aluminio + espesores
+  parametrosIngenieria  String?        // Homologaciones WPS
+  modoEnvasado          String?        // Cilindros, bloques, microgranel, granel
+  gasesConsumo          String?        // Tipos de gases que consume
+  serviciosEspecializados String?      // CryoEase®, Maxx®, Integra®
+  nivelesStockCritico   Int?           // Stock mínimo para alertas
+  contratoComodato      String?        // Número de contrato de comodato
+  activosEnPosesion     String?        // IDs de cilindros en posesión
+  fechaVencimientoContrato DateTime?
+  historialDevoluciones String?        // Registro de activos devueltos
+  cargosRecurrentes     String?        // Facturación automática
+  penalizacionesExtravio String?       // Cargos por extravío
+  estadoCuenta          String?        // AL_DIA, PENDIENTE, MOROSO
+  ubicaciones           String?        // Direcciones / coordenadas
+  lat                   Float?         // Ubicación principal latitud
+  lng                   Float?         // Ubicación principal longitud
+  notas                 String?
+  activo                Boolean        @default(true)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  cylinders             Cylinder[]     @relation("ClienteCylinders")
+  acceso                ClienteAcceso?
+}
+
+model AlertConfig {
+  id              String   @id @default(cuid())
+  gasId           String   @unique
+  gas             Gas      @relation(fields: [gasId], references: [id])
+  diasAlertaRetest Int     @default(60)    // Días antes del retest para mostrar alerta
+  diasMaxCliente  Int      @default(90)    // Días máximos que un cliente puede retener un tubo
+  alertaPH        Boolean  @default(true)  // Mostrar alertas de prueba hidrostática
+  activo          Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+model Ruta {
+  id           String       @id @default(cuid())
+  nombre       String
+  fecha        DateTime     @default(now())
+  estado       String       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
+  origenNombre String
+  origenLat    Float
+  origenLng    Float
+  distanciaKm  Float        @default(0)
+  duracionHoras Float       @default(0)
+  geometry     String?      // OSRM road geometry JSON: [[lat,lng],...]
+  paradas      RutaParada[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model RutaParada {
+  id          String  @id @default(cuid())
+  rutaId      String
+  ruta        Ruta    @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  orden       Int
+  lat         Float
+  lng         Float
+  nombre      String
+  provincia   String
+  cylinderIds String  // IDs separados por coma
+  estado      String  // PENDIENTE, ENTREGADO, EN_PROGRESO
+  notas       String?
+  llegada     DateTime? // Timestamp de llegada real
+  salida      DateTime? // Timestamp de salida real
+}
+
+model RouteCache {
+  id         String   @id @default(cuid())
+  hash       String   @unique // MD5-like hash of origin+dest coords
+  origenLat  Float
+  origenLng  Float
+  destLat    Float
+  destLng    Float
+  distanciaKm Float
+  duracionMin Int
+  geometry   String   // JSON of coordinate pairs
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime // Cache valid for 30 days
+}
+
+model Pedido {
+  id              String           @id @default(cuid())
+  fecha           DateTime         @default(now())
+  clienteId       String?
+  cliente         String           // Nombre denormalizado
+  estadoCuenta    String?          // OK, DEUDA_PENDIENTE
+  gasId           String
+  gas             Gas              @relation(fields: [gasId], references: [id])
+  operacionEnvase String           // CANJE, VENTA_NUEVO
+  phVigente       Boolean?         // null si es venta nueva
+  phObservacion   String?
+  total           Float            @default(0)
+  estado          String           @default("PENDIENTE") // PENDIENTE, COMPLETADO, CANCELADO
+  observaciones   String?
+  items           PedidoItem[]
+  cilindros       PedidoCilindro[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model PedidoItem {
+  id        String @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  concepto  String
+  monto     Float
+}
+
+model TipoOperacionPedido {
+  id        String   @id @default(cuid())
+  nombre    String   @unique // "Con envase", "Sin envase", etc.
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PedidoCilindro {
+  id          String   @id @default(cuid())
+  pedidoId    String
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  numeroSerie String
+  gasCodigo   String?  // Denormalizado: AR, O2, etc.
+  verified    Boolean  @default(false) // Si el cilindro existe en inventario
+  createdAt   DateTime @default(now())
 }
 
 model ClienteAcceso {
   id         String   @id @default(cuid())
-  clienteId  String
+  clienteId  String   @unique
   cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   usuario    String   @unique
   password   String
   activo     Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model Rol {
+  id          String    @id @default(cuid())
+  nombre      String    @unique // admin, deposito, reparto, facturacion, auditor
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  usuarios    Usuario[]
 }
 
 model Usuario {
@@ -246,23 +408,15 @@ model Usuario {
   updatedAt   DateTime @updatedAt
 }
 
-model Rol {
-  id          String    @id @default(cuid())
-  nombre      String    @unique
-  descripcion String?
-  createdAt   DateTime  @default(now())
-  usuarios    Usuario[]
-}
-
 model Observacion {
   id          String              @id @default(cuid())
-  tipo        String
+  tipo        String              // IMAGEN, VIDEO, NOTA, AUDIO
   titulo      String?
-  descripcion String?
-  audioUrl    String?
+  descripcion String?             // texto asociado
+  audioUrl    String?             // URL de audio grabado
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
-  createdBy   String?
+  createdBy   String?             // usuario que la creó
   archivos    ObservacionArchivo[]
 }
 
@@ -270,9 +424,9 @@ model ObservacionArchivo {
   id             String      @id @default(cuid())
   observacionId  String
   observacion    Observacion @relation(fields: [observacionId], references: [id], onDelete: Cascade)
-  tipo           String
+  tipo           String      // IMAGE, VIDEO
   nombre         String?
-  datos          String
+  datos          String      // base64 del archivo
   createdAt      DateTime    @default(now())
 }
 
@@ -280,267 +434,248 @@ model Vehiculo {
   id                String                   @id @default(cuid())
   codigo            String                   @unique
   patente           String                   @unique
-  marca             String?
-  modelo            String?
-  anio              Int?
-  tipo              String?
-  combustible       String?
-  color             String?
-  capacidadCarga    Int?                     // Cantidad mÃ¡xima de tubos
-  capacidadMaxKg    Float?
-  largoCajaCm       Float?
-  anchoCajaCm       Float?
-  altoCajaCm        Float?
-  estado            String                   @default("DISPONIBLE")
-  activo            Boolean                  @default(true)
+  marca             String
+  modelo            String
+  anio              Int
+  vin               String?
+  numeroMotor       String?
+  tipo              String                   // AUTO, CAMIONETA, CAMION, BUS, MAQUINARIA, MONTACARGA, MOTO, OTRO
+  combustible       String                   // NAFTA, GASOIL, GNC, ELECTRICO, HIBRIDO, OTRO
+  capacidad         String?
+  kmActual          Int                      @default(0)
+  horometroActual   Int?
+  estado            String                   @default("ACTIVO") // ACTIVO, EN_TALLER, BAJA, RESERVA
+  areaAsignada      String?
+  conductorAsignado String?
+  centroCosto       String?
+  fechaAdquisicion  DateTime?
+  valorCompra       Float?
+  vidaUtilAnios     Int?
+  fechaBaja         DateTime?
+
+  // ============ CONFIGURACIÓN DE CARGA ============
+  largoCajaCm       Float?   // Largo útil de la caja
+  anchoCajaCm       Float?   // Ancho útil de la caja
+  altoCajaCm        Float?   // Alto útil de la caja (para orientacion PARADOS)
+  maxTubos          Int?     // Capacidad máxima de tubos
+  orientacionTubos  String   @default("PARADOS") // PARADOS | ACOSTADOS
+
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
-
-  conductor         String?
-  conductorTelefono String?
-
-  seguroCompania    String?
-  seguroPoliza      String?
-  seguroVencimiento DateTime?
-
-  vtvVencimiento    DateTime?
-
-  cargas            VehiculoCarga[]
   mantenimientos    MantenimientoVehiculo[]
   cargasCombustible CargaCombustible[]
   documentos        DocumentoVehiculo[]
+  sesionesCarga     CargaVehiculo[]
 }
 
-model VehiculoCarga {
-  id              String              @id @default(cuid())
-  vehiculoId      String
-  vehiculo        Vehiculo            @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  fecha           DateTime            @default(now())
-  estado          String              @default("EN_CURSO")
-  items           CargaVehiculoItem[]
-  createdAt       DateTime            @default(now())
-  finalizedAt     DateTime?
+model CargaVehiculo {
+  id          String               @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo             @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha       DateTime             @default(now())
+  estado      String               @default("ACTIVA") // ACTIVA, COMPLETADA, CANCELADA
+  createdAt   DateTime             @default(now())
+  items       CargaVehiculoItem[]
 }
 
 model CargaVehiculoItem {
-  id              String        @id @default(cuid())
-  cargaId         String
-  carga           VehiculoCarga @relation(fields: [cargaId], references: [id], onDelete: Cascade)
-  cylinderId      String
-  cylinder        Cylinder      @relation(fields: [cylinderId], references: [id])
-  posicion        Int?
-  createdAt       DateTime      @default(now())
+  id            String         @id @default(cuid())
+  cargaId       String
+  carga         CargaVehiculo  @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+  cylinderId    String
+  cylinder      Cylinder       @relation(fields: [cylinderId], references: [id])
+  posicion      Int            // Número de posición en la caja (1-based)
+  createdAt     DateTime       @default(now())
+
+  @@unique([cargaId, cylinderId])
+  @@unique([cargaId, posicion])
 }
 
 model MantenimientoVehiculo {
-  id          String   @id @default(cuid())
-  vehiculoId  String
-  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  tipo        String
-  descripcion String?
-  kilometraje Int?
-  costo       Float?
-  fecha       DateTime @default(now())
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  vehiculoId    String
+  vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo          String   // PREVENTIVO, CORRECTIVO, PREDICTIVO
+  fecha         DateTime
+  kmActual      Int?
+  descripcion   String
+  costo         Float?
+  taller        String?
+  responsable   String?
+  estado        String   @default("PENDIENTE") // PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO
+  observaciones String?
+  createdAt     DateTime @default(now())
 }
 
 model CargaCombustible {
-  id          String   @id @default(cuid())
-  vehiculoId  String
-  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  litros      Float
-  importe     Float
-  kilometraje Int?
-  fecha       DateTime @default(now())
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  vehiculoId String
+  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha      DateTime
+  litros     Float
+  costo      Float?
+  kmActual   Int?
+  rendimiento Float?
+  tipo       String   @default("CARGA") // CARGA, CARGA_ELECTRICA
+  createdAt  DateTime @default(now())
 }
 
 model DocumentoVehiculo {
-  id          String   @id @default(cuid())
-  vehiculoId  String
-  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  tipo        String   // VTV, SEGURO, CEDULA, OTRO
-  nombre      String
-  archivo     String   // base64 o ruta
-  vencimiento DateTime?
-  createdAt   DateTime @default(now())
-}
-
-model Ruta {
-  id                 String        @id @default(cuid())
-  nombre             String
-  vehiculoId         String
-  vehiculo           Vehiculo      @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  fecha              DateTime      @default(now())
-  distanciaKm        Float?
-  duracionMin        Int?
-  geometria          String?       // GeoJSON
-  estado             String        @default("PLANIFICADA")
-  paradas            Parada[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-}
-
-model Parada {
-  id          String       @id @default(cuid())
-  rutaId      String
-  ruta        Ruta         @relation(fields: [rutaId], references: [id], onDelete: Cascade)
-  orden       Int
-  clienteId   String?
-  cliente     String?
-  lat         Float
-  lng         Float
-  direccion   String?
-  distanciaKm Float?
-  createdAt   DateTime     @default(now())
-}
-
-model Pedido {
-  id              String           @id @default(cuid())
-  cliente         String
-  clienteId       String
-  fecha           DateTime         @default(now())
-  operacionEnvase String
-  total           Float            @default(0)
-  estado          String           @default("PENDIENTE")
-  items           PedidoItem[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-}
-
-model PedidoItem {
-  id               String       @id @default(cuid())
-  pedidoId         String
-  pedido           Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  gasId            String
-  gas              Gas          @relation(fields: [gasId], references: [id])
-  cantidad         Int
-  operacionEnvase  String
-  capacidadLitros  Int?
-  cilindros        PedidoCilindro[]
-}
-
-model PedidoCilindro {
   id               String   @id @default(cuid())
-  pedidoItemId     String
-  pedidoItem       PedidoItem @relation(fields: [pedidoItemId], references: [id], onDelete: Cascade)
-  cylinderId       String?
-  numeroSerie      String?
-  estado           String   @default("PENDIENTE")
+  vehiculoId       String
+  vehiculo         Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo             String   // REVISION_TECNICA, PERMISO_CIRCULACION, SEGURO, LICENCIA, OTRO
+  numero           String?
+  fechaEmision     DateTime?
+  fechaVencimiento DateTime?
+  estado           String   @default("VIGENTE") // VIGENTE, VENCIDO, PROXIMO_A_VENCER
+  observaciones    String?
+  createdAt        DateTime @default(now())
 }
 
-model TipoOperacionPedido {
-  id        String   @id @default(cuid())
-  nombre    String   @unique
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-model TagRFID {
-  id          String   @id @default(cuid())
-  cylinderId  String?
-  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
-  tid         String   @unique
-  estado      String   @default("ASIGNADO")
-  createdAt   DateTime @default(now())
-}
-
-model EventoRFID {
-  id          String   @id @default(cuid())
-  tagId       String?
-  tag         TagRFID? @relation(fields: [tagId], references: [id])
-  cylinderId  String?
-  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
-  lectorId    String
-  lector      LectorIoT @relation(fields: [lectorId], references: [id])
-  zonaId      String?
-  zona        ZonaLectura? @relation(fields: [zonaId], references: [id])
-  timestamp   DateTime @default(now())
-  rssi        Float?
-  antena      Int?
-  metadata    String?
-  createdAt   DateTime @default(now())
-}
+// ============ DEPÓSITO / RFID STOCK ============
 
 model ZonaLectura {
-  id          String      @id @default(cuid())
-  codigo      String      @unique
+  id          String   @id @default(cuid())
+  codigo      String   @unique
   nombre      String
-  tipo        String      // INGRESO, EGRESO, DEPOSITO, CABINA, REPARTO
-  activa      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
+  descripcion String?
+  tipo        String   // VACIOS, LLENOS, SALIDA_REPARTO, ENVIO_CARGA, RECEPCION_CARGA, MANTENIMIENTO, BAJA
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   lectores    LectorIoT[]
   eventos     EventoRFID[]
 }
 
 model LectorIoT {
-  id          String        @id @default(cuid())
-  codigo      String        @unique
-  nombre      String
-  tipo        String        // ESP32, RPI, GATEWAY, USB
-  zonaId      String?
-  zona        ZonaLectura?  @relation(fields: [zonaId], references: [id])
-  activo      Boolean       @default(true)
-  ultimoEvento DateTime?
-  createdAt   DateTime      @default(now())
-  eventos     EventoRFID[]
+  id            String      @id @default(cuid())
+  codigo        String      @unique
+  nombre        String
+  tipo          String      // ESP32, RPI, GATEWAY
+  ip            String?
+  zonaLecturaId String
+  zona          ZonaLectura @relation(fields: [zonaLecturaId], references: [id])
+  activo        Boolean     @default(true)
+  ultimoHeartbeat DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  eventos       EventoRFID[]
+}
+
+model TagRFID {
+  id                String       @id @default(cuid())
+  tid               String       @unique // TID del chip RFID
+  cylinderId        String?
+  cylinder          Cylinder?    @relation(fields: [cylinderId], references: [id])
+  fechaAsociacion   DateTime?
+  activo            Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  eventos           EventoRFID[]
+}
+
+model EventoRFID {
+  id            String      @id @default(cuid())
+  tid           String
+  tag           TagRFID?    @relation(fields: [tid], references: [tid])
+  cylinderId    String?
+  lectorId      String
+  lector        LectorIoT   @relation(fields: [lectorId], references: [id])
+  zonaId        String
+  zona          ZonaLectura @relation(fields: [zonaId], references: [id])
+  timestamp     DateTime    @default(now())
+  estadoAnterior String?
+  estadoNuevo   String?
+  origen        String      @default("AUTOMATICO") // AUTOMATICO, MANUAL
+  usuario       String?
+  observacion   String?
+  createdAt     DateTime    @default(now())
+  movimientosStock MovimientoStock[]
 }
 
 model StockGas {
-  id        String              @id @default(cuid())
-  gasId     String              @unique
-  gas       Gas                 @relation(fields: [gasId], references: [id])
-  cantidad  Int                 @default(0)
-  updatedAt DateTime            @updatedAt
-  movimientos MovimientoStock[]
+  id          String   @id @default(cuid())
+  gasId       String   @unique
+  gas         Gas      @relation(fields: [gasId], references: [id])
+  llenos      Int      @default(0)
+  vacios      Int      @default(0)
+  enReparto   Int      @default(0)
+  enCarga     Int      @default(0)
+  mantenimiento Int    @default(0)
+  baja        Int      @default(0)
+  updatedAt   DateTime @updatedAt
 }
 
 model MovimientoStock {
-  id        String    @id @default(cuid())
-  gasId     String
-  gas       Gas       @relation(fields: [gasId], references: [id])
-  tipo      String    // INGRESO, EGRESO, AJUSTE, DEVOLUCION
-  cantidad  Int
-  saldo     Int
-  referencia String?
-  usuario   String?
-  createdAt DateTime  @default(now())
+  id            String   @id @default(cuid())
+  gasId         String
+  gas           Gas      @relation(fields: [gasId], references: [id])
+  tipo          String   // ENTRADA, SALIDA, TRANSFERENCIA
+  cantidad      Int
+  estadoAnterior String?
+  estadoNuevo   String?
+  eventoRfidId  String?
+  eventoRfid    EventoRFID? @relation(fields: [eventoRfidId], references: [id])
+  usuario       String?
+  observacion   String?
+  createdAt     DateTime @default(now())
 }
 
+model Reparto {
+  id            String   @id @default(cuid())
+  codigo        String   @unique
+  fecha         DateTime @default(now())
+  clienteId     String?
+  cliente       String?  // Denormalizado
+  vehiculoId    String?
+  estado        String   @default("PENDIENTE") // PENDIENTE, EN_CURSO, COMPLETADO, CANCELADO
+  origenZonaId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============ CABINA INTELIGENTE ============
+
 model Cabina {
-  id          String           @id @default(cuid())
-  codigo      String           @unique
+  id          String          @id @default(cuid())
+  codigo      String          @unique
   nombre      String
   ubicacion   String?
-  activa      Boolean          @default(true)
+  activo      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   sensores    SensorCabina[]
+  validaciones ValidacionCabina[]
+  alertas     Alerta[]
+  eventos     EventoTrazabilidad[]
   lecturasPeso LecturaPeso[]
   evidenciasFoto EvidenciaFoto[]
-  validaciones ValidacionCabina[]
-  eventosTraza EventoTrazabilidad[]
-  alertas     Alerta[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
 }
 
 model SensorCabina {
-  id        String   @id @default(cuid())
-  cabinaId  String
-  cabina    Cabina   @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
-  tipo      String   // BALANZA, RFID, CAMARA, PRESENCIA, PUERTA
-  codigo    String
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  cabinaId      String
+  cabina        Cabina   @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
+  tipo          String   // RFID, BALANZA, CAMARA, UPS
+  codigo        String
+  configuracion String?  // JSON con config específica
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model LecturaPeso {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   cabinaId    String
-  cabina      Cabina        @relation(fields: [cabinaId], references: [id])
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
   cylinderId  String?
-  cylinder    Cylinder?     @relation(fields: [cylinderId], references: [id])
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
   pesoKg      Float
-  createdAt   DateTime      @default(now())
+  fecha       DateTime @default(now())
+  sensorId    String?  // Sensor que registró la lectura
+  createdAt   DateTime @default(now())
+  validaciones ValidacionCabina[]
 }
 
 model EvidenciaFoto {
@@ -549,19 +684,29 @@ model EvidenciaFoto {
   cabina      Cabina   @relation(fields: [cabinaId], references: [id])
   cylinderId  String?
   cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
-  imagen      String   // base64 o ruta
+  fecha       DateTime @default(now())
+  imagen      String   // base64
   createdAt   DateTime @default(now())
+  validaciones ValidacionCabina[]
 }
 
 model ValidacionCabina {
-  id          String        @id @default(cuid())
-  cabinaId    String
-  cabina      Cabina        @relation(fields: [cabinaId], references: [id])
-  cylinderId  String?
-  cylinder    Cylinder?     @relation(fields: [cylinderId], references: [id])
-  resultado   String        // OK, INCONSISTENCIA_PESO, NO_REGISTRADO, PH_VENCIDO, etc.
-  detalle     String?
-  createdAt   DateTime      @default(now())
+  id              String   @id @default(cuid())
+  cabinaId        String
+  cabina          Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId      String?
+  cylinder        Cylinder? @relation(fields: [cylinderId], references: [id])
+  eventoRfidId    String?
+  lecturaPesoId   String?
+  lecturaPeso     LecturaPeso? @relation(fields: [lecturaPesoId], references: [id])
+  evidenciaFotoId String?
+  evidenciaFoto   EvidenciaFoto? @relation(fields: [evidenciaFotoId], references: [id])
+  pesoRealKg      Float?
+  pesoEsperadoKg  Float?
+  diagnostico     String   @default("OK") // OK, INCONSISTENCIA, NO_REGISTRADO, SOSPECHOSO
+  estadoFinal     String?
+  alertaGenerada  Boolean  @default(false)
+  createdAt       DateTime @default(now())
 }
 
 model ReglaPeso {
@@ -581,7 +726,7 @@ model EventoTrazabilidad {
   cabina      Cabina   @relation(fields: [cabinaId], references: [id])
   cylinderId  String?
   cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
-  tipo        String
+  tipo        String   // PASO_CABINA, VALIDACION, ALERTA, INGRESO, EGRESO
   descripcion String?
   fecha       DateTime @default(now())
   usuario     String?
@@ -590,7 +735,7 @@ model EventoTrazabilidad {
 
 model Alerta {
   id          String   @id @default(cuid())
-  tipo        String
+  tipo        String   // CILINDRO_NO_REGISTRADO, INCONSISTENCIA_PESO, ZONA_NO_AUTORIZADA, LECTURA_MULTIPLE, OTRO
   cabinaId    String?
   cabina      Cabina?  @relation(fields: [cabinaId], references: [id])
   cylinderId  String?
@@ -604,11 +749,11 @@ model Alerta {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  accion    String
-  entidad   String
-  entidadId String?
-  usuario   String?
-  detalle   String?
+  accion    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  entidad   String   // Cylinder, Cliente, Pedido, Factura, Usuario, etc.
+  entidadId String?  // ID del registro afectado
+  usuario   String?  // usuario que ejecutó la acción
+  detalle   String?  // JSON con datos relevantes del cambio
   direccionIp String?
   createdAt DateTime @default(now())
 }
