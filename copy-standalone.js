@@ -64,4 +64,35 @@ if (existsSync(startSrc)) {
   console.log('  ✓ start.js copied')
 }
 
+// 8. Copy prisma CLI (needed by start.js for npx prisma commands)
+const prismaCliSrc = join(root, 'node_modules', 'prisma')
+const prismaCliDst = join(standalone, 'node_modules', 'prisma')
+if (existsSync(prismaCliSrc)) {
+  if (existsSync(prismaCliDst)) rmSync(prismaCliDst, { recursive: true })
+  cpSync(prismaCliSrc, prismaCliDst, { recursive: true })
+  console.log('  ✓ node_modules/prisma copied (for npx prisma)')
+}
+
+// 9. Copy .prisma/client (already traced by Next.js, but ensure bin is there)
+const prismaBinSrc = join(root, 'node_modules', '.bin')
+const prismaBinDst = join(standalone, 'node_modules', '.bin')
+if (existsSync(prismaBinSrc)) {
+  const bins = ['prisma', 'prisma.cmd', 'prisma.ps1']
+  bins.forEach(b => {
+    const src = join(prismaBinSrc, b)
+    const dst = join(prismaBinDst, b)
+    if (existsSync(src)) cpSync(src, dst)
+  })
+  console.log('  ✓ prisma CLI .bin copied')
+}
+
+// 10. Copy bcryptjs (needed by seed)
+const bcryptSrc = join(root, 'node_modules', 'bcryptjs')
+const bcryptDst = join(standalone, 'node_modules', 'bcryptjs')
+if (existsSync(bcryptSrc)) {
+  if (existsSync(bcryptDst)) rmSync(bcryptDst, { recursive: true })
+  cpSync(bcryptSrc, bcryptDst, { recursive: true })
+  console.log('  ✓ node_modules/bcryptjs copied')
+}
+
 console.log('copy-standalone: done')
