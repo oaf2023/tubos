@@ -50,6 +50,8 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
   const [gasId, setGasId] = useState('')
   const [operacionId, setOperacionId] = useState('')
   const [cantidad, setCantidad] = useState(1)
+  const [capacidad, setCapacidad] = useState('')
+  const [capacidadesDisponibles, setCapacidadesDisponibles] = useState<number[]>([])
   const [stockOk, setStockOk] = useState<boolean | null>(null)
   const [verificandoStock, setVerificandoStock] = useState(false)
   const [viewPedido, setViewPedido] = useState<Pedido | null>(null)
@@ -64,11 +66,13 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
 
   const pUnit = gasSel ? (PRECIOS_GAS[gasSel.codigo] || 15000) : 0
 
-  async function verificarStock(gasId: string) {
+  async function verificarStock(gasId: string, capacidadLitros?: number) {
     setVerificandoStock(true)
     setStockOk(null)
     try {
-      const res = await fetch(`/api/cylinders?gasId=${gasId}&estado=LLENO`)
+      const params = new URLSearchParams({ gasId, estado: 'LLENO' })
+      if (capacidadLitros) params.set('capacidad', String(capacidadLitros))
+      const res = await fetch(`/api/cylinders?${params}`)
       const data = await res.json()
       const llenos = Array.isArray(data) ? data.length : 0
       setStockOk(llenos >= cantidad)
@@ -77,9 +81,26 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
   }
 
   useEffect(() => {
-    if (gasId && cantidad > 0) verificarStock(gasId)
+    if (gasId && cantidad > 0) {
+      const cap = capacidad ? parseInt(capacidad) : undefined
+      verificarStock(gasId, cap)
+    }
     else setStockOk(null)
-  }, [gasId, cantidad])
+  }, [gasId, cantidad, capacidad])
+
+  // Obtener capacidades disponibles del gas seleccionado
+  useEffect(() => {
+    if (!gasId) { setCapacidadesDisponibles([]); setCapacidad(''); return }
+    fetch(`/api/cylinders?gasId=${gasId}`)
+      .then(r => r.json())
+      .then(data => {
+        const caps = [...new Set((Array.isArray(data) ? data : []).map((c: any) => c.capacidadLitros).filter(Boolean))].sort((a: number, b: number) => a - b)
+        setCapacidadesDisponibles(caps)
+        if (caps.length > 0) setCapacidad(String(caps[0]))
+        else setCapacidad('')
+      })
+      .catch(() => { setCapacidadesDisponibles([]); setCapacidad('') })
+  }, [gasId])
 
   const load = useCallback(async () => {
     try {
@@ -116,7 +137,7 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
         cliente: clienteNombre,
         clienteId,
         operacionEnvase: opSel?.nombre || 'Sin envase',
-        renglones: [{ gasId, operacionEnvase: opSel?.nombre || 'Sin envase', cantidad }],
+        renglones: [{ gasId, operacionEnvase: opSel?.nombre || 'Sin envase', cantidad, capacidadLitros: capacidad ? parseInt(capacidad) : null }],
       }
       const res = await fetch('/api/pedidos', {
         method: 'POST',
@@ -125,7 +146,7 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
       toast({ title: 'Pedido enviado', description: stockOk === false ? ' (pendiente de confirmación)' : '' })
-      setGasId(''); setOperacionId(''); setCantidad(1); setStockOk(null)
+      setGasId(''); setOperacionId(''); setCantidad(1); setCapacidad(''); setStockOk(null)
       load()
     } catch (e) {
       toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
@@ -185,6 +206,21 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
                   <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />A confirmar — stock insuficiente</p>
                 )}
               </div>
+              {capacidadesDisponibles.length > 0 && (
+                <div>
+                  <Label className="text-xs text-slate-500 font-medium">Capacidad</Label>
+                  <Select value={capacidad} onValueChange={setCapacidad}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Seleccionar capacidad..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {capacidadesDisponibles.map(cap => (
+                        <SelectItem key={cap} value={String(cap)}>{cap} L</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label className="text-xs text-slate-500 font-medium">Operación *</Label>
                 <Select value={operacionId} onValueChange={setOperacionId}>
