@@ -24,66 +24,62 @@ if (isPostgres) {
   console.log(`[start] Server: ${serverPath}`)
   console.log(`[start] Port: ${process.env.PORT || 3000}`)
 
-  // Regenerate Prisma client for PostgreSQL (engine binary differs from SQLite)
+  // Regenerate Prisma client for PostgreSQL
   try {
-    execSync(`npx prisma generate --schema=prisma/schema.postgres.prisma 2>&1`, {
-      cwd: root,
-      env: { ...process.env },
-      stdio: 'inherit',
+    execSync(`npx prisma generate --schema=prisma/schema.postgres.prisma`, {
+      cwd: root, env: { ...process.env }, stdio: 'inherit',
     })
     console.log('[start] Prisma client regenerated for PostgreSQL')
   } catch (e) {
     console.warn('[start] Prisma generate failed:', e.message || e)
   }
 
-  // Run controlled migrations for PostgreSQL
-  try {
-    execSync(`npx prisma migrate deploy --schema=prisma/schema.postgres.prisma 2>&1`, {
-      cwd: root,
-      env: { ...process.env },
-      stdio: 'inherit',
+  // Sync schema — try 3 methods in order of reliability
+  let schemaSynced = false
+
+  // Method 1: prisma migrate deploy (for existing migrations)
+  if (!schemaSynced) try {
+    execSync(`npx prisma migrate deploy --schema=prisma/schema.postgres.prisma`, {
+      cwd: root, env: { ...process.env }, stdio: 'inherit',
     })
     console.log('[start] PostgreSQL migrations applied')
+    schemaSynced = true
+  } catch (e) { /* fall through */ }
+
+  // Method 2: prisma db push (fast, no migration files needed)
+  if (!schemaSynced) try {
+    execSync(`npx prisma db push --schema=prisma/schema.postgres.prisma`, {
+      cwd: root, env: { ...process.env }, stdio: 'inherit',
+    })
+    console.log('[start] PostgreSQL schema synced via db push')
+    schemaSynced = true
+  } catch (e) { console.warn('[start] db push failed, trying execute:', e.message) }
+
+  // Method 3: prisma migrate diff + execute (most compatible)
+  if (!schemaSynced) try {
+    const diffScript = join(root, 'prisma', 'pg-sync.sql')
+    execSync(
+      `npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > "${diffScript}"`,
+      { cwd: root, env: { ...process.env }, stdio: 'inherit' }
+    )
+    execSync(`npx prisma db execute --schema=prisma/schema.postgres.prisma --file="${diffScript}"`, {
+      cwd: root, env: { ...process.env }, stdio: 'inherit',
+    })
+    console.log('[start] PostgreSQL schema synced via execute')
+    schemaSynced = true
   } catch (e) {
-    console.warn('[start] Migration failed, trying db push:', e.message || e)
-    try {
-      execSync(`npx prisma db push --schema=prisma/schema.postgres.prisma 2>&1`, {
-        cwd: root,
-        env: { ...process.env },
-        stdio: 'inherit',
-      })
-      console.log('[start] PostgreSQL schema synced')
-    } catch (e2) {
-      console.warn('[start] PostgreSQL sync failed:', e2.message || e2)
-    }
+    console.warn('[start] All PostgreSQL sync methods failed:', e.message || e)
   }
 
-  // Seed initial admin user if database is empty
-  try {
-    execSync(`node -e "
-      const { PrismaClient } = require('@prisma/client')
-      const bcrypt = require('bcryptjs')
-      async function seed() {
-        const p = new PrismaClient()
-        const count = await p.usuario.count()
-        if (count === 0) {
-          const hash = await bcrypt.hash('admin123', 10)
-          await p.usuario.create({
-            data: { nombre: 'Administrador', usuario: 'admin', password: hash, nivelAcceso: 5, activo: true },
-          })
-          console.log('[seed] Admin user created: admin / admin123')
-        } else {
-          console.log('[seed] Users exist (' + count + '), skipping seed')
-        }
-        await p.\$disconnect()
-      }
-      seed().catch(e => { console.error('[seed] Error:', e.message); process.exit(1) })
-    "`, {
-      cwd: root,
-      env: { ...process.env },
-      stdio: 'inherit',
-    })
-    console.log('[start] Seed check complete')
+  // Seed admin user if database is empty
+  if (schemaSynced) try {
+    const seedScript = join(root, 'scripts', 'seed-pg-admin.mjs')
+    if (existsSync(seedScript)) {
+      execSync(`node "${seedScript}"`, {
+        cwd: root, env: { ...process.env }, stdio: 'inherit',
+      })
+      console.log('[start] Seed check complete')
+    }
   } catch (e) {
     console.warn('[start] Seed check failed (non-fatal):', e.message || e)
   }
