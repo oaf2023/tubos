@@ -23,7 +23,6 @@
   }
   .container { max-width: 960px; margin:0 auto; padding:0 20px }
 
-  /* HEADER */
   .hero {
     background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
     color: #fff;
@@ -33,7 +32,6 @@
   .hero h1 { font-size: 2.2rem; font-weight:800; margin-bottom:8px }
   .hero p { font-size:1.05rem; opacity:.9 }
 
-  /* NAV */
   .toc {
     background: var(--card);
     border:1px solid var(--border);
@@ -47,7 +45,6 @@
   .toc a { color:var(--text); text-decoration:none }
   .toc a:hover { color:var(--primary); text-decoration:underline }
 
-  /* SECTIONS */
   section { margin:40px 0 }
   .card {
     background: var(--card);
@@ -170,27 +167,25 @@
 </head>
 <body>
 
-<!-- HERO -->
 <div class="hero">
   <div class="container">
     <h1>Manual de Usuario</h1>
     <p>Control Digital — Sistema de Gestión de Tubos de Gas<br>
-    ManejaDatos   · San Nicolás de los Arroyos (Buenos Aires)</p>
+    ManejaDatos · San Nicolás de los Arroyos (Buenos Aires)</p>
   </div>
 </div>
 
 <div class="container">
 
-<!-- ÍNDICE -->
 <div class="toc">
   <h2>&#x1F4DA; Índice</h2>
   <ol>
     <li><a href="#intro">Introducción</a></li>
-    <li><a href="#login">Inicio de Sesión</a></li>
+    <li><a href="#login">Inicio de Sesión y Roles</a></li>
     <li><a href="#dashboard">Dashboard</a></li>
     <li><a href="#mapa">Mapa</a></li>
     <li><a href="#inventario">Inventario de Tubos</a></li>
-    <li><a href="#rutas">Rutas</a></li>
+    <li><a href="#rutas">Rutas y Logística</a></li>
     <li><a href="#catalogo">Catálogo de Gases</a></li>
     <li><a href="#clientes">Clientes</a></li>
     <li><a href="#laboratorio">Laboratorio</a></li>
@@ -203,11 +198,12 @@
     <li><a href="#reportes">Reportes</a></li>
     <li><a href="#observaciones">Observaciones</a></li>
     <li><a href="#vehiculos">Vehículos</a></li>
-    <li><a href="#logistica">Logística</a></li>
-    <li><a href="#deposito">Depósito</a></li>
-    <li><a href="#cabina">Cabina IoT</a></li>
+    <li><a href="#logistica">Logística (Carga de Vehículos)</a></li>
+    <li><a href="#deposito">Depósito y RFID</a></li>
+    <li><a href="#cabina">Cabina Inteligente</a></li>
     <li><a href="#finanzas">Finanzas</a></li>
     <li><a href="#analisis">Análisis</a></li>
+    <li><a href="#tablero">Tablero Gerencial</a></li>
     <li><a href="#cliente-portal">Portal de Clientes</a></li>
     <li><a href="#faq">Preguntas Frecuentes</a></li>
   </ol>
@@ -217,23 +213,32 @@
 <section id="intro">
 <div class="card">
   <h2>1. Introducción</h2>
-  <p><strong>Control Digital</strong> es un sistema web para la gestión integral de tubos de gas (cilindros). Permite administrar el inventario, los clientes, las rutas de distribución, los pedidos, la facturación, el mantenimiento, la logística de carga de vehículos y el monitoreo IoT mediante una cabina inteligente con sensores RFID y balanzas.</p>
+  <p><strong>Control Digital</strong> es un sistema web para la gestión integral de tubos de gas (cilindros). Permite administrar el inventario, los clientes, las rutas de distribución, los pedidos, la facturación, el mantenimiento, la flota de vehículos, y el monitoreo IoT mediante sensores RFID, balanzas y cámaras en una cabina inteligente.</p>
 
   <p>El sistema cuenta con <strong>dos tipos de acceso</strong>:</p>
   <ul>
-    <li><strong>Usuarios internos</strong> (empleados): acceden a todos los módulos administrativos y operativos.</li>
+    <li><strong>Usuarios internos</strong> (empleados): acceden a todos los módulos administrativos y operativos según su rol.</li>
     <li><strong>Clientes</strong>: acceden exclusivamente al Portal de Clientes para gestionar sus pedidos y consultar sus tubos.</li>
   </ul>
 
   <p>Base operativa: <strong>San Nicolás de los Arroyos, Buenos Aires, Argentina</strong>.</p>
   <p>Normativas aplicables: ISO 18119, NTC 5719, Resolución 2876/2013.</p>
+
+  <h3>Tecnología</h3>
+  <ul>
+    <li>PostgreSQL como base de datos principal.</li>
+    <li>Desplegado en Render con persistencia de datos.</li>
+    <li>Soporte PWA (instalable como app en celular/PC).</li>
+    <li>Mapas con OpenStreetMap y Leaflet.</li>
+    <li>Gráficos interactivos con Recharts.</li>
+  </ul>
 </div>
 </section>
 
 <!-- 2. LOGIN -->
 <section id="login">
 <div class="card">
-  <h2>2. Inicio de Sesión</h2>
+  <h2>2. Inicio de Sesión y Roles <span class="tag">Acceso al Sistema</span></h2>
 
   <h3>2.1. Ingreso al sistema</h3>
   <p>Al abrir la aplicación verá la pantalla de inicio de sesión con dos pestañas:</p>
@@ -242,21 +247,25 @@
     <li><strong>Clientes</strong> — para clientes registrados con credenciales propias.</li>
   </ul>
 
-  <div class="icon-row">
-    <span class="step">1</span> Seleccione la pestaña correspondiente (Usuarios o Clientes).
-  </div>
-  <div class="icon-row">
-    <span class="step">2</span> Ingrese su <strong>usuario</strong> o <strong>razón social</strong> según corresponda.
-  </div>
-  <div class="icon-row">
-    <span class="step">3</span> Ingrese su <strong>contraseña</strong>.
-  </div>
-  <div class="icon-row">
-    <span class="step">4</span> Presione <strong>"Ingresar"</strong>.</div>
+  <div class="icon-row"><span class="step">1</span> Seleccione la pestaña correspondiente (Usuarios o Clientes).</div>
+  <div class="icon-row"><span class="step">2</span> Ingrese su <strong>usuario</strong> o <strong>razón social</strong> según corresponda.</div>
+  <div class="icon-row"><span class="step">3</span> Ingrese su <strong>contraseña</strong>.</div>
+  <div class="icon-row"><span class="step">4</span> Presione <strong>"Ingresar"</strong>.</div>
 
   <div class="tip"><strong>&#x1F4A1; Tip:</strong> Si olvidó su contraseña de cliente, contacte al administrador del sistema para que la restablezca desde la sección Clientes > columna "Acceso".</div>
 
-  <h3>2.2. Cierre de sesión</h3>
+  <h3>2.2. Roles de usuario</h3>
+  <p>Los usuarios internos tienen roles que determinan qué secciones pueden ver y operar:</p>
+  <table>
+    <tr><th>Rol</th><th>Acceso</th></tr>
+    <tr><td>admin</td><td>Acceso completo a todas las secciones del sistema.</td></tr>
+    <tr><td>deposito</td><td>Inventario, Depósito, RFID, Cabina, Logística, Rutas.</td></tr>
+    <tr><td>reparto</td><td>Rutas, Vehículos, Logística, Clientes (consulta).</td></tr>
+    <tr><td>facturacion</td><td>Facturación, Pedidos, Clientes, Finanzas, Reportes.</td></tr>
+    <tr><td>auditor</td><td>Solo lectura en todos los módulos, más Tablero y Análisis.</td></tr>
+  </table>
+
+  <h3>2.3. Cierre de sesión</h3>
   <p>Haga clic en el icono &#x1f512; (salir) ubicado en la esquina superior derecha de la pantalla.</p>
 </div>
 </section>
@@ -272,7 +281,8 @@
     <li><strong>Total de tubos</strong> registrados en el sistema.</li>
     <li>Tubos <strong>llenos</strong>, <strong>en uso</strong>, <strong>vacíos</strong>, en <strong>mantenimiento</strong> y en <strong>tránsito</strong>.</li>
     <li><strong>Tubos con alerta</strong> (próximos a vencer en prueba hidrostática o con más de 3 meses con el cliente).</li>
-    <li><strong>Ubicación geográfica</strong> de los tubos en un mapa interactivo con filtros por gas y cliente.</li>
+    <li><strong>Distribución geográfica</strong> de los tubos en un mapa interactivo con filtros por gas y cliente.</li>
+    <li><strong>Alertas de vencimiento</strong> con lista de cilindros próximos a vencer.</li>
   </ul>
 
   <h3>Uso del mapa</h3>
@@ -292,9 +302,11 @@
 
   <h3>Funcionalidades</h3>
   <ul>
-    <li>Filtros combinados por <strong>Gas</strong> y <strong>Estado</strong> (Lleno, Vacío, En uso, Mantenimiento, En tránsito).</li>
+    <li>Filtros combinados por <strong>Gas</strong> y <strong>Estado</strong>.</li>
     <li>Visualización de la ubicación de cada tubo con su número de serie.</li>
     <li>Los colores de los marcadores corresponden al estado del tubo.</li>
+    <li>Geocercas visualizadas como círculos y polígonos en el mapa.</li>
+    <li>Visualización de rutas con trazado OSRM optimizado.</li>
   </ul>
 </div>
 </section>
@@ -311,20 +323,21 @@
     <tr><td>N° Serie</td><td>Número de serie único del cilindro (grabado en el cuerpo).</td></tr>
     <tr><td>Gas</td><td>Tipo de gas que contiene (seleccionable del catálogo).</td></tr>
     <tr><td>Capacidad (L)</td><td>Capacidad de agua del cilindro en litros (10L, 40L, 50L, etc.).</td></tr>
-    <tr><td>Estado</td><td>LLENO, EN_USO, VACÍO, MANTENIMIENTO, TRÁNSITO.</td></tr>
+    <tr><td>Estado</td><td>13 estados posibles (ver sección 5.3).</td></tr>
     <tr><td>Ubicación</td><td>Dirección georreferenciada donde se encuentra el tubo.</td></tr>
     <tr><td>Cliente</td><td>Cliente que tiene el tubo en su poder (si aplica).</td></tr>
-    <tr><td>Prueba Hidrostática</td><td>Fecha de la última prueba hidrostática. Se usa para alertas de vencimiento.</td></tr>
+    <tr><td>Prueba Hidrostática</td><td>Fecha de la última prueba hidrostática (PH). Se usa para alertas de vencimiento cada 5 años.</td></tr>
     <tr><td>Peso (kg)</td><td>Peso actual del cilindro (tara + contenido).</td></tr>
-    <tr><td>Proveedor / Fabricante</td><td>Datos del fabricante del cilindro.</td></tr>
-    <tr><td>Profundidad de Copa (mm)</td><td>Medición de la profundidad de la copa (control de calidad).</td></tr>
+    <tr><td>Fabricante / Proveedor</td><td>Datos del fabricante del cilindro.</td></tr>
+    <tr><td>Diametro (mm)</td><td>Diámetro exterior (para layout de carga en vehículos).</td></tr>
+    <tr><td>Presión de Ensayo (PH)</td><td>Presión de prueba hidrostática en bar.</td></tr>
   </table>
 
   <h3>5.2. Acciones disponibles</h3>
   <ul>
-    <li><strong>&#x2795; Nuevo Tubo:</strong> formulario completo para registrar un cilindro nuevo. Debe completar al menos el número de serie, gas, capacidad, estado y ubicación.</li>
+    <li><strong>&#x2795; Nuevo Tubo:</strong> formulario completo para registrar un cilindro nuevo.</li>
     <li><strong>&#x270F; Editar:</strong> modifica los datos del cilindro.</li>
-    <li><strong>&#x1F5D1; Eliminar:</strong> elimina el cilindro del sistema (solo si no tiene movimientos asociados).</li>
+    <li><strong>&#x1F5D1; Eliminar:</strong> elimina el cilindro del sistema.</li>
     <li><strong>&#x1F4C8; Gráfico:</strong> muestra el historial de peso del cilindro en el tiempo.</li>
     <li><strong>&#x1F4CB; Historial:</strong> movimientos, cambios de estado y ubicaciones del tubo.</li>
     <li><strong>&#x1F527; Mantenimiento:</strong> registra tareas de mantenimiento realizadas al tubo.</li>
@@ -333,37 +346,64 @@
   <div class="tip"><strong>&#x1F4A1; Tip:</strong> Use los filtros (Gas, Estado, Ubicación) para encontrar rápidamente tubos específicos. También puede buscar por número de serie.</div>
 
   <h3>5.3. Estados del tubo</h3>
+  <p>El sistema cuenta con <strong>13 estados estandarizados</strong> que cubren todo el ciclo de vida del cilindro:</p>
   <table>
     <tr><th>Estado</th><th>Significado</th></tr>
     <tr><td>LLENO</td><td>Disponible en depósito, listo para despachar.</td></tr>
-    <tr><td>EN_USO</td><td>Entregado al cliente, actualmente en uso.</td></tr>
-    <tr><td>VACÍO</td><td>Devuelto por el cliente, pendiente de recarga o inspección.</td></tr>
+    <tr><td>VACIO</td><td>Devuelto por el cliente, pendiente de recarga o inspección.</td></tr>
+    <tr><td>EN_USO</td><td>Entregado al cliente, actualmente en uso (legacy, se usa EN_CLIENTE).</td></tr>
+    <tr><td>EN_CLIENTE</td><td>En poder del cliente, con fecha de entrega registrada para control de retención.</td></tr>
+    <tr><td>EN_REPARTO</td><td>En ruta, siendo transportado para entrega.</td></tr>
+    <tr><td>EN_CARGA</td><td>En proceso de carga en el vehículo en el depósito.</td></tr>
+    <tr><td>EN_DEPOSITO</td><td>En depósito (stock intermedio entre procesos).</td></tr>
     <tr><td>MANTENIMIENTO</td><td>En taller para reparación, pintura, cambio de válvula, etc.</td></tr>
-    <tr><td>TRÁNSITO</td><td>En ruta, siendo transportado.</td></tr>
+    <tr><td>TRANSITO</td><td>En movimiento entre ubicaciones (depósito → depósito).</td></tr>
+    <tr><td>RETENIDO</td><td>Retenido por control de calidad o auditoría.</td></tr>
+    <tr><td>PH_VENCIDO</td><td>Prueba hidrostática vencida. No puede ser llenado ni distribuido.</td></tr>
+    <tr><td>BAJA</td><td>Dado de baja definitiva (obsoleto, irreversible).</td></tr>
+    <tr><td>EXTRAVIADO</td><td>No localizado, pérdida reportada.</td></tr>
   </table>
+  <p>Los estados se pueden agrupar en tres categorías para el análisis:</p>
+  <ul>
+    <li><strong>Activos:</strong> LLENO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO.</li>
+    <li><strong>Inactivos / Retenidos:</strong> VACIO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, TRANSITO.</li>
+    <li><strong>Pérdidas:</strong> BAJA, EXTRAVIADO.</li>
+  </ul>
 </div>
 </section>
 
 <!-- 6. RUTAS -->
 <section id="rutas">
 <div class="card">
-  <h2>6. Rutas <span class="tag">Distribución</span></h2>
-  <p>Planificación y seguimiento de las rutas de distribución de tubos. Permite crear recorridos con múltiples paradas, asignar vehículos y optimizar el orden de entrega.</p>
+  <h2>6. Rutas y Logística <span class="tag">Distribución</span></h2>
+  <p>Planificación y seguimiento de las rutas de distribución de tubos. Permite crear recorridos con múltiples paradas, asignar vehículos con verificación de capacidad, calcular costos operativos y simular GPS en tiempo real.</p>
 
   <h3>¿Cómo crear una ruta?</h3>
-  <div class="icon-row"><span class="step">1</span> Presione <strong>"Nueva Ruta"</strong>.</div>
-  <div class="icon-row"><span class="step">2</span> Asigne un <strong>nombre</strong> y seleccione el <strong>vehículo</strong>.</div>
-  <div class="icon-row"><span class="step">3</span> Agregue <strong>paradas</strong> (clientes) con los tubos a entregar y/o retirar.</div>
-  <div class="icon-row"><span class="step">4</span> El sistema <strong>optimiza</strong> el orden de las paradas en base a la ubicación geográfica.</div>
-  <div class="icon-row"><span class="step">5</span> Guarde la ruta. Luego puede <strong>iniciar</strong> el recorrido y registrar cada parada.</div>
+  <div class="icon-row"><span class="step">1</span> Complete el <strong>nombre</strong> de la ruta.</div>
+  <div class="icon-row"><span class="step">2</span> Seleccione el <strong>vehículo</strong> asignado (opcional, muestra capacidad máxima).</div>
+  <div class="icon-row"><span class="step">3</span> Indique el <strong>costo por km</strong> (opcional, se auto-completa desde el vehículo).</div>
+  <div class="icon-row"><span class="step">4</span> Seleccione las <strong>paradas</strong> (clientes/ubicaciones) de la lista disponible.</div>
+  <div class="icon-row"><span class="step">5</span> Puede <strong>optimizar</strong> el orden de las paradas presionando el botón "Optimizar".</div>
+  <div class="icon-row"><span class="step">6</span> Guarde la ruta. El sistema calcula automáticamente la distancia y duración estimada.</div>
 
-  <h3>Funcionalidades</h3>
+  <h3>Costo estimado</h3>
+  <p>Si asignó un vehículo con costo por km, el sistema muestra el costo total estimado de la ruta debajo del campo de costo. Este valor se guarda en la ruta al crearla.</p>
+
+  <h3>Navegación con GPS simulado</h3>
+  <p>Al iniciar una ruta y presionar <strong>"Navegar"</strong>, se abre un diálogo con:</p>
   <ul>
-    <li>Optimización automática del orden de paradas por distancia.</li>
-    <li>Mapa con la ruta trazada y las paradas numeradas.</li>
-    <li>Carga de tubos en el vehículo desde la ruta.</li>
-    <li>Finalización de ruta con resumen de entregas.</li>
+    <li><strong>Próxima parada</strong> destacada con el orden y datos del cliente.</li>
+    <li><strong>Simulación GPS:</strong> presione "Simular GPS" para generar pings de ubicación cada 3 segundos, simulando el movimiento del vehículo. Los pings se registran en la base de datos con latitud, longitud, velocidad y rumbo.</li>
+    <li><strong>Paradas restantes:</strong> lista completa con indicador de entregadas.</li>
+    <li><strong>Botón "Entregado"</strong> para marcar la parada actual como completada.</li>
+    <li><strong>Resumen:</strong> distancia, duración, entregados y costo total.</li>
   </ul>
+
+  <h3>Geocercas en el mapa</h3>
+  <p>Al seleccionar una ruta existente, el mapa muestra también las <strong>geocercas</strong> configuradas (círculos y polígonos) para visualizar zonas de depósito, clientes y áreas restringidas.</p>
+
+  <h3>Capacidad de carga</h3>
+  <p>Al asignar un vehículo a una ruta, el sistema puede validar que la cantidad de cilindros a transportar no supere la capacidad máxima del vehículo (campo <strong>maxTubos</strong>), teniendo en cuenta también las dimensiones de la caja (largo, ancho, alto) y la orientación (parados o acostados).</p>
 </div>
 </section>
 
@@ -371,13 +411,14 @@
 <section id="catalogo">
 <div class="card">
   <h2>7. Catálogo de Gases <span class="tag">Consulta</span></h2>
-  <p>Vista informativa de los gases comercializados. Presenta los gases agrupados por categoría (Inerte, Activo, Combustible, Comburente) con sus propiedades y pictogramas de seguridad (SGA).</p>
+  <p>Vista informativa de los gases comercializados. Presenta los gases agrupados por categoría (Inerte, Activo, Combustible, Comburente) con sus propiedades y pictogramas de seguridad.</p>
 
   <h3>Información por gas</h3>
   <ul>
     <li>Código, nombre comercial y categoría.</li>
-    <li>Pictogramas de seguridad SGA (corrosivo, inflamable, comburente, etc.).</li>
-    <li>Capacidades disponibles y colores identificatorios.</li>
+    <li>Pictogramas de seguridad (inflamable, comburente, gas a presión, etc.).</li>
+    <li>Colores identificatorios según norma EN 1089-3.</li>
+    <li>Presión de carga.</li>
   </ul>
 </div>
 </section>
@@ -408,7 +449,7 @@
   <div class="tip"><strong>&#x1F4A1; Tip:</strong> Los clientes con acceso ven exclusivamente el "Portal de Clientes". No tienen acceso a los módulos internos.</div>
 
   <h3>8.3. Tubos del cliente</h3>
-  <p>Al seleccionar un cliente, puede ver la lista de tubos que tiene asignados (en su posesión), con su estado actual.</p>
+  <p>Al seleccionar un cliente, puede ver la lista de tubos que tiene asignados (en su posesión), con su estado actual y días de retención.</p>
 </div>
 </section>
 
@@ -426,7 +467,7 @@
     <li><strong>Estadísticas:</strong> cantidad de tubos por estado de prueba hidrostática, próximos a vencer, etc.</li>
   </ul>
 
-  <div class="warning"><strong>&#x26A0; Importante:</strong> La prueba hidrostática vence a los 5 años. Los tubos vencidos no deben ser llenados ni distribuidos hasta su renovación.</div>
+  <div class="warning"><strong>&#x26A0; Importante:</strong> La prueba hidrostática vence a los 5 años. Los tubos vencidos (PH_VENCIDO) no deben ser llenados ni distribuidos hasta su renovación.</div>
 </div>
 </section>
 
@@ -439,17 +480,13 @@
   <h3>Parámetros configurables por gas</h3>
   <table>
     <tr><th>Parámetro</th><th>Descripción</th></tr>
-    <tr><td>Días alerta retest</td><td>Antigüedad en días desde la última prueba hidrostática para mostrar alerta (ej: 1825 = 5 años).</td></tr>
+    <tr><td>Días alerta retest</td><td>Antigüedad en días desde la última prueba hidrostática para mostrar alerta.</td></tr>
     <tr><td>Días max. con cliente</td><td>Máximo de días que un tubo puede estar en poder del cliente antes de generar alerta.</td></tr>
     <tr><td>Alerta PH</td><td>Activa/desactiva las alertas de prueba hidrostática para este gas.</td></tr>
     <tr><td>Activo</td><td>Habilita/deshabilita las alertas para este gas.</td></tr>
   </table>
 
-  <p>También incluye la <strong>Configuración de Empresa</strong> con datos como:</p>
-  <ul>
-    <li>Nombre, CUIT, dirección, teléfono, email de la empresa.</li>
-    <li>Coordenadas de la base operativa.</li>
-  </ul>
+  <p>También incluye la <strong>Configuración de Empresa</strong> con datos como nombre, CUIT, dirección, teléfono, email y coordenadas de la base operativa.</p>
 </div>
 </section>
 
@@ -474,12 +511,7 @@
     <li><strong>CANCELADO:</strong> anulado.</li>
   </ul>
 
-  <p>Además, desde esta pantalla puede:</p>
-  <ul>
-    <li>Asignar tubos específicos a un pedido (vincular cilindros reales).</li>
-    <li>Ver el detalle completo de cada pedido.</li>
-    <li>Actualizar el estado del pedido.</li>
-  </ul>
+  <p>Además, puede asignar tubos específicos a un pedido, ver el detalle completo y actualizar el estado.</p>
 </div>
 </section>
 
@@ -489,7 +521,7 @@
   <h2>12. Facturación <span class="tag">Facturas y Notas de Crédito</span></h2>
   <p>Módulo de facturación. Permite crear facturas (A, B, C según condición IVA del cliente), notas de crédito y gestionar el alquiler de tubos.</p>
 
-  <h3>3.1. Crear una factura</h3>
+  <h3>Crear una factura</h3>
   <ul>
     <li>Seleccione el <strong>cliente</strong> (autocompleta datos fiscales).</li>
     <li>Agregue <strong>ítems</strong> (concepto, cantidad, precio unitario).</li>
@@ -497,7 +529,7 @@
     <li>Puede <strong>imprimir</strong> o <strong>exportar</strong> la factura.</li>
   </ul>
 
-  <h3>3.2. Alquiler de tubos</h3>
+  <h3>Alquiler de tubos</h3>
   <p>La opción <strong>"Calcular Alquiler"</strong> permite facturar el alquiler mensual de tubos a un cliente, calculando los días transcurridos desde la entrega.</p>
 </div>
 </section>
@@ -512,7 +544,7 @@
   <ul>
     <li>Los remitos se generan automáticamente desde los pedidos o las rutas.</li>
     <li>Puede ver, imprimir y exportar cada remito.</li>
-    <li>Cada remito detalla: cliente, fecha, tubos entregados, tubos retirados y firma (digital).</li>
+    <li>Cada remito detalla: cliente, fecha, tubos entregados, tubos retirados y firma digital.</li>
   </ul>
 </div>
 </section>
@@ -533,13 +565,6 @@
     <tr><td>Inspección</td><td>Inspección visual o estructural.</td></tr>
     <tr><td>Otro</td><td>Otro tipo de tarea.</td></tr>
   </table>
-
-  <h3>¿Cómo registrar un mantenimiento?</h3>
-  <div class="icon-row"><span class="step">1</span> Seleccione el <strong>tubo</strong> (puede buscar por número de serie).</div>
-  <div class="icon-row"><span class="step">2</span> Seleccione el <strong>tipo</strong> de mantenimiento y agregue una <strong>descripción</strong>.</div>
-  <div class="icon-row"><span class="step">3</span> Guarde. El registro queda en el historial del tubo.</div>
-
-  <p>También puede cambiar el <strong>estado</strong> del tubo a MANTENIMIENTO directamente desde aquí.</p>
 </div>
 </section>
 
@@ -547,26 +572,17 @@
 <section id="tablas">
 <div class="card">
   <h2>15. Tablas <span class="tag">Catálogos y Parámetros</span></h2>
-  <p>Módulo de administración de tablas auxiliares del sistema. Aquí se gestionan los datos maestros.</p>
+  <p>Módulo de administración de tablas auxiliares del sistema.</p>
 
   <h3>Sub-pestañas disponibles</h3>
   <table>
     <tr><th>Tabla</th><th>Descripción</th></tr>
-    <tr><td>Gases</td><td>CRUD de los tipos de gas (código, nombre, color, pictogramas de seguridad SGA).</td></tr>
+    <tr><td>Gases</td><td>CRUD de los tipos de gas (código, nombre, color, pictogramas).</td></tr>
     <tr><td>Ubicaciones</td><td>Gestión de ubicaciones/domicilios donde se encuentran los tubos.</td></tr>
     <tr><td>Usuarios</td><td>Gestión de usuarios del sistema (nombre, usuario, contraseña, rol).</td></tr>
     <tr><td>Alertas</td><td>Configuración de alertas (días para retest PH, límite de días con cliente, etc.).</td></tr>
-    <tr><td>Operaciones Pedido</td><td>Tipos de operación disponibles al crear un pedido (Con envase, Sin envase, Canje, Venta nuevo, etc.).</td></tr>
+    <tr><td>Operaciones Pedido</td><td>Tipos de operación disponibles al crear un pedido.</td></tr>
   </table>
-
-  <h3>¿Cómo agregar un nuevo gas?</h3>
-  <div class="icon-row"><span class="step">1</span> Vaya a Tablas > Gases.</div>
-  <div class="icon-row"><span class="step">2</span> Presione <strong>"Nuevo Gas"</strong>.</div>
-  <div class="icon-row"><span class="step">3</span> Complete código, nombre, seleccione color, categoría y pictogramas SGA.</div>
-  <div class="icon-row"><span class="step">4</span> Guarde. El gas aparecerá automáticamente en todos los listados del sistema.</div>
-
-  <h3>Operaciones de Pedido</h3>
-  <p>Los tipos de operación disponibles al crear un pedido (tanto en el Portal de Clientes como internamente) se gestionan aquí. Puede agregar operaciones como "Alquiler de tubo", "Recarga", etc., según su necesidad.</p>
 
   <div class="tip"><strong>&#x1F4A1; Tip:</strong> Solo las operaciones marcadas como "Activo" aparecen en los formularios de pedido.</div>
 </div>
@@ -601,9 +617,9 @@
   <p>Módulo para registrar observaciones con contenido multimedia (imágenes, audio, video y texto). Ideal para documentar incidencias, novedades de taller, estado de tubos, etc.</p>
 
   <h3>¿Cómo crear una observación?</h3>
-  <div class="icon-row"><span class="step">1</span> Seleccione el <strong>tipo</strong> de sub-sección (Imágenes, Audio, Video, Texto, Archivos).</div>
+  <div class="icon-row"><span class="step">1</span> Seleccione el <strong>tipo</strong> (Imágenes, Audio, Video, Texto, Archivos).</div>
   <div class="icon-row"><span class="step">2</span> Complete <strong>título</strong> y <strong>descripción</strong>.</div>
-  <div class="icon-row"><span class="step">3</span> Adjunte archivos según el tipo (captura de cámara, audio grabado, video, etc.).</div>
+  <div class="icon-row"><span class="step">3</span> Adjunte archivos según el tipo (cámara, audio grabado, video, etc.).</div>
   <div class="icon-row"><span class="step">4</span> Presione <strong>"Guardar"</strong>.</div>
 
   <p>Las observaciones se listan cronológicamente y pueden ser consultadas por cualquier usuario.</p>
@@ -614,26 +630,31 @@
 <section id="vehiculos">
 <div class="card">
   <h2>18. Vehículos <span class="tag">Flota</span></h2>
-  <p>Gestión de la flota de vehículos utilizados para la distribución de tubos.</p>
+  <p>Gestión de la flota de vehículos utilizados para la distribución de tubos. Incluye datos del vehículo, dimensiones de carga, costo operativo por km, mantenimientos, cargas de combustible y documentación.</p>
 
   <h3>Datos del vehículo</h3>
   <ul>
-    <li><strong>Patente</strong>, <strong>marca</strong>, <strong>modelo</strong>, <strong>año</strong>.</li>
-    <li><strong>Capacidad</strong> máxima de tubos (cantidad).</li>
+    <li><strong>Patente</strong>, <strong>marca</strong>, <strong>modelo</strong>, <strong>año</strong>, <strong>tipo</strong> (Auto, Camioneta, Camión, etc.).</li>
+    <li><strong>Combustible:</strong> Nafta, Gasoil, GNC, Eléctrico, Híbrido.</li>
+    <li><strong>Capacidad máxima de tubos</strong> (maxTubos), orientación (parados/acostados).</li>
+    <li><strong>Dimensiones de caja:</strong> Largo, ancho, alto en cm (para validación de carga).</li>
+    <li><strong>Costo por km:</strong> costo operativo (combustible + mantenimiento) para cálculo de costo de rutas.</li>
     <li><strong>VTV</strong> (fecha de vencimiento de la Verificación Técnica Vehicular).</li>
     <li><strong>Seguro</strong> (compañía, número de póliza, vencimiento).</li>
-    <li><strong>Activo/Inactivo</strong>.</li>
   </ul>
 
-  <h3>Acciones</h3>
+  <h3>Acciones disponibles</h3>
   <ul>
     <li><strong>Nuevo vehículo:</strong> alta en el sistema.</li>
     <li><strong>Editar / Eliminar</strong> vehículo.</li>
     <li><strong>Cargas:</strong> ver el historial de cargas de tubos en el vehículo.</li>
     <li><strong>Mantenimientos:</strong> registrar mantenimientos del vehículo (cambio de aceite, frenos, etc.).</li>
-    <li><strong>Carga de Combustible:</strong> registrar cargas de combustible con litros, importe y kilometraje.</li>
+    <li><strong>Carga de Combustible:</strong> registrar cargas con litros, importe y kilometraje.</li>
     <li><strong>Documentos:</strong> adjuntar documentación (VTV, seguro, cédula).</li>
   </ul>
+
+  <h3>Asignación a rutas</h3>
+  <p>Los vehículos se pueden asignar a rutas desde el módulo de Rutas. Al seleccionar un vehículo en el planificador de rutas, el sistema muestra su capacidad y costo por km, y calcula automáticamente el costo total estimado de la ruta.</p>
 </div>
 </section>
 
@@ -658,58 +679,114 @@
 
   <p>También puede cargar automáticamente desde un <strong>pedido</strong> seleccionando el pedido a despachar.</p>
 
-  <div class="warning"><strong>&#x26A0; Importante:</strong> Al cargar un tubo, su estado cambia a TRÁNSITO. Al descargarlo, puede elegir el nuevo estado (LLENO si se entrega al cliente, EN_USO, etc.).</div>
+  <div class="warning"><strong>&#x26A0; Importante:</strong> Al cargar un tubo, su estado cambia a EN_REPARTO. Al descargarlo, puede elegir el nuevo estado.</div>
 </div>
 </section>
 
 <!-- 20. DEPÓSITO -->
 <section id="deposito">
 <div class="card">
-  <h2>20. Depósito <span class="tag">Gestión de Almacén</span></h2>
-  <p>Control del depósito: zonas de almacenamiento, stock de gases, movimientos y eventos de inventario.</p>
+  <h2>20. Depósito y RFID <span class="tag">Gestión de Almacén</span></h2>
+  <p>Control del depósito con zonas de almacenamiento, lectores RFID, tags, movimientos y eventos de inventario.</p>
 
   <h3>Sub-secciones</h3>
   <ul>
     <li><strong>Stock:</strong> vista agrupada por gas y capacidad, con cantidad disponible y ocupada.</li>
-    <li><strong>Zonas:</strong> gestión de zonas físicas del depósito (ej: Zona A, Zona B, Estante 1, etc.).</li>
-    <li><strong>Lectores:</strong> gestión de dispositivos lectores RFID instalados en el depósito.</li>
+    <li><strong>Zonas:</strong> gestión de zonas físicas del depósito donde se ubican los tubos y los lectores RFID.</li>
+    <li><strong>Lectores:</strong> gestión de dispositivos IoT (ESP32, Raspberry Pi) instalados en cada zona.</li>
+    <li><strong>Tags:</strong> gestión de etiquetas RFID asignadas a los tubos (cada tag tiene un TID único).</li>
     <li><strong>Movimientos:</strong> registro de entradas y salidas de tubos del depósito.</li>
-    <li><strong>Tags:</strong> gestión de etiquetas RFID asignadas a los tubos.</li>
-    <li><strong>Eventos:</strong> eventos de inventario como conteos cíclicos, auditorías, etc.</li>
+    <li><strong>Eventos RFID:</strong> historial de lecturas de tags registradas por los lectores en cada zona.</li>
+    <li><strong>Sesiones RFID:</strong> sesiones de lectura agrupadas con ventana de deduplicación de 5 segundos.</li>
   </ul>
 
-  <div class="tip"><strong>&#x1F4A1; Tip:</strong> Los lectores RFID permiten registrar movimientos automáticos cuando un tubo pasa por un punto de lectura.</div>
+  <h3>7 Zonas RFID</h3>
+  <table>
+    <tr><th>Zona</th><th>Propósito</th></tr>
+    <tr><td>VACIOS</td><td>Tubos vacíos devueltos por clientes, pendientes de inspección.</td></tr>
+    <tr><td>LLENOS</td><td>Tubos llenos listos para despacho.</td></tr>
+    <tr><td>SALIDA_REPARTO</td><td>Tubos cargados en vehículos listos para salir a ruta.</td></tr>
+    <tr><td>ENVIO_CARGA</td><td>Tubos enviados a planta de carga para llenado.</td></tr>
+    <tr><td>RECEPCION_CARGA</td><td>Tubos recibidos de planta de carga, pendientes de verificación.</td></tr>
+    <tr><td>MANTENIMIENTO</td><td>Tubos en taller para reparación o recalificación.</td></tr>
+    <tr><td>BAJA</td><td>Tubos dados de baja, pendientes de disposición final.</td></tr>
+  </table>
+
+  <h3>Reglas de transición automática</h3>
+  <p>Cuando un lector RFID detecta un tubo en una zona, el motor de reglas evalúa si debe cambiar el estado del cilindro automáticamente. Por ejemplo:</p>
+  <ul>
+    <li>Un tubo detectado en zona VACIOS cambia a estado VACIO.</li>
+    <li>Un tubo detectado en zona LLENOS cambia a estado LLENO.</li>
+    <li>Un tubo detectado en zona MANTENIMIENTO cambia a estado MANTENIMIENTO.</li>
+  </ul>
+
+  <div class="tip"><strong>&#x1F4A1; Tip:</strong> Los lectores RFID permiten registrar movimientos automáticos cuando un tubo pasa por un punto de lectura, sin intervención manual del operador.</div>
 </div>
 </section>
 
 <!-- 21. CABINA -->
 <section id="cabina">
 <div class="card">
-  <h2>21. Cabina IoT <span class="tag">Estación Inteligente</span></h2>
-  <p>Módulo de integración con la cabina inteligente equipada con sensores RFID, balanzas, cámara y pantalla. La Cabina se utiliza para el proceso de <strong>carga y descarga de tubos</strong> en el depósito.</p>
+  <h2>21. Cabina Inteligente <span class="tag">Estación IoT con RFID, Balanza y Cámara</span></h2>
+  <p>Módulo de integración con la cabina inteligente equipada con sensores RFID, balanzas, cámara y pantalla. Se utiliza para el proceso de <strong>validación de carga y descarga de tubos</strong> en el depósito.</p>
 
   <h3>Componentes de la Cabina</h3>
   <ul>
-    <li><strong>Lector RFID:</strong> detecta automáticamente los tubos que ingresan o salen.</li>
-    <li><strong>Balanza:</strong> pesa el tubo para verificar contenido y detectar anomalías.</li>
-    <li><strong>Cámara:</strong> captura fotos del tubo para documentar su estado.</li>
-    <li><strong>Pantalla:</strong> interfaz visual para el operador.</li>
-    <li><strong>Sensores:</strong> detectan presencia de tubo, apertura de puertas, etc.</li>
+    <li><strong>Lector RFID:</strong> detecta automáticamente los tubos que ingresan o salen mediante su tag RFID (TID único).</li>
+    <li><strong>Balanza:</strong> pesa el tubo para verificar contenido estimado contra el peso esperado según reglas de peso por gas.</li>
+    <li><strong>Cámara:</strong> captura fotos del tubo para documentar su estado visual.</li>
+    <li><strong>Pantalla táctil:</strong> interfaz para el operador con escaneo, pesaje, foto y verificación PH.</li>
+    <li><strong>Sensores de presencia:</strong> detectan ingreso/egreso de tubos.</li>
   </ul>
 
-  <h3>¿Cómo funciona?</h3>
-  <div class="icon-row"><span class="step">1</span> El tubo ingresa a la cabina. El <strong>lector RFID</strong> lo identifica automáticamente.</div>
-  <div class="icon-row"><span class="step">2</span> La <strong>balanza</strong> toma el peso. El sistema calcula el contenido estimado de gas.</div>
-  <div class="icon-row"><span class="step">3</span> La <strong>cámara</strong> toma una foto del estado del tubo.</div>
-  <div class="icon-row"><span class="step">4</span> El sistema registra el <strong>evento</strong> con todos los datos (tag RFID, peso, foto, fecha/hora).</div>
-  <div class="icon-row"><span class="step">5</span> El operador puede <strong>validar</strong> el evento y definir la acción (cargar, descargar, cambiar estado).</div>
+  <h3>Motor de decisión (Cabina Engine)</h3>
+  <p>Cuando un tubo ingresa a la cabina, el motor de decisión evalúa múltiples factores y produce un <strong>diagnóstico</strong> con una acción sugerida:</p>
+  <table>
+    <tr><th>Diagnóstico</th><th>Significado</th><th>Acción</th></tr>
+    <tr><td>OK</td><td>Todas las validaciones pasaron correctamente.</td><td>PERMITIR</td></tr>
+    <tr><td>NO_REGISTRADO</td><td>El tag RFID no está asociado a ningún cilindro en el sistema.</td><td>REVISAR</td></tr>
+    <tr><td>SIN_TAG</td><td>No se detectó ningún tag RFID en la cabina.</td><td>REVISAR</td></tr>
+    <tr><td>INCONSISTENCIA_PESO</td><td>El peso real difiere significativamente del peso esperado para ese gas.</td><td>REVISAR</td></tr>
+    <tr><td>PH_VENCIDO</td><td>La prueba hidrostática del cilindro está vencida.</td><td>RECHAZAR</td></tr>
+    <tr><td>FALTA_FOTO</td><td>No se pudo tomar la foto de evidencia.</td><td>REVISAR</td></tr>
+    <tr><td>RECHAZADO</td><td>Múltiples alertas o condición crítica.</td><td>RECHAZAR</td></tr>
+  </table>
 
-  <h3>Reglas de Peso</h3>
-  <p>Se pueden configurar reglas para detectar anomalías:</p>
+  <h3>Pantalla del operador</h3>
+  <p>La pantalla de cabina modo operador permite:</p>
+  <div class="icon-row"><span class="step">1</span> Seleccionar la <strong>cabina</strong> (Principal Planta Baja o Secundaria Depósito).</div>
+  <div class="icon-row"><span class="step">2</span> Escanear el <strong>tag RFID</strong> del tubo (manual o automático).</div>
+  <div class="icon-row"><span class="step">3</span> Ingresar el <strong>peso</strong> desde la balanza.</div>
+  <div class="icon-row"><span class="step">4</span> Tomar <strong>foto</strong> con la cámara (usando la cámara del dispositivo).</div>
+  <div class="icon-row"><span class="step">5</span> Verificar <strong>PH</strong> (vigente o vencido, con observación).</div>
+  <div class="icon-row"><span class="step">6</span> Presionar <strong>"Validar Cilindro"</strong> para ejecutar el motor de decisión.</div>
+
+  <h3>Resultado de la validación</h3>
+  <p>El sistema muestra:</p>
   <ul>
-    <li><strong>Peso mínimo:</strong> por debajo de este valor se considera tubo vacío o con fuga.</li>
+    <li><strong>Diagnóstico</strong> y <strong>Acción sugerida</strong> (PERMITIR / REVISAR / RECHAZAR).</li>
+    <li>Datos del cilindro: número de serie, gas, estado actual y sugerido.</li>
+    <li>Peso real vs peso esperado.</li>
+    <li>Estado del PH (vigente o vencido).</li>
+    <li><strong>Alertas</strong> generadas (si corresponde).</li>
+    <li><strong>Historial</strong> de las últimas 20 validaciones realizadas.</li>
+  </ul>
+
+  <h3>Reglas de Peso por Gas</h3>
+  <p>Cada gas tiene configuradas reglas de peso para la validación en cabina:</p>
+  <ul>
+    <li><strong>Peso tara:</strong> peso del cilindro vacío.</li>
+    <li><strong>Peso lleno:</strong> peso del cilindro con carga completa.</li>
+    <li><strong>Peso mínimo:</strong> por debajo de este valor se considera fuga o vacío anómalo.</li>
     <li><strong>Peso máximo:</strong> por encima se considera sobrecarga o error.</li>
-    <li><strong>Desviación permitida:</strong> porcentaje de tolerancia respecto al peso esperado.</li>
+  </ul>
+
+  <h3>Sesiones de Lectura RFID</h3>
+  <p>El sistema agrupa las lecturas de tags RFID en <strong>sesiones</strong> para evitar duplicados:</p>
+  <ul>
+    <li><strong>Ventana de deduplicación:</strong> 5 segundos — si el mismo tag se lee dentro de los 5 segundos, se descarta como duplicado.</li>
+    <li><strong>Sesión máxima:</strong> 30 segundos — una sesión se cierra automáticamente a los 30 segundos de la primera lectura.</li>
+    <li>Cada sesión agrupa todos los eventos de un mismo proceso de carga/descarga.</li>
   </ul>
 
   <div class="tip"><strong>&#x1F4A1; Tip:</strong> Los eventos de cabina se registran automáticamente en el historial del tubo. Puede consultarlos desde Inventario > Historial.</div>
@@ -724,11 +801,11 @@
 
   <h3>Sub-pestañas</h3>
   <ul>
-    <li><strong>Resumen:</strong> KPIs principales (ingresos totales, gastos, saldo neto, facturas emitidas). Gráfico de área con evolución mensual de ingresos vs gastos.</li>
+    <li><strong>Panel General:</strong> KPIs principales (ingresos totales, gastos, saldo neto, facturas emitidas). Gráfico de área con evolución mensual de ingresos vs gastos.</li>
     <li><strong>Ingresos:</strong> detalle y gráfico de barras de los ingresos mensuales por facturación.</li>
     <li><strong>Gastos:</strong> detalle de gastos registrados (combustible, mantenimiento, etc.) con gráfico de torta.</li>
-    <li><strong>Mensual:</strong> tabla comparativa mes a mes de ingresos, gastos y saldo, con gráfico de líneas.</li>
-    <li><strong>Exportar:</strong> exportación de datos financieros a CSV (Excel) o PDF.</li>
+    <li><strong>Comparativa:</strong> ingresos vs gastos por mes, margen operativo, distribución de gastos.</li>
+    <li><strong>Detalle:</strong> tabla de gastos vehiculares mensuales y mantenimiento por tipo.</li>
   </ul>
 
   <h3>Indicadores (KPIs)</h3>
@@ -747,68 +824,104 @@
 <section id="analisis">
 <div class="card">
   <h2>23. Análisis <span class="tag">Estadísticas Avanzadas</span></h2>
-  <p>Panel de análisis con estadísticas detalladas sobre los distintos aspectos del negocio.</p>
+  <p>Panel de análisis con estadísticas detalladas sobre los distintos aspectos del negocio, con 8 sub-paneles especializados.</p>
 
-  <h3>Paneles de análisis</h3>
+  <h3>Sub-paneles de análisis</h3>
   <table>
     <tr><th>Panel</th><th>Qué muestra</th></tr>
-    <tr><td>Panel General</td><td>Visón general del negocio: total de tubos, clientes activos, pedidos del mes, facturación mensual, distribución por estado y por gas.</td></tr>
-    <tr><td>Operaciones</td><td>Métrica de operaciones: pedidos por estado, facturación por cliente (top 10), eficiencia de rutas.</td></tr>
-    <tr><td>Logística</td><td>Distribución geográfica de tubos, distancias recorridas, tubos por ruta.</td></tr>
-    <tr><td>Clientes</td><td>Clientes con mayor facturación, tubos por cliente, antigüedad de tenencia.</td></tr>
-    <tr><td>Calidad</td><td>Pruebas hidrostáticas próximas a vencer, tasa de mantenimientos, defectos recurrentes.</td></tr>
-    <tr><td>RFID</td><td>Eventos registrados por la cabina IoT, precisión de lecturas, velocidad de proceso.</td></tr>
-    <tr><td>Tendencias</td><td>Evolución histórica de ventas, altas de tubos, rotación de inventario.</td></tr>
-    <tr><td>Financiero</td><td>Análisis financiero detallado: rentabilidad por gas, márgenes, estacionalidad.</td></tr>
+    <tr><td>Panel General</td><td>Visión general: total de tubos, clientes activos, pedidos del mes, facturación mensual, distribución por estado y por gas.</td></tr>
+    <tr><td>Tendencias</td><td>Evolución histórica: movimientos de stock, facturación, pedidos y costos de mantenimiento por mes.</td></tr>
+    <tr><td>Clientes</td><td>Top 10 por facturación, estado de cuenta, tubos por cliente.</td></tr>
+    <tr><td>Financiero</td><td>Análisis financiero detallado: ingresos por mes, por tipo, estado de facturas, aging.</td></tr>
+    <tr><td>Operaciones</td><td>Estado por gas, costos de mantenimiento, calendario de retest PH.</td></tr>
+    <tr><td>Logística</td><td>Rutas por mes, rendimiento de combustible, kilómetros recorridos.</td></tr>
+    <tr><td>Calidad</td><td>Validaciones por día, diagnósticos de cabina, alertas por tipo, peso real vs esperado.</td></tr>
+    <tr><td>RFID</td><td>Eventos por zona de lectura, stock por gas, tags activos, lectores operativos.</td></tr>
   </table>
+
+  <p>Cada panel permite exportar a CSV y también imprimir en formato PDF.</p>
+  <div class="tip"><strong>&#x1F4A1; Tip:</strong> Use el selector de período (3, 6, 12, 24 meses) para ajustar el rango de los gráficos de tendencias y financiero.</div>
 </div>
 </section>
 
-<!-- 24. PORTAL DE CLIENTES -->
+<!-- 24. TABLERO GERENCIAL -->
+<section id="tablero">
+<div class="card">
+  <h2>24. Tablero Gerencial <span class="tag">KPIs Ejecutivos</span></h2>
+  <p>Panel ejecutivo con los 7 indicadores clave de rendimiento (KPIs) del negocio, diseñado para la toma de decisiones gerenciales.</p>
+
+  <h3>KPIs principales</h3>
+  <div class="tab-grid">
+    <div class="item">&#x1F504; Rotación (30 días)</div>
+    <div class="item">&#x1F4CA; % Utilización de tubos</div>
+    <div class="item">&#x1F4C5; PH por vencer (30/60/90d)</div>
+    <div class="item">&#x1F4B5; Costo por tubo entregado</div>
+    <div class="item">&#x26A0; Stock crítico por gas</div>
+    <div class="item">&#x1F525; Clientes alto riesgo</div>
+    <div class="item">&#x1F5D1; Pérdidas totales</div>
+    <div class="item">&#x1F4CA; Cilindros totales</div>
+  </div>
+
+  <h3>Descripción de cada KPI</h3>
+  <table>
+    <tr><th>KPI</th><th>Cálculo</th><th>Para qué sirve</th></tr>
+    <tr><td>Rotación (30d)</td><td>Entregas en 30 días / Stock promedio</td><td>Mide la eficiencia del inventario. Valores altos indican buena rotación.</td></tr>
+    <tr><td>% Utilización</td><td>Tubos activos / Total de tubos</td><td>Qué porcentaje de la flota está siendo productivo (no incluye vacíos, mantenimiento ni pérdidas).</td></tr>
+    <tr><td>PH por vencer</td><td>Cilindros con retest próximo en 30/60/90 días</td><td>Planificar mantenimiento de prueba hidrostática antes del vencimiento.</td></tr>
+    <tr><td>Costo por tubo</td><td>$ costos de rutas / Tubos entregados</td><td>Rentabilidad operativa de la distribución.</td></tr>
+    <tr><td>Stock crítico</td><td>Gases con menos de 3 cilindros llenos</td><td>Alerta de desabastecimiento comercial.</td></tr>
+    <tr><td>Clientes alto riesgo</td><td>Clientes con tubos retenidos >90 días promedio</td><td>Riesgo de pérdida de cilindros por retención prolongada.</td></tr>
+    <tr><td>Pérdidas</td><td>EXTRAVIADO + BAJA / Total</td><td>Riesgo patrimonial sobre los activos.</td></tr>
+  </table>
+
+  <h3>Sub-pestañas de detalle</h3>
+  <ul>
+    <li><strong>Panorama:</strong> composición por estado (gráfico de torta y barras), desglose por categoría (Activos / Inactivos / Pérdidas).</li>
+    <li><strong>Stock Crítico:</strong> barras de stock lleno por gas con alerta visual para los críticos (&lt;3 cilindros).</li>
+    <li><strong>Retención:</strong> ranking de clientes con mayor tiempo de retención de tubos, con badges de riesgo (ALTO / MEDIO / BAJO).</li>
+    <li><strong>PH / Retest:</strong> cards de vencimientos (30/60/90 días), lista de los 20 cilindros más próximos a vencer con cuenta regresiva.</li>
+    <li><strong>Pérdidas:</strong> cards grandes con extraviados, bajas y porcentaje del total.</li>
+    <li><strong>Costos:</strong> costo por tubo, costos totales de rutas, cantidad de entregados.</li>
+  </ul>
+
+  <p>Puede exportar los datos a CSV o imprimir el tablero completo. Presione <strong>"Actualizar"</strong> para refrescar los indicadores en cualquier momento.</p>
+</div>
+</section>
+
+<!-- 25. PORTAL DE CLIENTES -->
 <section id="cliente-portal">
 <div class="card">
-  <h2>24. Portal de Clientes <span class="tag">Autogestión</span></h2>
+  <h2>25. Portal de Clientes <span class="tag">Autogestión</span></h2>
   <p>El Portal de Clientes permite a los clientes registrados realizar pedidos y consultar sus tubos de forma autónoma.</p>
 
   <h3>Acceso</h3>
   <p>El cliente debe seleccionar la pestaña <strong>"Clientes"</strong> en la pantalla de inicio de sesión e ingresar con su Razón Social y contraseña (gestionadas por el administrador en Clientes > columna Acceso).</p>
 
   <h3>¿Cómo hacer un pedido?</h3>
-  <div class="icon-row"><span class="step">1</span> Seleccione el <strong>gas</strong> deseado (Oxígeno, Argón, CO₂, etc.).</div>
+  <div class="icon-row"><span class="step">1</span> Seleccione el <strong>gas</strong> deseado.</div>
   <div class="icon-row"><span class="step">2</span> El sistema muestra las <strong>capacidades disponibles</strong> en stock para ese gas.</div>
   <div class="icon-row"><span class="step">3</span> Seleccione la <strong>operación</strong> (Con envase, Sin envase, Canje, etc.).</div>
   <div class="icon-row"><span class="step">4</span> Indique la <strong>cantidad</strong> usando los botones + y -.</div>
-  <div class="icon-row"><span class="step">5</span> El sistema <strong>verifica el stock</strong> automáticamente. Si hay suficiente stock, el pedido se marca como "Confirmado". Si falta stock, se marca como "A confirmar".</div>
-  <div class="icon-row"><span class="step">6</span> Revise el <strong>total</strong> y presione <strong>"Enviar Pedido"</strong>.</div>
+  <div class="icon-row"><span class="step">5</span> Revise el <strong>total</strong> y presione <strong>"Enviar Pedido"</strong>.</div>
 
   <h3>Verificar stock</h3>
-  <p>Al seleccionar un gas, el sistema verifica automáticamente cuántos tubos llenos de ese gas y capacidad existen en el depósito. El indicador muestra:</p>
-  <ul>
-    <li>&#x2705; <strong>Stock suficiente</strong> (verde) — hay suficientes tubos llenos disponibles.</li>
-    <li>&#x274C; <strong>Stock insuficiente</strong> (rojo) — no hay suficientes tubos. El pedido se marca "A confirmar" y el administrador decidirá cómo proceder.</li>
-    <li>&#x1F504; <strong>Verificando...</strong> — mientras consulta el stock.</li>
-  </ul>
+  <p>Al seleccionar un gas, el sistema verifica automáticamente cuántos tubos llenos de ese gas y capacidad existen en el depósito: stock suficiente (verde) o insuficiente (rojo).</p>
 
   <h3>Consultar tubos en posesión</h3>
   <p>En la sección <strong>"Tus tubos en posesión"</strong> el cliente puede ver todos los tubos que tiene actualmente asignados, con su número de serie, tipo de gas y estado.</p>
 
   <h3>Historial de pedidos</h3>
-  <p>Más abajo se listan todos los pedidos realizados por el cliente, con su estado actual. Cada pedido tiene:</p>
-  <ul>
-    <li>Fecha, operación y total.</li>
-    <li>Indicador de verificación de stock.</li>
-    <li>Un icono de <strong>ojo &#x1F441;</strong> para ver el detalle desglosado del pedido.</li>
-  </ul>
+  <p>Más abajo se listan todos los pedidos realizados por el cliente, con su fecha, operación, total y estado actual.</p>
 </div>
 </section>
 
-<!-- 25. FAQ -->
+<!-- 26. FAQ -->
 <section id="faq">
 <div class="card">
-  <h2>25. Preguntas Frecuentes</h2>
+  <h2>26. Preguntas Frecuentes</h2>
 
   <h3>&#x2753; ¿Olvidé mi contraseña de cliente, cómo la recupero?</h3>
-  <p>Las contraseñas de clientes las gestiona el administrador del sistema. Comuníquese con la empresa para que le generen una nueva contraseña desde la sección Clientes > columna Acceso > Editar.</p>
+  <p>Las contraseñas de clientes las gestiona el administrador del sistema. Comuníquese con la empresa para que le generen una nueva.</p>
 
   <h3>&#x2753; ¿Puedo modificar un pedido después de enviarlo?</h3>
   <p>No directamente. Debe contactar al administrador para que modifique o cancele el pedido desde el módulo interno de Pedidos.</p>
@@ -817,16 +930,16 @@
   <p>Porque el stock disponible en depósito no alcanza para cubrir la cantidad solicitada. El administrador evaluará la disponibilidad y confirmará o ajustará el pedido.</p>
 
   <h3>&#x2753; ¿Qué significan los estados de los tubos?</h3>
-  <p>Ver sección <a href="#inventario">5.3 Estados del tubo</a> de este manual.</p>
+  <p>Ver sección <a href="#inventario">5.3 Estados del tubo</a> de este manual. El sistema maneja 13 estados estandarizados que cubren todo el ciclo de vida del cilindro.</p>
 
   <h3>&#x2753; ¿Cómo sé cuándo vence la prueba hidrostática de un tubo?</h3>
-  <p>En el Inventario, la columna "Pr. Hidrostática" muestra la fecha. Si está vencida o próxima a vencer, aparecerá una alerta (icono de advertencia). También puede consultar el Laboratorio > Prueba Hidrostática para ver todos los tubos con fechas próximas.</p>
+  <p>En el Inventario, la columna "Pr. Hidrostática" muestra la fecha. Si está vencida o próxima a vencer, aparecerá una alerta. También puede consultar el Tablero Gerencial > PH/Retest para ver todos los tubos con fechas próximas.</p>
 
   <h3>&#x2753; ¿Los datos se pierden si se reinicia el servidor?</h3>
-  <p>Depende de la configuración del servidor. Si la base de datos es SQLite (archivo local) y el servidor se redeploya sin persistencia, los datos creados en tiempo de ejecución pueden perderse. Se recomienda usar PostgreSQL para entornos productivos.</p>
+  <p>No. El sistema usa <strong>PostgreSQL</strong> como base de datos, que es persistente. Los datos no se pierden al redeployar ni al reiniciar el servidor.</p>
 
   <h3>&#x2753; ¿Cómo exporto datos a Excel?</h3>
-  <p>En la sección Reportes puede imprimir o exportar listados. En Finanzas > Exportar puede descargar CSV y PDF con los datos financieros.</p>
+  <p>En Reportes puede imprimir o exportar listados. En Finanzas puede descargar CSV y PDF. En Tablero Gerencial también puede exportar a CSV. Cada sub-panel de Análisis tiene su propio botón de exportación.</p>
 
   <h3>&#x2753; ¿Qué hago si la aplicación no carga correctamente?</h3>
   <p>1. Verifique su conexión a internet.<br>
@@ -835,10 +948,16 @@
   4. Si el problema persiste, contacte al soporte técnico.</p>
 
   <h3>&#x2753; ¿Cómo agrego un nuevo tipo de operación de pedido?</h3>
-  <p>Vaya a Tablas > Operaciones Pedido y presione "Nuevo". Complete el nombre (ej: "Alquiler Mensual") y guárdelo como activo. Aparecerá automáticamente en los formularios de pedido.</p>
+  <p>Vaya a Tablas > Operaciones Pedido y presione "Nuevo". Complete el nombre y guárdelo como activo. Aparecerá automáticamente en los formularios de pedido.</p>
 
   <h3>&#x2753; ¿Puedo usar el sistema desde el celular?</h3>
-  <p>Sí, la aplicación es responsive y se adapta a pantallas de dispositivos móviles. También cuenta con soporte PWA (puede instalarla como una app en su dispositivo).</p>
+  <p>Sí, la aplicación es responsive y se adapta a pantallas de dispositivos móviles. También cuenta con soporte PWA (puede instalarla como una app en su dispositivo desde el botón "Instalar" en el encabezado).</p>
+
+  <h3>&#x2753; ¿El sistema registra quién hace cada operación?</h3>
+  <p>Sí. Todas las operaciones críticas (login, creación/edición/eliminación de registros) quedan registradas en el <strong>AuditLog</strong> del sistema con usuario, fecha, dirección IP y detalle del cambio.</p>
+
+  <h3>&#x2753; ¿Qué son las geocercas?</h3>
+  <p>Las geocercas son zonas geográficas virtuales (círculos o polígonos) que se visualizan en el mapa. Se usan para delimitar áreas como el depósito central, zonas de clientes o áreas restringidas. Permiten alertar cuando un vehículo con GPS entra o sale de esas zonas.</p>
 </div>
 </section>
 
@@ -848,7 +967,7 @@
   <div>Control Digital &mdash; Sistema de Gestión de Tubos de Gas - ManejaDatos</div>
   <div>&middot; Ferretería Industrial &middot; Gases para Soldadura</div>
   <div style="margin-top:4px">San Nicolás de los Arroyos, Buenos Aires, Argentina</div>
-  <div style="margin-top:12px; font-size:.75rem">&copy; 2026 &mdash; Manual de Usuario v1.0</div>
+  <div style="margin-top:12px; font-size:.75rem">&copy; 2026 &mdash; Manual de Usuario v2.0</div>
 </footer>
 
 </body>
