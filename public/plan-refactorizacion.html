@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Refactorización — GasTrack AR</title>
+<style>
+  :root { --primary: #ea580c; --bg: #f8fafc; --card: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0 }
+  * { margin:0; padding:0; box-sizing:border-box }
+  body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6 }
+  .container { max-width: 960px; margin:0 auto; padding:0 20px }
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 48px 0 32px; text-align:center }
+  .hero h1 { font-size:1.8rem; font-weight:800 }
+  .hero p { font-size:.95rem; opacity:.8; margin-top:4px }
+  .card { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:24px 28px; margin:24px 0 }
+  .card h2 { font-size:1.2rem; color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:8px; margin-bottom:14px }
+  .card h3 { font-size:1rem; color:#334155; margin:16px 0 6px }
+  .card h4 { font-size:.9rem; color:var(--primary); margin:12px 0 4px }
+  .card p, .card li { color:#475569; margin-bottom:4px }
+  .card ul, .card ol { padding-left:20px; margin:6px 0 }
+  .tag { display:inline-block; background:#fef2f2; color:var(--primary); font-size:.7rem; font-weight:600; padding:2px 7px; border-radius:4px }
+  .badge-sprint { display:inline-block; background:#1e293b; color:#fff; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:4px }
+  .badge-hito { display:inline-block; background:#059669; color:#fff; font-size:.65rem; font-weight:600; padding:2px 8px; border-radius:4px; text-transform:uppercase }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:.85rem }
+  th, td { border:1px solid var(--border); padding:6px 10px; text-align:left }
+  th { background:#f8fafc; font-weight:600; color:var(--muted); font-size:.75rem; text-transform:uppercase }
+  tr:nth-child(even) { background:#fafafa }
+  .tip { background:#f0f9ff; border-left:4px solid #0ea5e9; padding:10px 14px; border-radius:0 8px 8px 0; margin:10px 0; font-size:.85rem }
+  .warning { background:#fefce8; border-left:4px solid #eab308; padding:10px 14px; border-radius:0 8px 8px 0; margin:10px 0; font-size:.85rem }
+  hr { border:none; border-top:1px solid var(--border); margin:18px 0 }
+  .file { font-family:monospace; font-size:.8rem; background:#f1f5f9; padding:1px 5px; border-radius:3px }
+  @media (max-width:640px) { .hero h1 { font-size:1.3rem } .card { padding:16px 14px } }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="container">
+    <h1>📋 Plan de Refactorización</h1>
+    <p>GasTrack AR — De MVP a plataforma productiva</p>
+  </div>
+</div>
+<div class="container">
+
+<div class="card">
+  <h2>1. Diagnóstico ejecutivo</h2>
+  <p>El proyecto tiene una base sólida: 22 tabs funcionales, ~50 APIs, 24 modelos Prisma, login dual, inventario, rutas, depósito RFID, cabina IoT, finanzas y analítica. Pero tiene <strong>6 riesgos</strong> que impiden considerarlo productivo:</p>
+  <table>
+    <tr><th>#</th><th>Riesgo</th><th>Impacto</th><th>Fuente</th></tr>
+    <tr><td>R1</td><td>SQLite no escala a multiusuario</td><td>Alto</td><td>refactorizacion.docx</td></tr>
+    <tr><td>R2</td><td><code>prisma db push --accept-data-loss</code> en producción</td><td>Crítico</td><td>start.js + package.json</td></tr>
+    <tr><td>R3</td><td>Sin roles, permisos ni auditoría</td><td>Alto</td><td>refactorizacion.docx</td></tr>
+    <tr><td>R4</td><td>RFID sin motor de eventos operativo</td><td>Alto</td><td>refactorizacion.docx</td></tr>
+    <tr><td>R5</td><td>Cabina inteligente sin motor de decisión</td><td>Medio</td><td>refactorizacion.docx</td></tr>
+    <tr><td>R6</td><td>Rutas con OSRM público (sin SLA)</td><td>Medio</td><td>refactorizacion.docx</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>2. Estrategia</h2>
+  <p><strong>6 sprints</strong> para convertir el sistema en plataforma productiva. Cada sprint produce valor por sí mismo y no depende del siguiente.</p>
+  <ol>
+    <li><strong>Base productiva</strong> — seguridad, auditoría, roles, validación, scripts seguros</li>
+    <li><strong>Migración PostgreSQL</strong> — escalabilidad horizontal</li>
+    <li><strong>Motor RFID</strong> — eventos, sesiones, deduplicación, stock</li>
+    <li><strong>Cabina inteligente</strong> — motor de decisión RFID+peso+foto+PH</li>
+    <li><strong>Rutas y logística</strong> — capacidad vehículos, costos, GPS</li>
+    <li><strong>Tablero gerencial</strong> — KPI, alertas priorizadas, reportes</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>3. Sprint 1 — Base productiva</h2>
+  <span class="badge-sprint">SPRINT 1</span> <span class="badge-hito">en curso</span>
+
+  <h3>1.1 Auditoría global</h3>
+  <p>Modelo <span class="file">AuditLog</span> + helper para registrar toda operación crítica (login, creación/edición/eliminación de cilindros, clientes, pedidos, facturas).</p>
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>+ modelo AuditLog</td></tr>
+    <tr><td class="file">src/lib/audit.ts</td><td>Crear helper logAudit()</td></tr>
+  </table>
+
+  <h3>1.2 Roles y permisos</h3>
+  <p>Modelo <span class="file">Rol</span> + relación con Usuario existente. Middleware que protege rutas según rol.</p>
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>+ modelo Rol, + campo rolId en Usuario</td></tr>
+    <tr><td class="file">src/lib/auth-middleware.ts</td><td>Middleware requireRole()</td></tr>
+    <tr><td class="file">src/app/api/auth/login/route.ts</td><td>Devolver rol en respuesta</td></tr>
+  </table>
+  <p>Roles iniciales: <span class="tag">admin</span> <span class="tag">deposito</span> <span class="tag">reparto</span> <span class="tag">facturacion</span> <span class="tag">cliente</span> <span class="tag">auditor</span></p>
+
+  <h3>1.3 Validación con Zod</h3>
+  <p>Validar payloads de entrada en APIs críticas: cilindros, clientes, pedidos, facturas, usuarios.</p>
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">src/lib/validations.ts</td><td>Schemas Zod para cada entidad</td></tr>
+    <tr><td class="file">src/app/api/cylinders/route.ts</td><td>+ validación Zod</td></tr>
+    <tr><td class="file">src/app/api/clientes/route.ts</td><td>+ validación Zod</td></tr>
+    <tr><td class="file">src/app/api/pedidos/route.ts</td><td>+ validación Zod</td></tr>
+    <tr><td class="file">src/app/api/facturas/route.ts</td><td>+ validación Zod</td></tr>
+    <tr><td class="file">src/app/api/usuarios/route.ts</td><td>+ validación Zod</td></tr>
+  </table>
+
+  <h3>1.4 Scripts separados dev/prod</h3>
+  <p>Eliminar <span class="file">--accept-data-loss</span> del arranque de producción. Usar migraciones controladas en producción.</p>
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">package.json</td><td>+ script <code>start:prod</code> sin db push</td></tr>
+    <tr><td class="file">start.js</td><td>Quitar <code>--accept-data-loss</code></td></tr>
+    <tr><td class="file">Procfile</td><td>Apuntar a <code>npm run start:prod</code></td></tr>
+  </table>
+
+  <h3>1.5 Política de contraseñas</h3>
+  <p>Validar longitud mínima, complejidad en registro y cambio de contraseña.</p>
+
+  <h3>1.6 Estados de cilindro estandarizados</h3>
+  <p>Agregar nuevos estados: <span class="tag">EN_CLIENTE</span> <span class="tag">EN_REPARTO</span> <span class="tag">EN_CARGA</span> <span class="tag">EN_DEPOSITO</span> <span class="tag">RETENIDO</span> <span class="tag">PH_VENCIDO</span> <span class="tag">BAJA</span> <span class="tag">EXTRAVIADO</span></p>
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">src/lib/tab-constants.tsx</td><td>Agregar nuevos estados a ESTADO_LABELS y ESTADO_COLORS</td></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>Actualizar comentario de estados en Cylinder.estado</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>4. Sprint 2 — Migración a PostgreSQL</h2>
+  <span class="badge-sprint">SPRINT 2</span> <span class="tag">pendiente</span>
+
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>Cambiar provider a postgresql</td></tr>
+    <tr><td class="file">.env</td><td>Actualizar DATABASE_URL</td></tr>
+    <tr><td class="file">prisma/migrations/</td><td>Crear migración inicial</td></tr>
+  </table>
+
+  <div class="tip"><strong>✅ Render:</strong> PostgreSQL está disponible como servicio administrado. <strong>❌ PythonAnywhere:</strong> No soporta PostgreSQL. Si se requiere PythonAnywhere, mantener SQLite para ese entorno.</div>
+</div>
+
+<div class="card">
+  <h2>5. Sprint 3 — Motor RFID</h2>
+  <span class="badge-sprint">SPRINT 3</span> <span class="tag">pendiente</span>
+
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>+ modelo SesionLecturaRFID</td></tr>
+    <tr><td class="file">src/app/api/rfid/eventos/route.ts</td><td>POST /api/rfid/eventos</td></tr>
+    <tr><td class="file">src/lib/rfid.ts</td><td>Deduplicación por TID + ventana</td></tr>
+    <tr><td class="file">src/lib/rfid-rules.ts</td><td>Reglas de transición por zona</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6. Sprint 4 — Cabina inteligente</h2>
+  <span class="badge-sprint">SPRINT 4</span> <span class="tag">pendiente</span>
+
+  <table>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">src/app/api/cabina/validar/route.ts</td><td>POST /api/cabina/validar</td></tr>
+    <tr><td class="file">src/lib/cabina-engine.ts</td><td>Motor de decisión RFID+peso+foto+PH</td></tr>
+    <tr><td class="file">src/components/cabina-operator.tsx</td><td>Pantalla de cabina modo operador</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>7. Sprint 5 — Rutas y logística</h2>
+  <span class="badge-sprint">SPRINT 5</span> <span class="tag">pendiente</span>
+
+  <table>
+    <tr><th>Tarea</th><th>Impacto</th></tr>
+    <tr><td>Vincular pedido → remito → ruta → cilindros</td><td>Trazabilidad completa</td></tr>
+    <tr><td>Validar capacidad máxima del vehículo en carga</td><td>Seguridad operativa</td></tr>
+    <tr><td>Costo por km en rutas</td><td>Rentabilidad</td></tr>
+    <tr><td>GPS + geocercas (Leaflet)</td><td>Control en tiempo real</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>8. Sprint 6 — Tablero gerencial</h2>
+  <span class="badge-sprint">SPRINT 6</span> <span class="tag">pendiente</span>
+
+  <table>
+    <tr><th>KPI</th><th>Para qué sirve</th></tr>
+    <tr><td>Rotación de tubos</td><td>Capital inmovilizado</td></tr>
+    <tr><td>Stock crítico por gas</td><td>Disponibilidad comercial</td></tr>
+    <tr><td>Clientes con mayor retención</td><td>Riesgo comercial</td></tr>
+    <tr><td>Vencimientos PH próximos</td><td>Plan de mantenimiento</td></tr>
+    <tr><td>Pérdidas / no localizados</td><td>Riesgo patrimonial</td></tr>
+    <tr><td>% utilización de tubos</td><td>Rentabilidad de activos</td></tr>
+    <tr><td>Costo por tubo entregado</td><td>Rentabilidad operativa</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>9. Resumen de archivos</h2>
+  <table>
+    <tr><th>Tipo</th><th>Cantidad</th></tr>
+    <tr><td>CREAR</td><td>~12 archivos (modelos, endpoints, helpers, componentes)</td></tr>
+    <tr><td>MODIFICAR</td><td>~18 archivos (schema, APIs, componentes, scripts)</td></tr>
+    <tr><td>Total</td><td>~30 archivos en 6 sprints</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>10. Punto de control</h2>
+  <p>Tag <strong><code>hasta-aqui-funciona</code></strong> creado en Git antes de arrancar Sprint 1. Para volver:</p>
+  <pre style="background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-size:.85rem;margin:8px 0">git checkout hasta-aqui-funciona</pre>
+  <p><em>Documento generado el 26 de junio de 2026.</em></p>
+</div>
+
+</div>
+</body>
+</html>

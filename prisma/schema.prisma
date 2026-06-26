@@ -88,7 +88,8 @@ model Cylinder {
   observaciones       String?  // Corrosión, abolladuras, daños por calor
 
   // ============ ESTADO OPERATIVO ============
-  estado              String   @default("LLENO") // LLENO, EN_USO, VACIO, MANTENIMIENTO, TRANSITO
+  // LLENO, VACIO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, BAJA, EXTRAVIADO
+  estado              String   @default("LLENO")
   ubicacionLat        Float
   ubicacionLng        Float
   ubicacionNombre     String
@@ -378,6 +379,14 @@ model ClienteAcceso {
   updatedAt  DateTime @updatedAt
 }
 
+model Rol {
+  id          String    @id @default(cuid())
+  nombre      String    @unique // admin, deposito, reparto, facturacion, auditor
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  usuarios    Usuario[]
+}
+
 model Usuario {
   id          String   @id @default(cuid())
   nombre      String
@@ -392,6 +401,8 @@ model Usuario {
   usuario     String   @unique
   password    String
   activo      Boolean  @default(true)
+  rolId       String?
+  rol         Rol?     @relation(fields: [rolId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -733,4 +744,15 @@ model Alerta {
   resuelta    Boolean  @default(false)
   fecha       DateTime @default(now())
   createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  accion    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  entidad   String   // Cylinder, Cliente, Pedido, Factura, Usuario, etc.
+  entidadId String?  // ID del registro afectado
+  usuario   String?  // usuario que ejecutó la acción
+  detalle   String?  // JSON con datos relevantes del cambio
+  direccionIp String?
+  createdAt DateTime @default(now())
 }

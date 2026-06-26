@@ -26,9 +26,9 @@ console.log(`[start] Database: ${dbPath}`)
 console.log(`[start] Server: ${serverPath}`)
 console.log(`[start] Port: ${process.env.PORT || 3000}`)
 
-// Sync database schema (creates missing tables)
+// Sync database schema (dev mode only — safe push without accept-data-loss)
 try {
-  execSync(`npx prisma db push --skip-generate --accept-data-loss 2>&1`, {
+  execSync(`npx prisma db push --skip-generate 2>&1`, {
     cwd: root,
     env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
     stdio: 'inherit',

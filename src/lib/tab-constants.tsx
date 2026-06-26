@@ -19,18 +19,34 @@ export function SgaBadge({ peligro }: { peligro: string }) {
 
 export const ESTADO_COLORS: Record<string, string> = {
   LLENO: 'bg-emerald-500',
-  EN_USO: 'bg-amber-500',
   VACIO: 'bg-slate-400',
+  EN_USO: 'bg-amber-500',
+  EN_CLIENTE: 'bg-orange-500',
+  EN_REPARTO: 'bg-blue-500',
+  EN_CARGA: 'bg-violet-500',
+  EN_DEPOSITO: 'bg-teal-500',
   MANTENIMIENTO: 'bg-red-500',
-  TRANSITO: 'bg-blue-500',
+  TRANSITO: 'bg-sky-500',
+  RETENIDO: 'bg-rose-500',
+  PH_VENCIDO: 'bg-rose-700',
+  BAJA: 'bg-gray-600',
+  EXTRAVIADO: 'bg-pink-700',
 }
 
 export const ESTADO_LABELS: Record<string, string> = {
   LLENO: 'Lleno',
-  EN_USO: 'En uso',
   VACIO: 'Vacío',
+  EN_USO: 'En uso',
+  EN_CLIENTE: 'En cliente',
+  EN_REPARTO: 'En reparto',
+  EN_CARGA: 'En carga',
+  EN_DEPOSITO: 'En depósito',
   MANTENIMIENTO: 'Mantenimiento',
   TRANSITO: 'En tránsito',
+  RETENIDO: 'Retenido',
+  PH_VENCIDO: 'PH vencido',
+  BAJA: 'Baja',
+  EXTRAVIADO: 'Extraviado',
 }
 
 export function formatDate(s: string | null) {
