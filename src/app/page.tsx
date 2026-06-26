@@ -46,6 +46,10 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/toaster'
+import HeaderClock from '@/components/header-clock'
+import HeaderWeather from '@/components/header-weather'
+import HeaderHelp from '@/components/header-help'
+import HeaderInstall from '@/components/header-install'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -132,7 +136,11 @@ export default function Home() {
                 <p className="text-xs text-slate-500">Portal de Clientes</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <HeaderClock />
+              <HeaderWeather />
+              <HeaderHelp />
+              <HeaderInstall />
               <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
                 {user.nombre}
               </Badge>
@@ -322,7 +330,11 @@ function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <HeaderClock />
+          <HeaderWeather />
+          <HeaderHelp />
+          <HeaderInstall />
           <Badge variant="outline" className="hidden md:flex border-orange-300 text-orange-700 bg-orange-50">
             <MapPin className="w-3 h-3 mr-1" />
             Base: San Nicolás de los Arroyos

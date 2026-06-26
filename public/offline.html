@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sin Conexión — Control Digital</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    text-align: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 48px 32px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.05);
+  }
+  .icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: #fef2f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon svg { width: 40px; height: 40px; stroke: #ea580c; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round }
+  h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px }
+  p { color: #64748b; font-size: .92rem; line-height: 1.5; margin-bottom: 24px }
+  button {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    color: #fff;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: .92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  button:hover { opacity: .9 }
+  button:active { opacity: .8 }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg viewBox="0 0 24 24">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </div>
+  <h1>Sin conexión a internet</h1>
+  <p>No se puede acceder a la aplicación en este momento.<br>Verificá tu conexión de red e intentá de nuevo.</p>
+  <button onclick="window.location.reload()">Reintentar</button>
+</div>
+</body>
+</html>
