@@ -348,6 +348,15 @@ model PedidoItem {
   monto     Float
 }
 
+model TipoOperacionPedido {
+  id        String   @id @default(cuid())
+  nombre    String   @unique // "Con envase", "Sin envase", etc.
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PedidoCilindro {
   id          String   @id @default(cuid())
   pedidoId    String

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const capacidad = searchParams.get('capacidad')
     const ubicacion = searchParams.get('ubicacion') || undefined
     const cliente = searchParams.get('cliente') || undefined
+    const clienteId = searchParams.get('clienteId') || undefined
     const propietario = searchParams.get('propietario') || undefined
 
     const where: Record<string, unknown> = {}
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     if (capacidad) where.capacidadLitros = parseInt(capacidad, 10)
     if (ubicacion) where.ubicacionNombre = { contains: ubicacion }
     if (cliente) where.cliente = { contains: cliente }
+    if (clienteId) where.clienteId = clienteId
     if (propietario) where.propietario = { contains: propietario }
 
     const cylinders = await db.cylinder.findMany({

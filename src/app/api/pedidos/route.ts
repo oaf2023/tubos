@@ -38,21 +38,12 @@ export async function POST(request: NextRequest) {
       const precioUnit = PRECIOS_GAS[gas.codigo] || 15000
       const cant = r.cantidad || 1
 
-      items.push({ concepto: `${gas.nombre} — Carga × ${cant}`, monto: precioUnit * cant })
+      items.push({ concepto: `${gas.nombre} × ${cant}`, monto: precioUnit * cant })
       total += precioUnit * cant
-
-      if (r.operacionEnvase === 'VENTA_NUEVO') {
-        items.push({ concepto: `${gas.nombre} — Cilindro nuevo × ${cant}`, monto: 45000 * cant })
-        total += 45000 * cant
-      }
-
-      if (r.operacionEnvase === 'CANJE' && r.phVigente === false) {
-        items.push({ concepto: `${gas.nombre} — Re-ensayo/PH × ${cant}`, monto: 8500 * cant })
-        total += 8500 * cant
-      }
     }
 
     const primerGasId = body.renglones[0]?.gasId
+    const opEnvase = body.operacionEnvase || body.renglones[0]?.operacionEnvase || 'Sin envase'
 
     const pedido = await db.pedido.create({
       data: {
@@ -61,7 +52,7 @@ export async function POST(request: NextRequest) {
         clienteId: body.clienteId || null,
         estadoCuenta: body.estadoCuenta || 'OK',
         gasId: primerGasId,
-        operacionEnvase: body.renglones[0]?.operacionEnvase || 'CANJE',
+        operacionEnvase: opEnvase,
         phVigente: null,
         phObservacion: null,
         total,

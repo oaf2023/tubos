@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ShoppingCart, Plus, RefreshCw, Package, Building2, FileText } from 'lucide-react'
+import { ShoppingCart, Plus, RefreshCw, Package, Building2, FileText, Eye, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import type { Gas } from '@/lib/tab-types'
@@ -18,11 +19,19 @@ interface Pedido {
   id: string
   fecha: string
   cliente: string
-  gas: Gas
   operacionEnvase: string
   total: number
   estado: string
   createdAt: string
+  items: { id: string; concepto: string; monto: number }[]
+  cilindros: { id: string; numeroSerie: string; gasCodigo: string | null; verified: boolean }[]
+}
+
+interface ClienteCylinder {
+  id: string
+  numeroSerie: string
+  gas: { nombre: string; codigo: string; colorHex: string }
+  estado: string
 }
 
 const PRECIOS_GAS: Record<string, number> = {
@@ -34,60 +43,80 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
   const { toast } = useToast()
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [gases, setGases] = useState<Gas[]>([])
+  const [tiposOperacion, setTiposOperacion] = useState<any[]>([])
+  const [cilindrosCliente, setCilindrosCliente] = useState<ClienteCylinder[]>([])
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
   const [gasId, setGasId] = useState('')
-  const [operacion, setOperacion] = useState('CANJE')
+  const [operacionId, setOperacionId] = useState('')
   const [cantidad, setCantidad] = useState(1)
-  const [phFecha, setPhFecha] = useState(() => new Date().toISOString().split('T')[0])
+  const [stockOk, setStockOk] = useState<boolean | null>(null)
+  const [verificandoStock, setVerificandoStock] = useState(false)
+  const [viewPedido, setViewPedido] = useState<Pedido | null>(null)
 
   const gasSel = gases.find(g => g.id === gasId)
-
-  function phVencida(f: string): boolean | null {
-    if (!f) return null
-    const d = new Date(f); const hace5 = new Date(); hace5.setFullYear(hace5.getFullYear() - 5)
-    return d < hace5
-  }
+  const opSel = tiposOperacion.find(t => t.id === operacionId)
 
   const totalCalc = useMemo(() => {
     if (!gasSel) return 0
-    let t = (PRECIOS_GAS[gasSel.codigo] || 15000) * cantidad
-    if (operacion === 'VENTA_NUEVO') t += 45000 * cantidad
-    if (operacion === 'CANJE' && phVencida(phFecha) === true) t += 8500 * cantidad
-    return t
-  }, [gasSel, operacion, cantidad, phFecha])
+    return (PRECIOS_GAS[gasSel.codigo] || 15000) * cantidad
+  }, [gasSel, cantidad])
 
   const pUnit = gasSel ? (PRECIOS_GAS[gasSel.codigo] || 15000) : 0
 
+  async function verificarStock(gasId: string) {
+    setVerificandoStock(true)
+    setStockOk(null)
+    try {
+      const res = await fetch(`/api/cylinders?gasId=${gasId}&estado=LLENO`)
+      const data = await res.json()
+      const llenos = Array.isArray(data) ? data.length : 0
+      setStockOk(llenos >= cantidad)
+    } catch { setStockOk(null) }
+    finally { setVerificandoStock(false) }
+  }
+
+  useEffect(() => {
+    if (gasId && cantidad > 0) verificarStock(gasId)
+    else setStockOk(null)
+  }, [gasId, cantidad])
+
   const load = useCallback(async () => {
     try {
-      const [pRes, gRes] = await Promise.all([
+      const [pRes, gRes, tRes, cRes] = await Promise.all([
         fetch('/api/pedidos'),
         fetch('/api/gases'),
+        fetch('/api/tipos-operacion-pedido'),
+        fetch(`/api/cylinders?clienteId=${encodeURIComponent(clienteId)}`),
       ])
       const pData = await pRes.json()
       const gData = await gRes.json()
+      const tData = await tRes.json()
+      const cData = await cRes.json()
       setPedidos((Array.isArray(pData) ? pData as Pedido[] : []).filter(p => p.cliente === clienteNombre))
       setGases(Array.isArray(gData) ? gData : [])
+      setTiposOperacion(Array.isArray(tData) ? tData.filter((t: any) => t.activo) : [])
+      setCilindrosCliente(Array.isArray(cData) ? cData.map((cyl: any) => ({
+        id: cyl.id,
+        numeroSerie: cyl.numeroSerie,
+        gas: cyl.gas || { nombre: '-', codigo: '-', colorHex: '#ccc' },
+        estado: cyl.estado,
+      })) : [])
     } catch { /* ok */ }
     finally { setLoading(false) }
-  }, [clienteNombre])
+  }, [clienteNombre, clienteId])
 
   useEffect(() => { void load() }, [load])
 
   async function enviarPedido() {
-    if (!gasId) { toast({ title: 'Falta el gas', variant: 'destructive' }); return }
+    if (!gasId || !operacionId) { toast({ title: 'Completá gas y operación', variant: 'destructive' }); return }
     setCreando(true)
     try {
       const body = {
         cliente: clienteNombre,
         clienteId,
-        renglones: [{
-          gasId,
-          operacionEnvase: operacion,
-          cantidad,
-          phVigente: operacion === 'CANJE' ? !phVencida(phFecha) : null,
-        }],
+        operacionEnvase: opSel?.nombre || 'Sin envase',
+        renglones: [{ gasId, operacionEnvase: opSel?.nombre || 'Sin envase', cantidad }],
       }
       const res = await fetch('/api/pedidos', {
         method: 'POST',
@@ -95,9 +124,8 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
         body: JSON.stringify(body),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
-      toast({ title: 'Pedido enviado', description: `$${totalCalc.toLocaleString()}` })
-      setGasId(''); setCantidad(1); setOperacion('CANJE')
-      setPhFecha(new Date().toISOString().split('T')[0])
+      toast({ title: 'Pedido enviado', description: stockOk === false ? ' (pendiente de confirmación)' : '' })
+      setGasId(''); setOperacionId(''); setCantidad(1); setStockOk(null)
       load()
     } catch (e) {
       toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
@@ -132,7 +160,7 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-slate-500 font-medium">Gas *</Label>
-                <Select value={gasId} onValueChange={setGasId}>
+                <Select value={gasId} onValueChange={v => { setGasId(v); setStockOk(null) }}>
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Seleccionar gas..." />
                   </SelectTrigger>
@@ -149,16 +177,24 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
                     ))}
                   </SelectContent>
                 </Select>
+                {verificandoStock && <p className="text-xs text-slate-400 mt-1">Verificando stock...</p>}
+                {stockOk === true && !verificandoStock && gasId && (
+                  <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Stock disponible</p>
+                )}
+                {stockOk === false && !verificandoStock && gasId && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />A confirmar — stock insuficiente</p>
+                )}
               </div>
               <div>
-                <Label className="text-xs text-slate-500 font-medium">Operación</Label>
-                <Select value={operacion} onValueChange={setOperacion}>
+                <Label className="text-xs text-slate-500 font-medium">Operación *</Label>
+                <Select value={operacionId} onValueChange={setOperacionId}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue />
+                    <SelectValue placeholder="Seleccionar operación..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CANJE"><div className="flex items-center gap-2"><RefreshCw className="w-3.5 h-3.5 text-blue-500" /><span>Canje (mano a mano)</span></div></SelectItem>
-                    <SelectItem value="VENTA_NUEVO"><div className="flex items-center gap-2"><Package className="w-3.5 h-3.5 text-emerald-600" /><span>Venta de cilindro nuevo</span></div></SelectItem>
+                    {tiposOperacion.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -170,32 +206,20 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
                   <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setCantidad(cantidad + 1)}>+</Button>
                 </div>
               </div>
-              {operacion === 'CANJE' && (
-                <div>
-                  <Label className="text-xs text-slate-500 font-medium">Fecha de prueba hidrostática</Label>
-                  <Input type="date" value={phFecha} onChange={e => setPhFecha(e.target.value)} className="bg-white mt-1" />
-                  {phVencida(phFecha) === true && <p className="text-xs text-red-600 mt-1">PH vencida — se aplicará recargo de $8.500</p>}
-                </div>
-              )}
             </div>
           </div>
 
           {/* Resumen y botón */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-600">
-              {gasSel && (
-                <span>Subtotal: <strong className="font-mono">${pUnit.toLocaleString()}</strong> × {cantidad}</span>
-              )}
-              {gasSel && totalCalc > pUnit * cantidad && (
-                <span className="text-orange-600 ml-2">(incluye recargos)</span>
-              )}
+              {gasSel && <span>Subtotal: <strong className="font-mono">${pUnit.toLocaleString()}</strong> × {cantidad}</span>}
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <span className="text-xs text-slate-400 block">Total</span>
                 <span className="text-xl font-bold font-mono text-orange-600">${totalCalc.toLocaleString()}</span>
               </div>
-              <Button onClick={enviarPedido} disabled={!gasId || creando}
+              <Button onClick={enviarPedido} disabled={!gasId || !operacionId || creando}
                 className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90 px-6">
                 {creando ? 'Enviando...' : 'Enviar Pedido'}
               </Button>
@@ -204,7 +228,53 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
         </CardContent>
       </Card>
 
-      {/* Historial del cliente */}
+      {/* Tubos del cliente */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="w-4 h-4 text-sky-600" />
+            <h3 className="text-sm font-semibold">Tus tubos en posesión ({cilindrosCliente.length})</h3>
+          </div>
+          {cilindrosCliente.length === 0 ? (
+            <div className="text-center py-6 text-slate-400 text-sm">
+              <Package className="w-8 h-8 mx-auto mb-1 text-slate-300" />
+              No tenés tubos registrados
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>N° Serie</TableHead>
+                    <TableHead>Gas</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cilindrosCliente.map(cyl => (
+                    <TableRow key={cyl.id}>
+                      <TableCell className="font-mono text-xs font-semibold">{cyl.numeroSerie}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: cyl.gas.colorHex }} />
+                          <span className="text-sm">{cyl.gas.nombre}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] ${cyl.estado === 'LLENO' ? 'bg-emerald-100 text-emerald-700' : cyl.estado === 'EN_USO' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {cyl.estado}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Historial de pedidos */}
       <Card>
         <CardContent className="p-0">
           {pedidos.length === 0 ? (
@@ -217,29 +287,29 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Gas</TableHead>
-                    <TableHead>Envase</TableHead>
+                    <TableHead>Operación</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha</TableHead>
+                    <TableHead className="text-center">Detalle</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pedidos.map(p => (
                     <TableRow key={p.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.gas.colorHex }} />
-                          <span className="text-sm">{p.gas.nombre}</span>
-                          <SgaBadge peligro={p.gas.peligro} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{p.operacionEnvase === 'CANJE' ? 'Canje' : 'Venta nueva'}</TableCell>
+                      <TableCell className="text-sm">{p.operacionEnvase}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">${p.total.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge className={`text-xs ${p.estado === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : p.estado === 'CANCELADO' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{p.estado}</Badge>
+                        <Badge className={`text-xs ${p.estado === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : p.estado === 'CANCELADO' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {p.estado === 'PENDIENTE' && stockOk === false ? 'A CONFIRMAR' : p.estado}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-slate-500">{p.fecha ? formatDate(p.fecha) : '-'}</TableCell>
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewPedido(p)} title="Ver detalle">
+                          <Eye className="w-4 h-4 text-slate-500" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -248,6 +318,68 @@ export default function ClientePedidoTab({ clienteId, clienteNombre }: { cliente
           )}
         </CardContent>
       </Card>
+
+      {/* Modal: detalle del pedido */}
+      <Dialog open={!!viewPedido} onOpenChange={(o) => { if (!o) setViewPedido(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-orange-500" />
+              Pedido — {viewPedido?.cliente}
+            </DialogTitle>
+            <DialogDescription>Detalle completo del pedido</DialogDescription>
+          </DialogHeader>
+          {viewPedido && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-slate-500 text-xs">Operación</span><p className="font-semibold">{viewPedido.operacionEnvase}</p></div>
+                <div><span className="text-slate-500 text-xs">Estado</span>
+                  <p><Badge className={`text-xs ${viewPedido.estado === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : viewPedido.estado === 'CANCELADO' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{viewPedido.estado}</Badge></p>
+                </div>
+                <div><span className="text-slate-500 text-xs">Fecha</span><p className="font-semibold">{formatDate(viewPedido.fecha)}</p></div>
+                <div><span className="text-slate-500 text-xs">Total</span><p className="font-bold text-orange-600 font-mono">${viewPedido.total.toLocaleString()}</p></div>
+              </div>
+
+              {viewPedido.items && viewPedido.items.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-slate-800 text-white px-4 py-2 text-sm font-semibold">Items</div>
+                  <div className="divide-y">
+                    {viewPedido.items.map(i => (
+                      <div key={i.id} className="flex justify-between px-4 py-2 text-sm">
+                        <span>{i.concepto}</span>
+                        <span className="font-mono font-semibold">${i.monto.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="bg-orange-50 flex justify-between px-4 py-3 font-bold border-t-2 border-orange-200">
+                      <span>Total</span>
+                      <span className="text-orange-700 font-mono">${viewPedido.total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {viewPedido.cilindros && viewPedido.cilindros.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-slate-700 text-white px-4 py-2 text-sm font-semibold">Tubos asignados</div>
+                  <div className="divide-y">
+                    {viewPedido.cilindros.map(c => (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                        <span className="font-mono font-semibold">{c.numeroSerie}</span>
+                        <div className="flex items-center gap-2">
+                          {c.gasCodigo && <Badge variant="outline" className="text-[10px]">{c.gasCodigo}</Badge>}
+                          {c.verified
+                            ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Verif.</Badge>
+                            : <Badge variant="destructive" className="text-[10px]">No verif.</Badge>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

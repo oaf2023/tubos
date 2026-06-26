@@ -9,6 +9,7 @@ import {
   Pencil,
   Save,
   X,
+  ShoppingCart,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +49,7 @@ const TABLAS_DISPONIBLES = [
   { key: 'locations', label: 'Ubicaciones', icon: 'MapPin' },
   { key: 'usuarios', label: 'Usuarios', icon: 'Users' },
   { key: 'alertconfig', label: 'Alertas', icon: 'Bell' },
+  { key: 'operaciones-pedido', label: 'Operaciones Pedido', icon: 'ShoppingCart' },
 ] as const
 
 export default function TablasTab() {
@@ -77,25 +79,33 @@ export default function TablasTab() {
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [userForm, setUserForm] = useState(emptyUsuario)
 
+  // Operaciones Pedido
+  const [operacionesPedido, setOperacionesPedido] = useState<any[]>([])
+  const emptyOp = { nombre: '', activo: true, orden: '0' }
+  const [opForm, setOpForm] = useState(emptyOp)
+
   async function loadAll() {
     setLoading(true)
     try {
-      const [gRes, lRes, uRes, aRes] = await Promise.all([
+      const [gRes, lRes, uRes, aRes, oRes] = await Promise.all([
         fetch('/api/gases'),
         fetch('/api/locations'),
         fetch('/api/usuarios'),
         fetch('/api/config-alertas'),
+        fetch('/api/tipos-operacion-pedido'),
       ])
-      const [gData, lData, uData, aData] = await Promise.all([
+      const [gData, lData, uData, aData, oData] = await Promise.all([
         gRes.json().catch(() => []),
         lRes.json().catch(() => []),
         uRes.json().catch(() => []),
         aRes.json().catch(() => []),
+        oRes.json().catch(() => []),
       ])
       setGases(Array.isArray(gData) ? gData : [])
       setLocations(Array.isArray(lData) ? lData : [])
       setUsuarios(Array.isArray(uData) ? uData : [])
       setAlerts(Array.isArray(aData) ? aData : [])
+      setOperacionesPedido(Array.isArray(oData) ? oData : [])
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
@@ -276,6 +286,37 @@ export default function TablasTab() {
   function openAlert(alert?: any) {
     if (alert) { setEditId(alert.id); setAlertForm({ gasId: alert.gasId, diasAlertaRetest: String(alert.diasAlertaRetest), diasMaxCliente: String(alert.diasMaxCliente), alertaPH: alert.alertaPH, activo: alert.activo }) }
     else { setEditId(null); setAlertForm(emptyAlert) }
+    setDialogOpen(true)
+  }
+
+  // --- Operaciones Pedido CRUD ---
+  async function saveOperacionPedido() {
+    const body = { nombre: opForm.nombre, activo: opForm.activo, orden: parseInt(opForm.orden) }
+    try {
+      const res = await fetch('/api/tipos-operacion-pedido', {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editId ? { id: editId, ...body } : body),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
+      toast({ title: editId ? 'Operación actualizada' : 'Operación creada' })
+      closeAndReload()
+    } catch (e: any) { toast({ title: e.message || 'Error al guardar', variant: 'destructive' }) }
+  }
+
+  async function deleteOperacionPedido(id: string) {
+    if (!confirm('¿Eliminar esta operación?')) return
+    try {
+      const res = await fetch(`/api/tipos-operacion-pedido?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Operación eliminada' })
+      loadAll()
+    } catch { toast({ title: 'Error al eliminar', variant: 'destructive' }) }
+  }
+
+  function openOperacionPedido(op?: any) {
+    if (op) { setEditId(op.id); setOpForm({ nombre: op.nombre, activo: op.activo, orden: String(op.orden) }) }
+    else { setEditId(null); setOpForm(emptyOp) }
     setDialogOpen(true)
   }
 
@@ -516,6 +557,48 @@ export default function TablasTab() {
               </div>
             </div>
           )}
+
+          {/* Operaciones Pedido */}
+          {tablaActiva === 'operaciones-pedido' && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => openOperacionPedido()} className="bg-orange-500 hover:bg-orange-600 gap-2">
+                  <Plus className="w-4 h-4" /> Nueva Operación
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead className="text-center">Orden</TableHead>
+                      <TableHead className="text-center">Activo</TableHead>
+                      <TableHead className="text-center w-20">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {operacionesPedido.map(op => (
+                      <TableRow key={op.id}>
+                        <TableCell className="text-sm font-medium">{op.nombre}</TableCell>
+                        <TableCell className="text-center font-mono">{op.orden}</TableCell>
+                        <TableCell className="text-center">{op.activo ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-[10px]">No</Badge>}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openOperacionPedido(op)}>
+                              <Pencil className="w-3.5 h-3.5 text-sky-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => deleteOperacionPedido(op.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -646,6 +729,20 @@ export default function TablasTab() {
                 </div>
               </>
             )}
+            {tablaActiva === 'operaciones-pedido' && (
+              <>
+                <div><Label>Nombre</Label><Input value={opForm.nombre} onChange={e => setOpForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Con envase" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Orden</Label><Input type="number" value={opForm.orden} onChange={e => setOpForm(f => ({ ...f, orden: e.target.value }))} /></div>
+                  <div className="flex items-end pb-2">
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={opForm.activo} onChange={e => setOpForm(f => ({ ...f, activo: e.target.checked }))} className="rounded" />
+                      Activo
+                    </Label>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}><X className="w-4 h-4 mr-1" /> Cancelar</Button>
@@ -653,7 +750,8 @@ export default function TablasTab() {
               if (tablaActiva === 'gases') saveGas()
               else if (tablaActiva === 'locations') saveLocation()
               else if (tablaActiva === 'usuarios') saveUsuario()
-              else saveAlert()
+              else if (tablaActiva === 'alertconfig') saveAlert()
+              else if (tablaActiva === 'operaciones-pedido') saveOperacionPedido()
             }}
               className="bg-gradient-to-r from-orange-500 to-red-600">
               <Save className="w-4 h-4 mr-1" /> Guardar
