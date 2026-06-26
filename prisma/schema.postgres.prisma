@@ -1,0 +1,614 @@
+// GasTrack AR - Control de Tubos de Gases para Soldadura
+// Schema POSTGRESQL — usar con: npx prisma generate --schema=prisma/schema.postgres.prisma
+// Base operativa: San Nicolás de los Arroyos, Buenos Aires
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Gas {
+  id                   String     @id @default(cuid())
+  codigo               String     @unique
+  nombre               String
+  descripcion          String
+  presionBar           Int
+  colorHex             String
+  usoPrincipal         String
+  categoria            String
+  peligro              String     @default("GAS_PRESION")
+  precioAlquilerDiario Float?
+  precioAlquilerMensual Float?
+  precioVenta          Float?
+  createdAt            DateTime   @default(now())
+  cylinders            Cylinder[]
+  alertConfig          AlertConfig?
+  pedidos              Pedido[]
+  stockGas             StockGas?
+  movimientosStock     MovimientoStock[]
+  reglaPeso            ReglaPeso?
+}
+
+model Cylinder {
+  id                  String   @id @default(cuid())
+  numeroSerie         String   @unique
+
+  propietario         String?
+  fabricante          String?
+  paisFabricacion     String?
+  marcaUN             Boolean  @default(false)
+
+  normaFabricacion    String?
+  presionTrabajoBar   Int?
+  roscacilindro       String?
+  espesorMinParedMm   Float?
+  materialAleacion    String?
+
+  capacidadLitros     Int
+  diametroMm          Float?
+  pesoVacioKg         Float?
+  pesoTaraKg          Float?
+  pesoMaxLlenadoKg    Float?
+
+  presionEnsayoBar    Int?
+  fechaEnsayoInicial  String?
+  fechaUltimoRetest   DateTime?
+  fechaProximoRetest  DateTime
+  resultadoInspeccion String   @default("APROBADO")
+  inspectorId         String?
+  laboratorio         String?
+  metodoPrueba        String?
+
+  gasId               String
+  gas                 Gas      @relation(fields: [gasId], references: [id])
+  presionActualBar    Int
+
+  masaPorosaId        String?
+  tipoSolvente        String?
+  solventeMasaKg      Float?
+  vidaUtilLimite      DateTime?
+  reparaciones        String?
+  observaciones       String?
+
+  // LLENO, VACIO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, BAJA, EXTRAVIADO
+  estado              String   @default("LLENO")
+  ubicacionLat        Float
+  ubicacionLng        Float
+  ubicacionNombre     String
+  provincia           String
+  cliente             String?
+  clienteId           String?
+  clienteRel          Cliente? @relation("ClienteCylinders", fields: [clienteId], references: [id])
+  fechaCarga          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  compatibleH2        Boolean  @default(false)
+
+  movimientos         CylinderMovimiento[]
+  mantenimientos      Mantenimiento[]
+  cargasVehiculo      CargaVehiculoItem[]
+  tagsRFID            TagRFID[]
+  lecturasPeso        LecturaPeso[]
+  evidenciasFoto      EvidenciaFoto[]
+  validacionesCabina   ValidacionCabina[]
+  eventosTrazabilidad EventoTrazabilidad[]
+  alertas             Alerta[]
+}
+
+model CylinderMovimiento {
+  id          String   @id @default(cuid())
+  cylinderId  String
+  cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  fecha       DateTime @default(now())
+  tipo        String
+  descripcion String
+  usuario     String?
+  latOrigen   Float?
+  lngOrigen   Float?
+  latDestino  Float?
+  lngDestino  Float?
+  ubicacion   String?
+}
+
+model Mantenimiento {
+  id          String   @id @default(cuid())
+  cylinderId  String
+  cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  tipo        String
+  descripcion String?
+  tecnico     String?
+  costo       Float?
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  provincia String
+  lat       Float
+  lng       Float
+  esBase    Boolean  @default(false)
+  tipo      String
+  direccion String?
+  telefono  String?
+  createdAt DateTime @default(now())
+}
+
+model Remito {
+  id            String       @id @default(cuid())
+  numero        Int          @default(0)
+  clienteId     String
+  cliente       String
+  fecha         DateTime     @default(now())
+  tipo          String
+  estado        String       @default("PENDIENTE")
+  tecnico       String?
+  observaciones String?
+  items         RemitoItem[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model RemitoItem {
+  id              String   @id @default(cuid())
+  remitoId        String
+  remito          Remito   @relation(fields: [remitoId], references: [id], onDelete: Cascade)
+  cylinderId      String?
+  numeroSerie     String?
+  gasCodigo       String?
+  estado          String?
+  createdAt       DateTime @default(now())
+}
+
+model Factura {
+  id            String        @id @default(cuid())
+  numero        Int           @default(0)
+  tipo          String        @default("B")
+  clienteId     String
+  cliente       String
+  fecha         DateTime      @default(now())
+  total         Float
+  condicionIva  String?
+  cuit          String?
+  items         FacturaItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model FacturaItem {
+  id              String   @id @default(cuid())
+  facturaId       String
+  factura         Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  concepto        String
+  cantidad        Int
+  precioUnitario  Float
+  importe         Float
+  createdAt       DateTime @default(now())
+}
+
+model Cliente {
+  id             String          @id @default(cuid())
+  nombre         String          @unique
+  direccion      String?
+  telefono       String?
+  email          String?
+  provincia      String?
+  ciudad         String?
+  lat            Float?
+  lng            Float?
+  cuit           String?
+  condicionIva   String?
+  activo         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  cylinders      Cylinder[]      @relation("ClienteCylinders")
+  accesos        ClienteAcceso[]
+  pedidos        Pedido[]
+  facturas       Factura[]
+  remitos        Remito[]
+}
+
+model ClienteAcceso {
+  id         String   @id @default(cuid())
+  clienteId  String
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuario    String   @unique
+  password   String
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Usuario {
+  id          String   @id @default(cuid())
+  nombre      String
+  direccion   String?
+  telefono    String?
+  ciudad      String?
+  provincia   String?
+  lat         Float?
+  lng         Float?
+  email       String?
+  nivelAcceso Int      @default(1)
+  usuario     String   @unique
+  password    String
+  activo      Boolean  @default(true)
+  rolId       String?
+  rol         Rol?     @relation(fields: [rolId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Rol {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  usuarios    Usuario[]
+}
+
+model Observacion {
+  id          String              @id @default(cuid())
+  tipo        String
+  titulo      String?
+  descripcion String?
+  audioUrl    String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String?
+  archivos    ObservacionArchivo[]
+}
+
+model ObservacionArchivo {
+  id             String      @id @default(cuid())
+  observacionId  String
+  observacion    Observacion @relation(fields: [observacionId], references: [id], onDelete: Cascade)
+  tipo           String
+  nombre         String?
+  datos          String
+  createdAt      DateTime    @default(now())
+}
+
+model Vehiculo {
+  id                String                   @id @default(cuid())
+  codigo            String                   @unique
+  patente           String                   @unique
+  marca             String?
+  modelo            String?
+  anio              Int?
+  tipo              String?
+  combustible       String?
+  color             String?
+  capacidadCarga    Int?                     // Cantidad máxima de tubos
+  capacidadMaxKg    Float?
+  largoCajaCm       Float?
+  anchoCajaCm       Float?
+  altoCajaCm        Float?
+  estado            String                   @default("DISPONIBLE")
+  activo            Boolean                  @default(true)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  conductor         String?
+  conductorTelefono String?
+
+  seguroCompania    String?
+  seguroPoliza      String?
+  seguroVencimiento DateTime?
+
+  vtvVencimiento    DateTime?
+
+  cargas            VehiculoCarga[]
+  mantenimientos    MantenimientoVehiculo[]
+  cargasCombustible CargaCombustible[]
+  documentos        DocumentoVehiculo[]
+}
+
+model VehiculoCarga {
+  id              String              @id @default(cuid())
+  vehiculoId      String
+  vehiculo        Vehiculo            @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha           DateTime            @default(now())
+  estado          String              @default("EN_CURSO")
+  items           CargaVehiculoItem[]
+  createdAt       DateTime            @default(now())
+  finalizedAt     DateTime?
+}
+
+model CargaVehiculoItem {
+  id              String        @id @default(cuid())
+  cargaId         String
+  carga           VehiculoCarga @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+  cylinderId      String
+  cylinder        Cylinder      @relation(fields: [cylinderId], references: [id])
+  posicion        Int?
+  createdAt       DateTime      @default(now())
+}
+
+model MantenimientoVehiculo {
+  id          String   @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo        String
+  descripcion String?
+  kilometraje Int?
+  costo       Float?
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model CargaCombustible {
+  id          String   @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  litros      Float
+  importe     Float
+  kilometraje Int?
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model DocumentoVehiculo {
+  id          String   @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  tipo        String   // VTV, SEGURO, CEDULA, OTRO
+  nombre      String
+  archivo     String   // base64 o ruta
+  vencimiento DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Ruta {
+  id                 String        @id @default(cuid())
+  nombre             String
+  vehiculoId         String
+  vehiculo           Vehiculo      @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  fecha              DateTime      @default(now())
+  distanciaKm        Float?
+  duracionMin        Int?
+  geometria          String?       // GeoJSON
+  estado             String        @default("PLANIFICADA")
+  paradas            Parada[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model Parada {
+  id          String       @id @default(cuid())
+  rutaId      String
+  ruta        Ruta         @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  orden       Int
+  clienteId   String?
+  cliente     String?
+  lat         Float
+  lng         Float
+  direccion   String?
+  distanciaKm Float?
+  createdAt   DateTime     @default(now())
+}
+
+model Pedido {
+  id              String           @id @default(cuid())
+  cliente         String
+  clienteId       String
+  fecha           DateTime         @default(now())
+  operacionEnvase String
+  total           Float            @default(0)
+  estado          String           @default("PENDIENTE")
+  items           PedidoItem[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model PedidoItem {
+  id               String       @id @default(cuid())
+  pedidoId         String
+  pedido           Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  gasId            String
+  gas              Gas          @relation(fields: [gasId], references: [id])
+  cantidad         Int
+  operacionEnvase  String
+  capacidadLitros  Int?
+  cilindros        PedidoCilindro[]
+}
+
+model PedidoCilindro {
+  id               String   @id @default(cuid())
+  pedidoItemId     String
+  pedidoItem       PedidoItem @relation(fields: [pedidoItemId], references: [id], onDelete: Cascade)
+  cylinderId       String?
+  numeroSerie      String?
+  estado           String   @default("PENDIENTE")
+}
+
+model TipoOperacionPedido {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model TagRFID {
+  id          String   @id @default(cuid())
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  tid         String   @unique
+  estado      String   @default("ASIGNADO")
+  createdAt   DateTime @default(now())
+}
+
+model EventoRFID {
+  id          String   @id @default(cuid())
+  tagId       String?
+  tag         TagRFID? @relation(fields: [tagId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  lectorId    String
+  lector      LectorIoT @relation(fields: [lectorId], references: [id])
+  zonaId      String?
+  zona        ZonaLectura? @relation(fields: [zonaId], references: [id])
+  timestamp   DateTime @default(now())
+  rssi        Float?
+  antena      Int?
+  metadata    String?
+  createdAt   DateTime @default(now())
+}
+
+model ZonaLectura {
+  id          String      @id @default(cuid())
+  codigo      String      @unique
+  nombre      String
+  tipo        String      // INGRESO, EGRESO, DEPOSITO, CABINA, REPARTO
+  activa      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  lectores    LectorIoT[]
+  eventos     EventoRFID[]
+}
+
+model LectorIoT {
+  id          String        @id @default(cuid())
+  codigo      String        @unique
+  nombre      String
+  tipo        String        // ESP32, RPI, GATEWAY, USB
+  zonaId      String?
+  zona        ZonaLectura?  @relation(fields: [zonaId], references: [id])
+  activo      Boolean       @default(true)
+  ultimoEvento DateTime?
+  createdAt   DateTime      @default(now())
+  eventos     EventoRFID[]
+}
+
+model StockGas {
+  id        String              @id @default(cuid())
+  gasId     String              @unique
+  gas       Gas                 @relation(fields: [gasId], references: [id])
+  cantidad  Int                 @default(0)
+  updatedAt DateTime            @updatedAt
+  movimientos MovimientoStock[]
+}
+
+model MovimientoStock {
+  id        String    @id @default(cuid())
+  gasId     String
+  gas       Gas       @relation(fields: [gasId], references: [id])
+  tipo      String    // INGRESO, EGRESO, AJUSTE, DEVOLUCION
+  cantidad  Int
+  saldo     Int
+  referencia String?
+  usuario   String?
+  createdAt DateTime  @default(now())
+}
+
+model Cabina {
+  id          String           @id @default(cuid())
+  codigo      String           @unique
+  nombre      String
+  ubicacion   String?
+  activa      Boolean          @default(true)
+  sensores    SensorCabina[]
+  lecturasPeso LecturaPeso[]
+  evidenciasFoto EvidenciaFoto[]
+  validaciones ValidacionCabina[]
+  eventosTraza EventoTrazabilidad[]
+  alertas     Alerta[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model SensorCabina {
+  id        String   @id @default(cuid())
+  cabinaId  String
+  cabina    Cabina   @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
+  tipo      String   // BALANZA, RFID, CAMARA, PRESENCIA, PUERTA
+  codigo    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model LecturaPeso {
+  id          String        @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina        @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder?     @relation(fields: [cylinderId], references: [id])
+  pesoKg      Float
+  createdAt   DateTime      @default(now())
+}
+
+model EvidenciaFoto {
+  id          String   @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  imagen      String   // base64 o ruta
+  createdAt   DateTime @default(now())
+}
+
+model ValidacionCabina {
+  id          String        @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina        @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder?     @relation(fields: [cylinderId], references: [id])
+  resultado   String        // OK, INCONSISTENCIA_PESO, NO_REGISTRADO, PH_VENCIDO, etc.
+  detalle     String?
+  createdAt   DateTime      @default(now())
+}
+
+model ReglaPeso {
+  id          String   @id @default(cuid())
+  gasId       String   @unique
+  gas         Gas      @relation(fields: [gasId], references: [id])
+  pesoMinKg   Float?
+  pesoMaxKg   Float?
+  pesoTaraKg  Float?
+  pesoLlenoKg Float?
+  updatedAt   DateTime @updatedAt
+}
+
+model EventoTrazabilidad {
+  id          String   @id @default(cuid())
+  cabinaId    String
+  cabina      Cabina   @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  tipo        String
+  descripcion String?
+  fecha       DateTime @default(now())
+  usuario     String?
+  createdAt   DateTime @default(now())
+}
+
+model Alerta {
+  id          String   @id @default(cuid())
+  tipo        String
+  cabinaId    String?
+  cabina      Cabina?  @relation(fields: [cabinaId], references: [id])
+  cylinderId  String?
+  cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
+  mensaje     String
+  nivel       String   // INFO, WARNING, CRITICAL
+  resuelta    Boolean  @default(false)
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  accion    String
+  entidad   String
+  entidadId String?
+  usuario   String?
+  detalle   String?
+  direccionIp String?
+  createdAt DateTime @default(now())
+}
