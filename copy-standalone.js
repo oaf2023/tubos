@@ -95,4 +95,13 @@ if (existsSync(bcryptSrc)) {
   console.log('  ✓ node_modules/bcryptjs copied')
 }
 
+// 11. Copy scripts/ (seed-pg-admin.mjs and scripts)
+const scriptsSrc = join(root, 'scripts')
+const scriptsDst = join(standalone, 'scripts')
+if (existsSync(scriptsSrc)) {
+  if (existsSync(scriptsDst)) rmSync(scriptsDst, { recursive: true })
+  cpSync(scriptsSrc, scriptsDst, { recursive: true })
+  console.log('  ✓ scripts/ copied (seed)')
+}
+
 console.log('copy-standalone: done')
