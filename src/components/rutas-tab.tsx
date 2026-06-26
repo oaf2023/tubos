@@ -11,6 +11,8 @@ import {
   Truck,
   X,
   RefreshCw,
+  DollarSign,
+  Navigation,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -43,6 +45,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import type { Ruta, RutaParada, Location, MapMarker } from '@/lib/tab-types'
+import type { GeocercaData } from '@/components/map-view'
 import { formatDate } from '@/lib/tab-constants'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
@@ -57,15 +60,35 @@ const MapView = dynamic(() => import('@/components/map-view'), {
   ),
 })
 
+type VehiculoData = {
+  id: string
+  codigo: string
+  patente: string
+  marca: string
+  modelo: string
+  tipo: string
+  maxTubos: number | null
+  orientacionTubos: string
+  largoCajaCm: number | null
+  anchoCajaCm: number | null
+  altoCajaCm: number | null
+  costoPorKm: number | null
+  estado: string
+}
+
 export default function RutasTab() {
   const { toast } = useToast()
   const [rutas, setRutas] = useState<Ruta[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const [vehiculos, setVehiculos] = useState<VehiculoData[]>([])
+  const [geocercas, setGeocercas] = useState<GeocercaData[]>([])
   const [loading, setLoading] = useState(true)
 
   // Nueva ruta
   const [nombreRuta, setNombreRuta] = useState('')
   const [selectedParadas, setSelectedParadas] = useState<Location[]>([])
+  const [selectedVehicleId, setSelectedVehicleId] = useState('')
+  const [costoPorKm, setCostoPorKm] = useState('')
   const [optimizando, setOptimizando] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
@@ -79,15 +102,26 @@ export default function RutasTab() {
   const [navegando, setNavegando] = useState<Ruta | null>(null)
   const [currentStopIdx, setCurrentStopIdx] = useState(0)
 
+  // GPS simulated pings
+  const [gpsPings, setGpsPings] = useState<any[]>([])
+  const [gpsSimulando, setGpsSimulando] = useState(false)
+  const [gpsInterval, setGpsInterval] = useState<ReturnType<typeof setInterval> | null>(null)
+
   const load = useCallback(async () => {
     try {
-      const [rRes, lRes] = await Promise.all([
+      const [rRes, lRes, vRes, gRes] = await Promise.all([
         fetch('/api/routes'),
         fetch('/api/locations'),
+        fetch('/api/vehiculos'),
+        fetch('/api/geocercas'),
       ])
-      const [rData, lData] = await Promise.all([rRes.json(), lRes.json()])
+      const [rData, lData, vData, gData] = await Promise.all([
+        rRes.json(), lRes.json(), vRes.json(), gRes.json(),
+      ])
       setRutas(Array.isArray(rData) ? rData : [])
       setLocations(Array.isArray(lData) ? lData : [])
+      setVehiculos(Array.isArray(vData) ? vData : [])
+      setGeocercas(Array.isArray(gData) ? gData : [])
     } finally {
       setLoading(false)
     }
@@ -192,6 +226,8 @@ export default function RutasTab() {
       origenNombre: base.nombre,
       origenLat: base.lat,
       origenLng: base.lng,
+      vehicleId: selectedVehicleId || undefined,
+      costoPorKm: costoPorKm ? Number(costoPorKm) : undefined,
       paradas: selectedParadas.map((p) => ({
         lat: p.lat,
         lng: p.lng,
@@ -225,6 +261,8 @@ export default function RutasTab() {
     toast({ title: 'Ruta creada', description: `${nombreRuta} con ${selectedParadas.length} paradas` })
     setNombreRuta('')
     setSelectedParadas([])
+    setSelectedVehicleId('')
+    setCostoPorKm('')
     setOptDistance(null)
     setRouteGeometry(null)
     load()
@@ -264,6 +302,65 @@ export default function RutasTab() {
     setCurrentStopIdx(r.paradas.findIndex((p) => p.estado !== 'ENTREGADO'))
     if (currentStopIdx < 0) setCurrentStopIdx(0)
   }
+
+  // Simular GPS durante navegación
+  useEffect(() => {
+    if (navegando && gpsSimulando) {
+      const interval = setInterval(async () => {
+        const r = navegando
+        const nextParada = r.paradas.find(p => p.estado !== 'ENTREGADO') || r.paradas[r.paradas.length - 1]
+        // Simular movimiento hacia la parada
+        const ultimo = gpsPings[0]
+        const lat = ultimo ? ultimo.lat + (Math.random() - 0.5) * 0.01 : r.origenLat
+        const lng = ultimo ? ultimo.lng + (Math.random() - 0.5) * 0.01 : r.origenLng
+
+        const res = await fetch('/api/gps/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rutaId: r.id,
+            lat: parseFloat(lat.toFixed(6)),
+            lng: parseFloat(lng.toFixed(6)),
+            velocidad: Math.round(20 + Math.random() * 40),
+            rumbo: Math.round(Math.random() * 360),
+            precision: Math.round(3 + Math.random() * 7),
+            fuente: 'SIMULADO',
+          }),
+        })
+        if (res.ok) {
+          const newPing = await res.json()
+          setGpsPings(prev => [newPing, ...prev].slice(0, 50))
+        }
+      }, 3000)
+      setGpsInterval(interval)
+      return () => clearInterval(interval)
+    }
+    if (!gpsSimulando && gpsInterval) {
+      clearInterval(gpsInterval)
+      setGpsInterval(null)
+    }
+  }, [navegando, gpsSimulando])
+
+  async function toggleGpsSimulacion() {
+    if (gpsSimulando) {
+      setGpsSimulando(false)
+      return
+    }
+    if (!navegando) return
+    setGpsPings([])
+    setGpsSimulando(true)
+    toast({ title: 'GPS', description: 'Simulación de ubicación iniciada' })
+  }
+
+  // Cargar pings reales al abrir navegación
+  useEffect(() => {
+    if (navegando) {
+      fetch(`/api/gps/ping?rutaId=${navegando.id}`)
+        .then(r => r.json())
+        .then(data => setGpsPings(Array.isArray(data) ? data : []))
+        .catch(() => {})
+    }
+  }, [navegando])
 
   // Mapa de la ruta seleccionada
   const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null)
@@ -305,8 +402,22 @@ export default function RutasTab() {
       })
     }
 
+    // GPS pings como marcadores de tracking
+    if (gpsPings.length > 0 && navegando) {
+      gpsPings.slice(0, 20).forEach((p, idx) => {
+        markers.push({
+          id: `gps-${p.id}`,
+          lat: p.lat,
+          lng: p.lng,
+          color: idx === 0 ? '#f97316' : '#94a3b8',
+          label: idx === 0 ? 'Ubicación actual' : `Ping ${idx + 1}`,
+          popup: `<strong>${idx === 0 ? 'Ubicación Actual' : 'Ping Anterior'}</strong><br/>Lat: ${p.lat}<br/>Lng: ${p.lng}<br/>Vel: ${p.velocidad || '?'} km/h<br/>${new Date(p.createdAt).toLocaleTimeString('es-AR')}`,
+        })
+      })
+    }
+
     return markers
-  }, [rutaSeleccionada, base, selectedParadas])
+  }, [rutaSeleccionada, base, selectedParadas, gpsPings, navegando])
 
   const rutaRoutes = useMemo(() => {
     const routes: any[] = []
@@ -358,6 +469,26 @@ export default function RutasTab() {
     return routes
   }, [rutaSeleccionada, base, selectedParadas, optDistance, routeGeometry])
 
+  // Capacidad del vehículo seleccionado
+  const capacidadInfo = useMemo(() => {
+    if (!selectedVehicleId) return null
+    const v = vehiculos.find(v => v.id === selectedVehicleId)
+    if (!v) return null
+    return {
+      maxTubos: v.maxTubos,
+      patente: v.patente,
+      costoPorKm: v.costoPorKm,
+      tipo: v.tipo,
+    }
+  }, [selectedVehicleId, vehiculos])
+
+  // Costo total estimado
+  const costoTotalEstimado = useMemo(() => {
+    const km = optDistance?.km || 0
+    const costo = Number(costoPorKm) || capacidadInfo?.costoPorKm || 0
+    return km > 0 && costo > 0 ? (km * costo).toFixed(2) : null
+  }, [optDistance, costoPorKm, capacidadInfo])
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -382,9 +513,66 @@ export default function RutasTab() {
               />
             </div>
 
+            {/* Vehículo asignado */}
+            <div>
+              <Label className="text-xs">Vehículo asignado</Label>
+              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Sin vehículo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehiculos.map((v) => (
+                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                      {v.patente} — {v.marca} {v.modelo} ({v.tipo})
+                      {v.maxTubos ? ` · ${v.maxTubos} tubos` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Info de capacidad (vehículo seleccionado) */}
+            {capacidadInfo && (
+              <div className="bg-sky-50 border border-sky-200 rounded p-2 text-[10px] space-y-0.5">
+                <div className="font-medium text-sky-800">{capacidadInfo.patente} ({capacidadInfo.tipo})</div>
+                <div className="flex justify-between">
+                  <span>Capacidad</span>
+                  <span className="font-mono">{capacidadInfo.maxTubos ?? 'N/A'} tubos</span>
+                </div>
+                {capacidadInfo.costoPorKm && (
+                  <div className="flex justify-between">
+                    <span>Costo/km</span>
+                    <span className="font-mono">${capacidadInfo.costoPorKm}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Costo por km manual */}
+            <div>
+              <Label className="text-xs">Costo por km ($)</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  <Input
+                    type="number" step="1" min="0"
+                    placeholder={capacidadInfo?.costoPorKm ? `Default: $${capacidadInfo.costoPorKm}` : 'Ej: 450'}
+                    value={costoPorKm}
+                    onChange={(e) => setCostoPorKm(e.target.value)}
+                    className="pl-7 h-9 text-xs"
+                  />
+                </div>
+              </div>
+              {costoTotalEstimado && (
+                <p className="text-[10px] text-emerald-600 mt-1">
+                  Costo estimado: <strong>${costoTotalEstimado}</strong> ({optDistance?.km} km)
+                </p>
+              )}
+            </div>
+
             <div>
               <Label className="text-xs">Ubicaciones disponibles</Label>
-              <ScrollArea className="h-[200px] border border-slate-200 rounded-md">
+              <ScrollArea className="h-[160px] border border-slate-200 rounded-md">
                 <div className="p-1.5 space-y-0.5">
                   {locations
                     .filter((l) => !l.esBase)
@@ -432,7 +620,7 @@ export default function RutasTab() {
                     </Button>
                   </div>
                 </div>
-                <div className="border rounded-md max-h-[220px] overflow-y-auto">
+                <div className="border rounded-md max-h-[180px] overflow-y-auto">
                   {selectedParadas.map((p, idx) => (
                     <div
                       key={p.id}
@@ -454,22 +642,16 @@ export default function RutasTab() {
                           className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20"
                           disabled={idx === 0}
                           onClick={() => moveParada(idx, -1)}
-                        >
-                          ▲
-                        </button>
+                        > ▲ </button>
                         <button
                           className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20"
                           disabled={idx === selectedParadas.length - 1}
                           onClick={() => moveParada(idx, 1)}
-                        >
-                          ▼
-                        </button>
+                        > ▼ </button>
                         <button
                           className="p-0.5 text-red-300 hover:text-red-500 ml-1"
                           onClick={() => setSelectedParadas((prev) => prev.filter((x) => x.id !== p.id))}
-                        >
-                          ✕
-                        </button>
+                        > ✕ </button>
                       </div>
                     </div>
                   ))}
@@ -513,6 +695,7 @@ export default function RutasTab() {
                 {rutas.map((r) => {
                   const total = r.paradas.length
                   const entregadas = r.paradas.filter((p) => p.estado === 'ENTREGADO').length
+                  const vAsignado = (r as any).vehicle || vehiculos.find(v => v.id === (r as any).vehicleId)
                   return (
                     <div key={r.id} className="border border-slate-200 rounded-lg p-3 hover:shadow-sm transition">
                       <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -530,6 +713,17 @@ export default function RutasTab() {
                         </Badge>
                       </div>
 
+                      {/* Vehículo asignado */}
+                      {vAsignado && (
+                        <div className="flex items-center gap-1.5 mb-1.5 text-[10px] text-sky-700 bg-sky-50 rounded px-2 py-1">
+                          <Truck className="w-3 h-3" />
+                          <span>{vAsignado.patente} — {vAsignado.marca} {vAsignado.modelo}</span>
+                          {(r as any).costoTotal && (
+                            <span className="ml-auto font-mono">${(r as any).costoTotal}</span>
+                          )}
+                        </div>
+                      )}
+
                       {r.estado === 'EN_PROGRESO' && (
                         <div className="mb-1.5">
                           <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
@@ -546,6 +740,9 @@ export default function RutasTab() {
                         <span className="tabular-nums">{r.distanciaKm} km</span>
                         <span className="tabular-nums">{r.duracionHoras} h</span>
                         <span>{r.paradas.length} paradas</span>
+                        {(r as any).costoTotal && (
+                          <span className="tabular-nums text-emerald-600">${(r as any).costoTotal}</span>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap gap-1 mb-1.5">
@@ -564,40 +761,18 @@ export default function RutasTab() {
                         <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setRutaSeleccionada(r)}>
                           <MapIcon className="w-3 h-3 mr-1" /> Mapa
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-[10px]"
-                          onClick={() => cambiarEstado(r, 'EN_PROGRESO')}
-                          disabled={r.estado === 'EN_PROGRESO' || r.estado === 'COMPLETADA'}
-                        >
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => cambiarEstado(r, 'EN_PROGRESO')} disabled={r.estado !== 'PLANIFICADA'}>
                           Iniciar
                         </Button>
                         {r.estado === 'EN_PROGRESO' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="h-7 text-[10px]"
-                            onClick={() => iniciarNavegacion(r)}
-                          >
+                          <Button size="sm" variant="secondary" className="h-7 text-[10px]" onClick={() => iniciarNavegacion(r)}>
                             <Truck className="w-3 h-3 mr-1" /> Navegar
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-[10px]"
-                          onClick={() => cambiarEstado(r, 'COMPLETADA')}
-                          disabled={r.estado === 'COMPLETADA'}
-                        >
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => cambiarEstado(r, 'COMPLETADA')} disabled={r.estado === 'COMPLETADA'}>
                           Completar
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-[10px] text-red-500 hover:bg-red-50 ml-auto"
-                          onClick={() => eliminarRuta(r.id)}
-                        >
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-red-500 hover:bg-red-50 ml-auto" onClick={() => eliminarRuta(r.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
@@ -610,7 +785,7 @@ export default function RutasTab() {
         </Card>
       </div>
 
-      {/* Mapa de ruta seleccionada */}
+      {/* Mapa de ruta seleccionada con geocercas */}
       {rutaSeleccionada && (
         <Card>
           <CardHeader>
@@ -620,6 +795,9 @@ export default function RutasTab() {
                 <CardDescription>
                   {rutaSeleccionada.distanciaKm} km · {rutaSeleccionada.duracionHoras} h ·{' '}
                   {rutaSeleccionada.paradas.length} paradas · Origen y retorno
+                  {(rutaSeleccionada as any).costoTotal && (
+                    <> · <span className="text-emerald-600">${(rutaSeleccionada as any).costoTotal}</span></>
+                  )}
                 </CardDescription>
               </div>
               <div className="flex gap-2">
@@ -635,17 +813,21 @@ export default function RutasTab() {
             </div>
           </CardHeader>
           <CardContent>
-            <MapView markers={rutaMarkers} routes={rutaRoutes} height="450px" />
+            <MapView
+              markers={rutaMarkers}
+              routes={rutaRoutes}
+              geocercas={geocercas.filter(g => g.activa)}
+              height="450px"
+            />
           </CardContent>
         </Card>
       )}
 
-      {/* Diálogo de navegación */}
-      <Dialog open={!!navegando} onOpenChange={(o) => { if (!o) { setNavegando(null); setCurrentStopIdx(0); load() } }}>
+      {/* Diálogo de navegación con GPS */}
+      <Dialog open={!!navegando} onOpenChange={(o) => { if (!o) { setNavegando(null); setCurrentStopIdx(0); setGpsSimulando(false); setGpsPings([]); load() } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           {navegando && (() => {
             const r = navegando
-            const current = r.paradas[currentStopIdx]
             const restantes = r.paradas.filter((p) => p.estado !== 'ENTREGADO')
             const actual = restantes[0] || r.paradas[r.paradas.length - 1]
 
@@ -676,6 +858,44 @@ export default function RutasTab() {
                   </Card>
                 )}
 
+                {/* GPS en vivo */}
+                <div className="bg-slate-50 border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs flex items-center gap-1">
+                      <Navigation className={`w-3 h-3 ${gpsSimulando ? 'text-green-500 animate-pulse' : 'text-slate-400'}`} />
+                      GPS {gpsSimulando ? 'EN VIVO' : 'Detenido'}
+                    </Label>
+                    <Button
+                      size="sm"
+                      variant={gpsSimulando ? 'destructive' : 'outline'}
+                      className="h-6 text-[10px]"
+                      onClick={toggleGpsSimulacion}
+                    >
+                      {gpsSimulando ? 'Detener GPS' : 'Simular GPS'}
+                    </Button>
+                  </div>
+                  {gpsPings.length > 0 && (
+                    <div className="text-[10px] text-slate-600 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>Lat / Lng</span>
+                        <span className="font-mono">{gpsPings[0].lat.toFixed(4)}, {gpsPings[0].lng.toFixed(4)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Velocidad</span>
+                        <span className="font-mono">{gpsPings[0].velocidad || '?'} km/h</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Precisión</span>
+                        <span className="font-mono">{gpsPings[0].precision || '?'} m</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Pings registrados</span>
+                        <span className="font-mono">{gpsPings.length}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Lista de paradas */}
                 <div>
                   <Label className="text-xs text-slate-500 mb-1 block">
@@ -704,11 +924,7 @@ export default function RutasTab() {
                           <span className={`flex-1 ${delivered ? 'line-through text-slate-400' : ''}`}>{p.nombre}</span>
                           <span className="text-[10px] text-slate-400">{p.provincia}</span>
                           {!delivered && isCurrent && (
-                            <Button
-                              size="sm"
-                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
-                              onClick={() => marcarEntregado(p.id)}
-                            >
+                            <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarEntregado(p.id)}>
                               Entregado
                             </Button>
                           )}
@@ -732,14 +948,20 @@ export default function RutasTab() {
                     <span className="text-slate-500">Entregados</span>
                     <span className="font-mono text-emerald-600">{r.paradas.filter((p) => p.estado === 'ENTREGADO').length} / {r.paradas.length}</span>
                   </div>
+                  {(r as any).costoTotal && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Costo total</span>
+                      <span className="font-mono text-emerald-600">${(r as any).costoTotal}</span>
+                    </div>
+                  )}
                 </div>
 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => { setNavegando(null); setCurrentStopIdx(0); load() }}>
+                  <Button variant="outline" onClick={() => { setNavegando(null); setCurrentStopIdx(0); setGpsSimulando(false); setGpsPings([]); load() }}>
                     Cerrar navegación
                   </Button>
                   {restantes.length === 0 && (
-                    <Button onClick={() => cambiarEstado(r, 'COMPLETADA').then(() => { setNavegando(null); setCurrentStopIdx(0) })}>
+                    <Button onClick={() => cambiarEstado(r, 'COMPLETADA').then(() => { setNavegando(null); setCurrentStopIdx(0); setGpsSimulando(false); setGpsPings([]) })}>
                       Finalizar ruta
                     </Button>
                   )}

@@ -125,7 +125,7 @@
 
 <div class="card">
   <h2>4. Sprint 2 — Migración a PostgreSQL</h2>
-  <span class="badge-sprint">SPRINT 2</span> <span class="tag">pendiente</span>
+  <span class="badge-sprint">SPRINT 2</span> <span class="badge-hito">completado</span>
 
   <table>
     <tr><th>Archivo</th><th>Acción</th></tr>
@@ -139,7 +139,7 @@
 
 <div class="card">
   <h2>5. Sprint 3 — Motor RFID</h2>
-  <span class="badge-sprint">SPRINT 3</span> <span class="tag">pendiente</span>
+  <span class="badge-sprint">SPRINT 3</span> <span class="badge-hito">completado</span>
 
   <table>
     <tr><th>Archivo</th><th>Acción</th></tr>
@@ -152,7 +152,7 @@
 
 <div class="card">
   <h2>6. Sprint 4 — Cabina inteligente</h2>
-  <span class="badge-sprint">SPRINT 4</span> <span class="tag">pendiente</span>
+  <span class="badge-sprint">SPRINT 4</span> <span class="badge-hito">completado</span>
 
   <table>
     <tr><th>Archivo</th><th>Acción</th></tr>
@@ -167,11 +167,17 @@
   <span class="badge-sprint">SPRINT 5</span> <span class="tag">pendiente</span>
 
   <table>
-    <tr><th>Tarea</th><th>Impacto</th></tr>
-    <tr><td>Vincular pedido → remito → ruta → cilindros</td><td>Trazabilidad completa</td></tr>
-    <tr><td>Validar capacidad máxima del vehículo en carga</td><td>Seguridad operativa</td></tr>
-    <tr><td>Costo por km en rutas</td><td>Rentabilidad</td></tr>
-    <tr><td>GPS + geocercas (Leaflet)</td><td>Control en tiempo real</td></tr>
+    <tr><th>Archivo</th><th>Acción</th></tr>
+    <tr><td class="file">prisma/schema.prisma</td><td>+ vehicleId en Ruta, + Vehiculo.rutas, + Geocerca, + UbicacionGPS, + Vehiculo.costoPorKm</td></tr>
+    <tr><td class="file">src/lib/ruta-utils.ts</td><td>Validación de capacidad de carga + cálculo de costo</td></tr>
+    <tr><td class="file">src/app/api/routes/route.ts</td><td>POST acepta vehicleId, costoPorKm, cylinderIds</td></tr>
+    <tr><td class="file">src/app/api/routes/[id]/route.ts</td><td>PUT acepta vehicleId, costoPorKm, cylinderIds</td></tr>
+    <tr><td class="file">src/app/api/vehiculos/route.ts</td><td>GET /api/vehiculos (activos)</td></tr>
+    <tr><td class="file">src/app/api/geocercas/route.ts</td><td>CRUD geocercas</td></tr>
+    <tr><td class="file">src/app/api/gps/ping/route.ts</td><td>POST/GET ubicaciones GPS</td></tr>
+    <tr><td class="file">scripts/seed-logistica5.ts</td><td>Geocercas + costos vehículo</td></tr>
+    <tr><td class="file">src/components/rutas-tab.tsx</td><td>Selector vehículo, costo/km, capacidad, GPS simulado, geocercas en mapa</td></tr>
+    <tr><td class="file">src/components/map-view.tsx</td><td>Soporte para renderizar geocercas (círculo + polígono)</td></tr>
   </table>
 </div>
 

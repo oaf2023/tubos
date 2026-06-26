@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal, geometry } = body
+    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal, geometry, vehicleId, costoPorKm, cylinderIds } = body
 
     if (!nombre || !paradas || !Array.isArray(paradas) || paradas.length === 0) {
       return NextResponse.json({ error: 'Faltan campos: nombre, paradas' }, { status: 400 })
@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
       ? (typeof geometry === 'string' ? geometry : JSON.stringify(geometry))
       : undefined
 
+    const costoTotal = costoPorKm ? costoPorKm * finalKm : null
+
     const ruta = await db.ruta.create({
       data: {
         nombre,
@@ -95,6 +97,10 @@ export async function POST(request: NextRequest) {
         distanciaKm: finalKm,
         duracionHoras: finalHoras,
         geometry: geometryStr,
+        vehicleId: vehicleId || null,
+        costoPorKm: costoPorKm || null,
+        costoTotal,
+        cylinderIds: cylinderIds || null,
         paradas: {
           create: paradas.map((p: any, idx: number) => ({
             orden: idx + 1,
@@ -108,7 +114,10 @@ export async function POST(request: NextRequest) {
           })),
         },
       },
-      include: { paradas: { orderBy: { orden: 'asc' } } },
+      include: {
+        paradas: { orderBy: { orden: 'asc' } },
+        vehicle: true,
+      },
     })
 
     return NextResponse.json({ ...ruta, _fuente: fuente }, { status: 201 })

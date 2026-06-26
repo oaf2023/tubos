@@ -287,7 +287,14 @@ model Ruta {
   distanciaKm  Float        @default(0)
   duracionHoras Float       @default(0)
   geometry     String?      // OSRM road geometry JSON: [[lat,lng],...]
+  costoPorKm   Float?       // Costo operativo por km (combustible + desgaste)
+  costoTotal   Float?       // costoPorKm * distanciaKm (calculado)
+  vehicleId    String?      // Vehículo asignado a esta ruta
+  vehicle      Vehiculo?    @relation(fields: [vehicleId], references: [id])
+  pedidoId     String?      // Pedido origen que generó la ruta
+  cylinderIds  String?      // IDs de cilindros separados por coma (carga completa)
   paradas      RutaParada[]
+  ubicaciones  UbicacionGPS[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -459,7 +466,9 @@ model Vehiculo {
   altoCajaCm        Float?   // Alto útil de la caja (para orientacion PARADOS)
   maxTubos          Int?     // Capacidad máxima de tubos
   orientacionTubos  String   @default("PARADOS") // PARADOS | ACOSTADOS
+  costoPorKm        Float?   // Costo operativo por km (combustible + mantenimiento)
 
+  rutas             Ruta[]
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
   mantenimientos    MantenimientoVehiculo[]
@@ -779,5 +788,37 @@ model AuditLog {
   usuario   String?  // usuario que ejecutó la acción
   detalle   String?  // JSON con datos relevantes del cambio
   direccionIp String?
+  createdAt DateTime @default(now())
+}
+
+// ============ SPRINT 5 — RUTAS Y LOGÍSTICA ============
+
+model Geocerca {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  lat         Float    // Centro de la geocerca (para UI)
+  lng         Float
+  radioMetros Float    // Radio en metros (círculo simple)
+  polygon     String?  // JSON opcional: [[lat,lng],[lat,lng],...] para polígono
+  color       String   @default("#3b82f6")
+  activa      Boolean  @default(true)
+  tipo        String   @default("DEPOSITO") // DEPOSITO, CLIENTE, RESTRINGIDA, ENTREGA
+  regla       String?  // JSON: reglas al entrar/salir (ej: notificar, alertar, bloquear)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UbicacionGPS {
+  id        String   @id @default(cuid())
+  rutaId    String
+  ruta      Ruta     @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  lat       Float
+  lng       Float
+  velocidad Float?   // Km/h en el momento del ping
+  rumbo     Float?   // Grados (0=N, 90=E)
+  precision Float?   // Metros de precisión del GPS
+  fuente    String   @default("GPS") // GPS, MANUAL, SIMULADO
+  metadata  String?  // JSON extra
   createdAt DateTime @default(now())
 }

@@ -29,6 +29,12 @@ export async function PUT(
     if (body.nombre !== undefined) data.nombre = body.nombre
     if (body.distanciaKm !== undefined) data.distanciaKm = body.distanciaKm
     if (body.duracionHoras !== undefined) data.duracionHoras = body.duracionHoras
+    if (body.vehicleId !== undefined) data.vehicleId = body.vehicleId
+    if (body.costoPorKm !== undefined) {
+      data.costoPorKm = body.costoPorKm
+      data.costoTotal = body.costoPorKm * (body.distanciaKm || 0)
+    }
+    if (body.cylinderIds !== undefined) data.cylinderIds = body.cylinderIds
 
     const updated = await db.ruta.update({
       where: { id },

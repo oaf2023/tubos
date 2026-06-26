@@ -24,9 +24,22 @@ export interface MapRoute {
   geometry?: [number, number][] // OSRM road-following coords
 }
 
+export interface GeocercaData {
+  id: string
+  nombre: string
+  lat: number
+  lng: number
+  radioMetros: number
+  color: string
+  activa: boolean
+  polygon?: string // JSON [[lat,lng],...]
+  tipo: string
+}
+
 interface MapViewProps {
   markers: MapMarker[]
   routes?: MapRoute[]
+  geocercas?: GeocercaData[]
   center?: [number, number]
   zoom?: number
   height?: string
@@ -53,6 +66,7 @@ function createColoredIcon(color: string, isBase = false, count?: number) {
 export default function MapView({
   markers,
   routes = [],
+  geocercas = [],
   center = [-33.3293, -60.2244], // San Nicolás de los Arroyos
   zoom = 6,
   height = '600px',
@@ -157,8 +171,34 @@ export default function MapView({
       }
     })
 
+    // Dibujar geocercas
+    geocercas.forEach((g) => {
+      if (!g.activa) return
+      const color = g.color || '#3b82f6'
+
+      if (g.polygon) {
+        try {
+          const coords = JSON.parse(g.polygon) as [number, number][]
+          L.polygon(coords, {
+            color,
+            fillColor: color,
+            fillOpacity: 0.1,
+            weight: 2,
+          }).bindPopup(`<strong>${g.nombre}</strong><br/>${g.tipo}`).addTo(layerRef.current!)
+        } catch { /* ignore */ }
+      } else {
+        L.circle([g.lat, g.lng], {
+          radius: g.radioMetros,
+          color,
+          fillColor: color,
+          fillOpacity: 0.1,
+          weight: 2,
+        }).bindPopup(`<strong>${g.nombre}</strong><br/>${g.tipo} · ${g.radioMetros}m`).addTo(layerRef.current!)
+      }
+    })
+
     // Ajustar vista si hay marcadores
-    if (markers.length > 0 || routes.length > 0) {
+    if (markers.length > 0 || routes.length > 0 || geocercas.length > 0) {
       const allPoints: [number, number][] = []
       markers.forEach((m) => allPoints.push([m.lat, m.lng]))
       routes.forEach((r) =>
@@ -169,7 +209,7 @@ export default function MapView({
         mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 })
       }
     }
-  }, [markers, routes, onSelectMarker])
+  }, [markers, routes, geocercas, onSelectMarker])
 
   return (
     <div
