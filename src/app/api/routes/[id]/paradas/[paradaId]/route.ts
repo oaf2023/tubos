@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+async function getFirstGasId(): Promise<string | null> {
+  const gas = await db.gas.findFirst({ orderBy: { codigo: 'asc' }, select: { id: true, codigo: true } })
+  return gas?.id ?? null
+}
+
 // PUT /api/routes/[id]/paradas/[paradaId] - actualizar estado de parada
 export async function PUT(
   request: NextRequest,
@@ -19,9 +24,42 @@ export async function PUT(
     const parada = await db.rutaParada.update({
       where: { id: paradaId },
       data,
+      include: { cliente: true },
     })
 
-    // Recalculate route distance/duration if completing
+    // Generate remito when parada is marked ENTREGADO and has clienteId
+    if (body.estado === 'ENTREGADO' && parada.clienteId) {
+      const ultimoRemito = await db.remito.findFirst({
+        orderBy: { numero: 'desc' },
+        select: { numero: true },
+      })
+      const nextNumero = (ultimoRemito?.numero ?? 0) + 1
+      const defaultGasId = await getFirstGasId()
+
+      await db.remito.create({
+        data: {
+          numero: nextNumero,
+          clienteId: parada.clienteId,
+          cliente: parada.nombre,
+          fecha: new Date(),
+          tipo: (parada.tipoOperacion === 'RETIRO' ? 'DEVOLUCION' : 'ENTREGA') as any,
+          estado: 'COMPLETADO',
+          observaciones: `Generado desde ruta - Parada #${parada.orden}`,
+          items: defaultGasId && parada.demandaTubos
+            ? {
+                create: [{
+                  gasId: defaultGasId,
+                  gasCodigo: 'VAR',
+                  tipoOperacion: parada.tipoOperacion === 'RETIRO' ? 'DEVOLUCION' : 'ALQUILER',
+                  cantidad: parada.demandaTubos,
+                }],
+              }
+            : undefined,
+        },
+      })
+    }
+
+    // Check if all paradas are delivered
     if (body.estado === 'ENTREGADO') {
       const allParadas = await db.rutaParada.findMany({
         where: { rutaId: id },

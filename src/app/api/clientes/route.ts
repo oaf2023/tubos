@@ -1,27 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// GET /api/clientes - listar clientes con filtros opcionales
+// GET /api/clientes - listar clientes con filtros opcionales, paginación e índice alfabético
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const nombre = searchParams.get('nombre') || undefined
     const tipologia = searchParams.get('tipologia') || undefined
     const activo = searchParams.get('activo')
+    const letra = searchParams.get('letra') || undefined
+    const estado = searchParams.get('estado') || undefined
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '12')))
 
     const where: Record<string, unknown> = {}
-    if (nombre) where.nombre = { contains: nombre }
+
+    // Búsqueda textual: busca en nombre Y apellido
+    if (nombre) {
+      where.OR = [
+        { nombre: { contains: nombre, mode: 'insensitive' } },
+        { apellido: { contains: nombre, mode: 'insensitive' } },
+      ]
+    }
+
     if (tipologia) where.tipologia = tipologia
     if (activo === 'true') where.activo = true
     if (activo === 'false') where.activo = false
+    if (estado) where.estadoCliente = estado
 
-    const clientes = await db.cliente.findMany({
-      where,
-      include: { _count: { select: { cylinders: true } } },
-      orderBy: { nombre: 'asc' },
+    // Filtro alfabético: busca por inicial en nombre O apellido
+    if (letra && letra !== 'TODOS') {
+      if (nombre) {
+        // ya hay OR, agregamos condición AND
+        where.AND = [
+          { OR: [
+            { nombre: { startsWith: letra, mode: 'insensitive' } },
+            { apellido: { startsWith: letra, mode: 'insensitive' } },
+          ] }
+        ]
+        delete where.OR
+        // rebuild properly
+      } else {
+        where.OR = [
+          { nombre: { startsWith: letra, mode: 'insensitive' } },
+          { apellido: { startsWith: letra, mode: 'insensitive' } },
+        ]
+      }
+    }
+
+    // Reconstruir where correctamente si hay nombre + letra
+    const finalWhere: Record<string, unknown> = {}
+    if (tipologia) finalWhere.tipologia = tipologia
+    if (activo === 'true') finalWhere.activo = true
+    if (activo === 'false') finalWhere.activo = false
+    if (estado) finalWhere.estadoCliente = estado
+
+    const filters: Record<string, unknown>[] = []
+
+    if (letra && letra !== 'TODOS') {
+      filters.push({
+        OR: [
+          { nombre: { startsWith: letra, mode: 'insensitive' } },
+          { apellido: { startsWith: letra, mode: 'insensitive' } },
+        ]
+      })
+    }
+
+    if (nombre) {
+      filters.push({
+        OR: [
+          { nombre: { contains: nombre, mode: 'insensitive' } },
+          { apellido: { contains: nombre, mode: 'insensitive' } },
+        ]
+      })
+    }
+
+    if (filters.length === 1) finalWhere.AND = filters
+    else if (filters.length > 1) finalWhere.AND = filters
+
+    const skip = (page - 1) * limit
+
+    const [clientes, total] = await Promise.all([
+      db.cliente.findMany({
+        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        include: { _count: { select: { cylinders: true } } },
+        orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+        skip,
+        take: limit,
+      }),
+      db.cliente.count({
+        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+      }),
+    ])
+
+    return NextResponse.json({
+      clientes,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
     })
-
-    return NextResponse.json(clientes)
   } catch (e) {
     console.error('GET /api/clientes', e instanceof Error ? e.message : String(e))
     return NextResponse.json({ error: 'Error al obtener clientes' }, { status: 500 })
@@ -53,6 +130,8 @@ export async function POST(request: NextRequest) {
     const cliente = await db.cliente.create({
       data: {
         nombre: body.nombre.trim(),
+        apellido: body.apellido || null,
+        email: body.email || null,
         taxId: body.taxId || null,
         contacto: body.contacto || null,
         firmaDigital: body.firmaDigital || null,
@@ -71,6 +150,7 @@ export async function POST(request: NextRequest) {
         cargosRecurrentes: body.cargosRecurrentes || null,
         penalizacionesExtravio: body.penalizacionesExtravio || null,
         estadoCuenta: body.estadoCuenta || null,
+        estadoCliente: body.estadoCliente || 'ACTIVO',
         ubicaciones: body.ubicaciones || null,
         lat: body.lat ? parseFloat(body.lat) : null,
         lng: body.lng ? parseFloat(body.lng) : null,

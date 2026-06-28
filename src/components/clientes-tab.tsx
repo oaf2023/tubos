@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Search,
   Plus,
@@ -15,17 +15,30 @@ import {
   Save,
   X,
   Hash,
-  FlaskConical,
-  Truck,
+  Phone,
+  Mail,
+  Eye,
   FileText,
-  DollarSign,
-  Key,
+  Download,
+  Settings2,
+  FolderOpen,
+  UserPlus,
+  BarChart3,
+  AlertCircle,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -51,42 +64,157 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { Cliente, Cylinder } from '@/lib/tab-types'
 import {
   TIPOLOGIAS,
-  ESTADO_CUENTA_OPTS,
   formatDate,
-  SgaBadge,
-  ESTADO_COLORS,
-  ESTADO_LABELS,
-  daysUntil,
 } from '@/lib/tab-constants'
 
-export default function ClientesTab() {
+// ─── Helpers ───────────────────────────────────────────────────────────
+const GRADIENTES: Record<string, string> = {
+  ACTIVO: 'bg-gradient-to-br from-blue-500 to-emerald-500',
+  SUSPENDIDO: 'bg-gradient-to-br from-amber-500 to-orange-500',
+  INACTIVO: 'bg-gradient-to-br from-slate-400 to-slate-500',
+}
+
+const ESTADO_BADGE: Record<string, string> = {
+  ACTIVO: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  SUSPENDIDO: 'bg-amber-100 text-amber-700 border-amber-200',
+  INACTIVO: 'bg-slate-100 text-slate-500 border-slate-200',
+}
+
+const ESTADO_LABEL: Record<string, string> = {
+  ACTIVO: 'Activo',
+  SUSPENDIDO: 'Suspendido',
+  INACTIVO: 'Inactivo',
+}
+
+function estadoCliente(c: Cliente): string {
+  return c.estadoCliente || (c.activo ? 'ACTIVO' : 'INACTIVO')
+}
+
+function inicial(c: Cliente): string {
+  return (c.apellido || c.nombre).charAt(0).toUpperCase()
+}
+
+function formatearNombre(c: Cliente): { apellido: string; nombre: string } {
+  if (c.apellido) return { apellido: c.apellido, nombre: c.nombre }
+  return { apellido: c.nombre, nombre: '' }
+}
+
+// ─── Componente principal ──────────────────────────────────────────────
+export default function ClientesTab({
+  onNavigate,
+}: {
+  onNavigate?: (tab: string) => void
+}) {
   const { toast } = useToast()
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // ── Data ──
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(12)
   const [loading, setLoading] = useState(true)
 
-  // Filtros
+  // ── Filters ──
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroTipologia, setFiltroTipologia] = useState('all')
   const [filtroEstado, setFiltroEstado] = useState('all')
+  const [letraActiva, setLetraActiva] = useState('TODOS')
 
-  // Dialogs: tubos del cliente / historial
-  const [viewCylindersCliente, setViewCylindersCliente] = useState<Cliente | null>(null)
+  // ── Dialogs ──
+  const [viewCliente, setViewCliente] = useState<Cliente | null>(null)
+  const [viewTab, setViewTab] = useState('info')
+
   const [cylindersForCliente, setCylindersForCliente] = useState<Cylinder[]>([])
   const [loadingCylinders, setLoadingCylinders] = useState(false)
-  const [viewHistoryCliente, setViewHistoryCliente] = useState<Cliente | null>(null)
+
   const [historyData, setHistoryData] = useState<{ gas: string; mes: string; cantidad: number }[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
-  // Acceso dialog
   const [viewAccesoCliente, setViewAccesoCliente] = useState<Cliente | null>(null)
   const [accesoData, setAccesoData] = useState<{ id: string; usuario: string; activo: boolean } | null>(null)
   const [accesoForm, setAccesoForm] = useState({ usuario: '', password: '', activo: true })
   const [loadingAcceso, setLoadingAcceso] = useState(false)
 
+  // ── Form ──
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const emptyForm = {
+    nombre: '',
+    apellido: '',
+    email: '',
+    taxId: '',
+    contacto: '',
+    firmaDigital: '',
+    tipologia: '',
+    procesoSoldadura: '',
+    materialesBase: '',
+    parametrosIngenieria: '',
+    modoEnvasado: '',
+    gasesConsumo: '',
+    serviciosEspecializados: '',
+    nivelesStockCritico: '',
+    contratoComodato: '',
+    activosEnPosesion: '',
+    fechaVencimientoContrato: '',
+    historialDevoluciones: '',
+    cargosRecurrentes: '',
+    penalizacionesExtravio: '',
+    estadoCuenta: '',
+    ubicaciones: '',
+    notas: '',
+  }
+  const [form, setForm] = useState({ ...emptyForm })
+  const [estadoForm, setEstadoForm] = useState('ACTIVO')
+
+  // ── Dialogs extra ──
+  const [reportesOpen, setReportesOpen] = useState(false)
+  const [configOpen, setConfigOpen] = useState(false)
+  const [stats, setStats] = useState({ total: 0, activos: 0, suspendidos: 0, inactivos: 0, cilindros: 0 })
+  const [cambiandoEstado, setCambiandoEstado] = useState(false)
+
+  // ── Load ──
+  const buildParams = useCallback(() => {
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('limit', String(pageSize))
+    if (filtroNombre) params.set('nombre', filtroNombre)
+    if (filtroTipologia !== 'all') params.set('tipologia', filtroTipologia)
+    if (filtroEstado === 'activos') params.set('estado', 'ACTIVO')
+    if (filtroEstado === 'suspendidos') params.set('estado', 'SUSPENDIDO')
+    if (filtroEstado === 'inactivos') params.set('estado', 'INACTIVO')
+    if (letraActiva !== 'TODOS') params.set('letra', letraActiva)
+    return params
+  }, [page, pageSize, filtroNombre, filtroTipologia, filtroEstado, letraActiva])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = buildParams()
+      const res = await fetch(`/api/clientes?${params}`)
+      const data = await res.json()
+      if (data.clientes) {
+        setClientes(data.clientes)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [buildParams])
+
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 250)
+    return () => clearTimeout(t)
+  }, [load])
+
+  // ── Acceso ──
   async function loadAcceso(clienteId: string) {
     setLoadingAcceso(true)
     try {
@@ -151,6 +279,7 @@ export default function ClientesTab() {
     } finally { setLoadingAcceso(false) }
   }
 
+  // ── Cilindros ──
   async function loadCylindersForCliente(clienteId: string) {
     setLoadingCylinders(true)
     try {
@@ -161,6 +290,7 @@ export default function ClientesTab() {
     finally { setLoadingCylinders(false) }
   }
 
+  // ── Historial ──
   async function loadHistoryForCliente(clienteId: string) {
     setLoadingHistory(true)
     try {
@@ -188,57 +318,11 @@ export default function ClientesTab() {
     finally { setLoadingHistory(false) }
   }
 
-  // Form dialog
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const emptyForm = {
-    nombre: '',
-    taxId: '',
-    contacto: '',
-    firmaDigital: '',
-    tipologia: '',
-    procesoSoldadura: '',
-    materialesBase: '',
-    parametrosIngenieria: '',
-    modoEnvasado: '',
-    gasesConsumo: '',
-    serviciosEspecializados: '',
-    nivelesStockCritico: '',
-    contratoComodato: '',
-    activosEnPosesion: '',
-    fechaVencimientoContrato: '',
-    historialDevoluciones: '',
-    cargosRecurrentes: '',
-    penalizacionesExtravio: '',
-    estadoCuenta: '',
-    ubicaciones: '',
-    notas: '',
-  }
-  const [form, setForm] = useState({ ...emptyForm })
-
-  const load = useCallback(async () => {
-    try {
-      const params = new URLSearchParams()
-      if (filtroNombre) params.set('nombre', filtroNombre)
-      if (filtroTipologia !== 'all') params.set('tipologia', filtroTipologia)
-      if (filtroEstado === 'activos') params.set('activo', 'true')
-      if (filtroEstado === 'inactivos') params.set('activo', 'false')
-      const res = await fetch(`/api/clientes?${params}`)
-      const data = await res.json()
-      setClientes(Array.isArray(data) ? data : [])
-    } finally {
-      setLoading(false)
-    }
-  }, [filtroNombre, filtroTipologia, filtroEstado])
-
-  useEffect(() => {
-    const t = setTimeout(() => void load(), 250)
-    return () => clearTimeout(t)
-  }, [load])
-
+  // ── Form ──
   function openCreate() {
     setEditId(null)
     setForm({ ...emptyForm, modoEnvasado: 'Cilindros' })
+    setEstadoForm('ACTIVO')
     setDialogOpen(true)
   }
 
@@ -246,6 +330,8 @@ export default function ClientesTab() {
     setEditId(c.id)
     setForm({
       nombre: c.nombre,
+      apellido: c.apellido || '',
+      email: c.email || '',
       taxId: c.taxId || '',
       contacto: c.contacto || '',
       firmaDigital: c.firmaDigital || '',
@@ -267,17 +353,19 @@ export default function ClientesTab() {
       ubicaciones: c.ubicaciones || '',
       notas: c.notas || '',
     })
+    setEstadoForm(estadoCliente(c))
     setDialogOpen(true)
   }
 
   async function saveCliente() {
     try {
+      const payload = { ...form, estadoCliente: estadoForm }
       const url = editId ? `/api/clientes/${editId}` : '/api/clientes'
       const method = editId ? 'PUT' : 'POST'
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -317,652 +405,615 @@ export default function ClientesTab() {
     }
   }
 
-  const ESTADO_CUENTA_COLORS: Record<string, string> = {
-    AL_DIA: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    PENDIENTE: 'bg-amber-100 text-amber-700 border-amber-200',
-    MOROSO: 'bg-red-100 text-red-700 border-red-200',
+  // ── Ver detalle ──
+  function verCliente(c: Cliente) {
+    setViewCliente(c)
+    setViewTab('info')
+    loadCylindersForCliente(c.id)
+    loadHistoryForCliente(c.id)
+    loadAcceso(c.id)
   }
 
-  const ESTADO_CUENTA_LABELS: Record<string, string> = {
-    AL_DIA: 'Al día',
-    PENDIENTE: 'Pendiente',
-    MOROSO: 'Moroso',
+  // ── Cambiar estado ──
+  async function cambiarEstadoCliente(nuevoEstado: string) {
+    if (!viewCliente) return
+    setCambiandoEstado(true)
+    try {
+      const res = await fetch(`/api/clientes/${viewCliente.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estadoCliente: nuevoEstado }),
+      })
+      if (!res.ok) throw new Error('Error al cambiar estado')
+      toast({ title: 'Estado actualizado', description: `${viewCliente.nombre} → ${ESTADO_LABEL[nuevoEstado] || nuevoEstado}` })
+      setViewCliente({ ...viewCliente, estadoCliente: nuevoEstado, activo: nuevoEstado === 'ACTIVO' })
+      load()
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo cambiar el estado', variant: 'destructive' })
+    } finally { setCambiandoEstado(false) }
   }
+
+  // ── Stats ──
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/clientes')
+      const data = await res.json()
+      const lista = data.clientes || (Array.isArray(data) ? data : [])
+      let activos = 0, suspendidos = 0, inactivos = 0, cilindros = 0
+      for (const c of lista) {
+        const est = c.estadoCliente || (c.activo ? 'ACTIVO' : 'INACTIVO')
+        if (est === 'ACTIVO') activos++
+        else if (est === 'SUSPENDIDO') suspendidos++
+        else inactivos++
+        cilindros += c._count?.cylinders || 0
+      }
+      setStats({ total: lista.length, activos, suspendidos, inactivos, cilindros })
+    } catch { /* ignore */ }
+  }
+
+  // ── Export CSV ──
+  function exportCSV() {
+    if (clientes.length === 0) return
+    const headers = ['Nombre', 'Apellido', 'Email', 'CUIT', 'Contacto', 'Teléfono', 'Tipología', 'Estado']
+    const rows = clientes.map(c => [
+      c.nombre, c.apellido || '', c.email || '', c.taxId || '', c.contacto || '', '',
+      c.tipologia || '', ESTADO_LABEL[estadoCliente(c)] || ''
+    ].map(v => `"${v}"`).join(','))
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `clientes-${new Date().toISOString().split('T')[0]}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
+  // ── Sidebar items ──
+  const sidebarItems = [
+    { label: 'Clientes', icon: Users, action: () => { setLetraActiva('TODOS'); setFiltroNombre(''); setFiltroEstado('all'); setFiltroTipologia('all'); setPage(1) } },
+    { label: 'Fichero', icon: FolderOpen, action: () => document.querySelector('[data-card-grid]')?.scrollIntoView({ behavior: 'smooth' }) },
+    { label: 'Nuevo Cliente', icon: UserPlus, action: openCreate },
+    { label: 'Buscar', icon: Search, action: () => searchRef.current?.focus() },
+    { label: 'Reportes', icon: BarChart3, action: () => { loadStats(); setReportesOpen(true) } },
+    { label: 'Exportar', icon: Download, action: exportCSV },
+    { label: 'Configuración', icon: Settings2, action: () => setConfigOpen(true) },
+  ]
+
+  // ── Render ──
+  const desde = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const hasta = Math.min(page * pageSize, total)
 
   return (
-    <div className="space-y-4">
-      {/* Barra de filtros */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs flex items-center gap-1">
-                <Search className="w-3 h-3" /> Nombre o razón social
-              </Label>
-              <Input
-                placeholder="Buscar cliente..."
-                value={filtroNombre}
-                onChange={(e) => setFiltroNombre(e.target.value)}
-              />
-            </div>
-            <div className="min-w-[180px]">
-              <Label className="text-xs">Tipología</Label>
-              <Select value={filtroTipologia} onValueChange={setFiltroTipologia}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las tipologías</SelectItem>
-                  {TIPOLOGIAS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-w-[140px]">
-              <Label className="text-xs">Estado</Label>
-              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="activos">Activos</SelectItem>
-                  <SelectItem value="inactivos">Inactivos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={openCreate}
-              className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90 ml-auto"
+    <div className="flex gap-4">
+      {/* ── SIDEBAR ── */}
+      <aside className="w-[200px] shrink-0 bg-[#183B67] rounded-xl p-3 hidden lg:flex flex-col text-white text-xs shadow-md">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/20">
+          <Building2 className="w-5 h-5" />
+          <span className="font-semibold text-sm">Clientes</span>
+        </div>
+        <nav className="space-y-0.5 flex-1">
+          {sidebarItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2.5 text-white/80 hover:text-white"
             >
-              <Plus className="w-4 h-4 mr-1" /> Nuevo Cliente
-            </Button>
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="border-t border-white/20 pt-3 text-white/50 text-[10px] space-y-0.5">
+          <div className="flex items-center gap-1.5">
+            <User className="w-3 h-3" />
+            Administrador
           </div>
-        </CardContent>
-      </Card>
+          <div>{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        </div>
+      </aside>
 
-      {/* Tabla */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">
-                Base de Clientes
-              </CardTitle>
-              <CardDescription>
-                {loading
-                  ? 'Cargando...'
-                  : `${clientes.length} cliente(s) encontrado(s)`}
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={load}>
-              <RefreshCw className="w-4 h-4 mr-1" /> Actualizar
-            </Button>
+      {/* ── MAIN ── */}
+      <div className="flex-1 min-w-0 space-y-3">
+        {/* TOP BAR */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-800 tracking-tight">Gestión Integral de Clientes</h1>
+          <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+            <Plus className="w-4 h-4 mr-1.5" /> Nuevo Cliente
+          </Button>
+        </div>
+
+        {/* SEARCH + FILTERS */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[250px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              ref={searchRef}
+              placeholder="Buscar por nombre, apellido, CUIT, teléfono, email..."
+              className="pl-9 h-10 text-sm"
+              value={filtroNombre}
+              onChange={(e) => { setFiltroNombre(e.target.value); setPage(1) }}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
+          <Select value={filtroEstado} onValueChange={(v) => { setFiltroEstado(v); setPage(1) }}>
+            <SelectTrigger className="w-[150px] h-10">
+              <SelectValue placeholder="Todos los estados" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="suspendidos">Suspendidos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+          {(filtroNombre || filtroEstado !== 'all' || letraActiva !== 'TODOS') && (
+            <Button variant="ghost" size="sm" className="h-10 text-xs" onClick={() => { setFiltroNombre(''); setFiltroEstado('all'); setLetraActiva('TODOS'); setPage(1) }}>
+              <X className="w-3.5 h-3.5 mr-1" /> Limpiar filtros
+            </Button>
+          )}
+        </div>
+
+        {/* ALPHABETICAL INDEX */}
+        <div className="flex flex-wrap gap-1">
+          <Button
+            size="sm"
+            variant={letraActiva === 'TODOS' ? 'default' : 'outline'}
+            onClick={() => { setLetraActiva('TODOS'); setPage(1) }}
+            className="h-7 min-w-[50px] text-xs"
+          >
+            Todos
+          </Button>
+          {'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('').map((l) => (
+            <Button
+              key={l}
+              size="sm"
+              variant={letraActiva === l ? 'default' : 'outline'}
+              onClick={() => { setLetraActiva(l); setPage(1) }}
+              className="h-7 w-8 p-0 text-xs font-semibold"
+            >
+              {l}
+            </Button>
+          ))}
+        </div>
+
+        {/* CARD GRID */}
+        <div data-card-grid>
           {loading ? (
-            <div className="space-y-2">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-12" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-56 rounded-xl" />
               ))}
             </div>
           ) : clientes.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <Users className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-              No se encontraron clientes
-            </div>
+            <Card>
+              <CardContent className="py-16 text-center text-slate-500">
+                <Users className="w-16 h-16 mx-auto mb-3 text-slate-300" />
+                <p className="text-lg font-medium">No se encontraron clientes</p>
+                <p className="text-sm mt-1">Intentá con otros filtros o creá un nuevo cliente</p>
+              </CardContent>
+            </Card>
           ) : (
-            <ScrollArea className="h-[600px]">
-              <Table>
-                <TableHeader className="sticky top-0 bg-white z-10">
-                  <TableRow>
-                    <TableHead className="w-48">Razón Social</TableHead>
-                    <TableHead>Tax ID</TableHead>
-                    <TableHead>Tipología</TableHead>
-                    <TableHead className="text-center">Cilindros</TableHead>
-                    <TableHead>Gases</TableHead>
-                    <TableHead className="text-center">Stock Crítico</TableHead>
-                    <TableHead>Estado Cuenta</TableHead>
-                    <TableHead className="text-center">Acceso</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientes.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-slate-50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold truncate">
-                              {c.nombre}
-                            </div>
-                            {c.contacto && (
-                              <div className="text-xs text-slate-500">
-                                <Contact className="w-3 h-3 inline mr-1" />
-                                {c.contacto}
-                              </div>
-                            )}
-                          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {clientes.map((c) => {
+                const est = estadoCliente(c)
+                const { apellido, nombre } = formatearNombre(c)
+                return (
+                  <Card key={c.id} className="rounded-xl shadow-sm hover:shadow-md transition-all border-slate-200 hover:border-slate-300">
+                    <CardContent className="p-4">
+                      {/* Avatar + nombre */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <Avatar className={`h-10 w-10 ${GRADIENTES[est] || GRADIENTES.ACTIVO} shadow-sm`}>
+                          <AvatarFallback className="text-white font-bold text-sm">
+                            {inicial(c)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm uppercase leading-tight truncate text-slate-800">
+                            {apellido}
+                          </p>
+                          {nombre && (
+                            <p className="text-xs text-slate-500 truncate">{nombre}</p>
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-slate-600">
-                        {c.taxId || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {c.tipologia ? (
-                          <Badge variant="outline" className="text-xs bg-slate-50">
-                            {c.tipologia}
-                          </Badge>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-semibold tabular-nums">
-                          {c._count?.cylinders || 0}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-600 max-w-[180px] truncate">
-                        {c.gasesConsumo || '—'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {c.nivelesStockCritico != null ? (
-                          <span className="font-medium tabular-nums">
-                            {c.nivelesStockCritico}
-                          </span>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        {c.estadoCuenta ? (
-                          <Badge
-                            className={`text-xs border ${ESTADO_CUENTA_COLORS[c.estadoCuenta] || 'bg-slate-100 text-slate-600'}`}
-                          >
-                            {ESTADO_CUENTA_LABELS[c.estadoCuenta] || c.estadoCuenta}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                      </div>
+
+                      {/* Datos */}
+                      <div className="text-xs text-slate-600 space-y-1 mb-3">
+                        {c.taxId && (
+                          <p className="font-mono flex items-center gap-1.5">
+                            <Hash className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{c.taxId}</span>
+                          </p>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-600"
-                            onClick={() => { setViewAccesoCliente(c); loadAcceso(c.id) }}
-                            title="Gestionar credenciales de acceso">
-                            <Key className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-sky-600"
-                            onClick={() => { setViewCylindersCliente(c); loadCylindersForCliente(c.id) }}
-                            title="Ver tubos del cliente">
-                            <Package className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600"
-                            onClick={() => { setViewHistoryCliente(c); loadHistoryForCliente(c.id) }}
-                            title="Historial de uso por gas/mes">
-                            <History className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEdit(c)}
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeCliente(c)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+                        {c.contacto && (
+                          <p className="flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{c.contacto}</span>
+                          </p>
+                        )}
+                        {c.email && (
+                          <p className="flex items-center gap-1.5 truncate">
+                            <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{c.email}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Badge */}
+                      <Badge variant="outline" className={`${ESTADO_BADGE[est] || ESTADO_BADGE.ACTIVO} text-[10px]`}>
+                        {ESTADO_LABEL[est] || 'Activo'}
+                      </Badge>
+
+                      {/* Actions */}
+                      <div className="flex gap-1 mt-3 pt-3 border-t border-slate-100">
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px] text-slate-600 hover:text-slate-800" onClick={() => verCliente(c)}>
+                          <Eye className="w-3.5 h-3.5 mr-1" /> Ver
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px] text-slate-600 hover:text-slate-800" onClick={() => openEdit(c)}>
+                          <Edit3 className="w-3.5 h-3.5 mr-1" /> Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px] text-red-500 hover:text-red-600 hover:bg-red-50 ml-auto" onClick={() => removeCliente(c)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Dialog de creación/edición */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editId ? 'Editar Cliente' : 'Nuevo Cliente'}
-            </DialogTitle>
-            <DialogDescription>
-              {editId
-                ? `Modificando ${form.nombre}`
-                : 'Complete el perfil técnico y comercial del cliente'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* IDENTIFICACIÓN */}
-            <div className="col-span-2">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
-                <Building2 className="w-4 h-4" /> Identificación y Contacto
-              </h3>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Nombre / Razón Social *</Label>
-              <Input
-                value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                placeholder="Razón social del cliente"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs flex items-center gap-1">
-                <Hash className="w-3 h-3" /> Tax ID / CUIT
-              </Label>
-              <Input
-                value={form.taxId}
-                onChange={(e) => setForm({ ...form, taxId: e.target.value })}
-                placeholder="30-12345678-9"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs flex items-center gap-1">
-                <Contact className="w-3 h-3" /> Persona de Contacto
-              </Label>
-              <Input
-                value={form.contacto}
-                onChange={(e) => setForm({ ...form, contacto: e.target.value })}
-                placeholder="Nombre del contacto / receptor autorizado"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Firma Digital del Receptor</Label>
-              <Input
-                value={form.firmaDigital}
-                onChange={(e) => setForm({ ...form, firmaDigital: e.target.value })}
-                placeholder="Registro digital de aceptación"
-              />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Ubicaciones de Entrega</Label>
-              <Input
-                value={form.ubicaciones}
-                onChange={(e) => setForm({ ...form, ubicaciones: e.target.value })}
-                placeholder="Direcciones o coordenadas de plantas, tiendas o puntos de entrega"
-              />
-            </div>
-
-            {/* PERFIL TÉCNICO */}
-            <div className="col-span-2 mt-2">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
-                <FlaskConical className="w-4 h-4" /> Perfil Técnico (Segmentación)
-              </h3>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Tipología de Cliente</Label>
-              <Select
-                value={form.tipologia}
-                onValueChange={(v) => setForm({ ...form, tipologia: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipología" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOLOGIAS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Procesos de Soldadura</Label>
-              <Input
-                value={form.procesoSoldadura}
-                onChange={(e) => setForm({ ...form, procesoSoldadura: e.target.value })}
-                placeholder="TIG, MIG/MAG, Oxicorte, Electrodo"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Materiales Base</Label>
-              <Input
-                value={form.materialesBase}
-                onChange={(e) => setForm({ ...form, materialesBase: e.target.value })}
-                placeholder="Acero, inoxidable, aluminio + espesores"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Parámetros de Ingeniería</Label>
-              <Input
-                value={form.parametrosIngenieria}
-                onChange={(e) => setForm({ ...form, parametrosIngenieria: e.target.value })}
-                placeholder="Homologaciones WPS críticas"
-              />
-            </div>
-
-            {/* LOGÍSTICA Y SUMINISTRO */}
-            <div className="col-span-2 mt-2">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
-                <Truck className="w-4 h-4" /> Logística y Suministro
-              </h3>
-            </div>
-            <div>
-              <Label className="text-xs">Modo de Envasado</Label>
-              <Select
-                value={form.modoEnvasado}
-                onValueChange={(v) => setForm({ ...form, modoEnvasado: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cilindros">Cilindros individuales</SelectItem>
-                  <SelectItem value="Bloques">Bloques</SelectItem>
-                  <SelectItem value="Microgranel">Microgranel</SelectItem>
-                  <SelectItem value="Granel">Granel líquido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Nivel de Stock Crítico</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.nivelesStockCritico}
-                onChange={(e) => setForm({ ...form, nivelesStockCritico: e.target.value })}
-                placeholder="Cantidad mínima para alerta"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Gases de Consumo</Label>
-              <Input
-                value={form.gasesConsumo}
-                onChange={(e) => setForm({ ...form, gasesConsumo: e.target.value })}
-                placeholder="AR, MIX-7525, CO2, O2, C2H2..."
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Servicios Especializados</Label>
-              <Input
-                value={form.serviciosEspecializados}
-                onChange={(e) => setForm({ ...form, serviciosEspecializados: e.target.value })}
-                placeholder="CryoEase®, Maxx®, Integra®"
-              />
-            </div>
-
-            {/* COMODATOS */}
-            <div className="col-span-2 mt-2">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
-                <FileText className="w-4 h-4" /> Gestión de Comodatos
-              </h3>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">N° Contrato de Comodato</Label>
-              <Input
-                value={form.contratoComodato}
-                onChange={(e) => setForm({ ...form, contratoComodato: e.target.value })}
-                placeholder="Número de contrato"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Vencimiento de Contrato</Label>
-              <Input
-                type="date"
-                value={form.fechaVencimientoContrato}
-                onChange={(e) => setForm({ ...form, fechaVencimientoContrato: e.target.value })}
-              />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Activos en Posesión</Label>
-              <Input
-                value={form.activosEnPosesion}
-                onChange={(e) => setForm({ ...form, activosEnPosesion: e.target.value })}
-                placeholder="Números de serie o IDs de cilindros en poder del cliente"
-              />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Historial de Devoluciones</Label>
-              <Input
-                value={form.historialDevoluciones}
-                onChange={(e) => setForm({ ...form, historialDevoluciones: e.target.value })}
-                placeholder="Registro de activos devueltos"
-              />
-            </div>
-
-            {/* CONTROL FINANCIERO */}
-            <div className="col-span-2 mt-2">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2 border-b pb-1 mb-3">
-                <DollarSign className="w-4 h-4" /> Control Financiero
-              </h3>
-            </div>
-            <div>
-              <Label className="text-xs">Estado de Cuenta</Label>
-              <Select
-                value={form.estadoCuenta}
-                onValueChange={(v) => setForm({ ...form, estadoCuenta: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AL_DIA">Al día</SelectItem>
-                  <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                  <SelectItem value="MOROSO">Moroso</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Penalizaciones por Extravío</Label>
-              <Input
-                value={form.penalizacionesExtravio}
-                onChange={(e) => setForm({ ...form, penalizacionesExtravio: e.target.value })}
-                placeholder="Cargos por cilindros no devueltos"
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label className="text-xs">Cargos Recurrentes</Label>
-              <Input
-                value={form.cargosRecurrentes}
-                onChange={(e) => setForm({ ...form, cargosRecurrentes: e.target.value })}
-                placeholder="Facturación automática por alquiler o mantenimiento"
-              />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Notas / Observaciones</Label>
-              <Input
-                value={form.notas}
-                onChange={(e) => setForm({ ...form, notas: e.target.value })}
-                placeholder="Información adicional del cliente"
-              />
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between text-sm text-slate-600 pt-2">
+            <span className="text-xs">
+              Mostrando {desde}–{hasta} de {total} clientes
+            </span>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(1)}>
+                <ChevronLeft className="w-3 h-3" /><ChevronLeft className="w-3 h-3 -ml-1" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                <ChevronLeft className="w-3 h-3" />
+              </Button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const start = Math.max(1, Math.min(page - 2, totalPages - 4))
+                const p = start + i
+                return (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={p === page ? 'default' : 'outline'}
+                    className="h-7 min-w-[28px] p-0 text-xs"
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                )
+              })}
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                <ChevronRight className="w-3 h-3" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(totalPages)}>
+                <ChevronRight className="w-3 h-3" /><ChevronRight className="w-3 h-3 -ml-1" />
+              </Button>
             </div>
           </div>
+        )}
+      </div>
 
+      {/* ── DIALOG: Ver cliente ── */}
+      <Dialog open={!!viewCliente} onOpenChange={(o) => { if (!o) setViewCliente(null) }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full ${GRADIENTES[estadoCliente(viewCliente!)] || GRADIENTES.ACTIVO} flex items-center justify-center text-white text-xs font-bold`}>
+                {viewCliente ? inicial(viewCliente) : ''}
+              </div>
+              {viewCliente?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          {viewCliente && (
+            <Tabs value={viewTab} onValueChange={setViewTab}>
+              <TabsList className="w-full overflow-x-auto">
+                <TabsTrigger value="info" className="text-xs">Info</TabsTrigger>
+                <TabsTrigger value="cilindros" className="text-xs">Cilindros</TabsTrigger>
+                <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
+                <TabsTrigger value="acceso" className="text-xs">Acceso</TabsTrigger>
+                <TabsTrigger value="estado" className="text-xs">Estado</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="info" className="text-sm space-y-2">
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  {[
+                    ['Apellido', viewCliente.apellido],
+                    ['Nombre', viewCliente.nombre],
+                    ['Email', viewCliente.email],
+                    ['CUIT', viewCliente.taxId],
+                    ['Contacto', viewCliente.contacto],
+                    ['Tipología', viewCliente.tipologia],
+                    ['Modo Envasado', viewCliente.modoEnvasado],
+                    ['Gases Consumo', viewCliente.gasesConsumo],
+                    ['Stock Crítico', viewCliente.nivelesStockCritico?.toString()],
+                    ['Contrato Comodato', viewCliente.contratoComodato],
+                    ['Venc. Contrato', viewCliente.fechaVencimientoContrato ? formatDate(viewCliente.fechaVencimientoContrato) : ''],
+                    ['Ubicaciones', viewCliente.ubicaciones],
+                  ].map(([label, val]) => (
+                    val ? <div key={label}><span className="text-slate-500 text-xs">{label}</span><p>{val}</p></div> : null
+                  ))}
+                </div>
+                {viewCliente.notas && (
+                  <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                    <span className="text-slate-500 text-xs block mb-1">Notas</span>
+                    <p className="whitespace-pre-wrap">{viewCliente.notas}</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="cilindros">
+                {loadingCylinders ? (
+                  <Skeleton className="h-[200px]" />
+                ) : cylindersForCliente.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-sm">Sin cilindros asignados</div>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className="text-xs">Serie</TableHead>
+                        <TableHead className="text-xs">Gas</TableHead>
+                        <TableHead className="text-xs">Estado</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {cylindersForCliente.map((cyl) => (
+                          <TableRow key={cyl.id}>
+                            <TableCell className="font-mono text-xs">{cyl.numeroSerie}</TableCell>
+                            <TableCell><span className="text-xs">{cyl.gas?.nombre || cyl.gas?.codigo || '—'}</span></TableCell>
+                            <TableCell><Badge variant="outline" className="text-[10px]">{cyl.estado}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+
+              <TabsContent value="historial">
+                {loadingHistory ? (
+                  <Skeleton className="h-[200px]" />
+                ) : historyData.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-sm">Sin movimientos registrados</div>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className="text-xs">Gas</TableHead>
+                        <TableHead className="text-xs">Mes</TableHead>
+                        <TableHead className="text-xs text-right">Cantidad</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {historyData.map((h, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs">{h.gas}</TableCell>
+                            <TableCell className="text-xs">{h.mes}</TableCell>
+                            <TableCell className="text-xs text-right">{h.cantidad}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+
+              <TabsContent value="acceso">
+                {loadingAcceso ? (
+                  <Skeleton className="h-[150px]" />
+                ) : (
+                  <div className="space-y-3 mt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Usuario</Label>
+                        <Input value={accesoForm.usuario} onChange={(e) => setAccesoForm((p) => ({ ...p, usuario: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Contraseña {accesoData ? '(dejar vacío para mantener)' : ''}</Label>
+                        <Input type="password" value={accesoForm.password} onChange={(e) => setAccesoForm((p) => ({ ...p, password: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="acceso-activo" checked={accesoForm.activo}
+                        onChange={(e) => setAccesoForm((p) => ({ ...p, activo: e.target.checked }))} />
+                      <Label htmlFor="acceso-activo" className="text-xs">Activo</Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={guardarAcceso} disabled={loadingAcceso || !accesoForm.usuario || (!accesoForm.password && !accesoData)}>
+                        <Save className="w-3 h-3 mr-1" /> Guardar
+                      </Button>
+                      {accesoData && (
+                        <Button size="sm" variant="destructive" onClick={eliminarAcceso} disabled={loadingAcceso}>
+                          <Trash2 className="w-3 h-3 mr-1" /> Eliminar acceso
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="estado">
+                <div className="space-y-3 mt-2">
+                  <p className="text-sm text-slate-600">
+                    Estado actual: <Badge variant="outline" className={`${ESTADO_BADGE[estadoCliente(viewCliente)]} ml-1`}>{ESTADO_LABEL[estadoCliente(viewCliente)]}</Badge>
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {viewCliente.estadoCliente !== 'ACTIVO' && (
+                      <Button size="sm" variant="outline" className="justify-start text-emerald-700 border-emerald-200" onClick={() => cambiarEstadoCliente('ACTIVO')} disabled={cambiandoEstado}>
+                        <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-500" />
+                        Reactivar cliente
+                      </Button>
+                    )}
+                    {viewCliente.estadoCliente === 'ACTIVO' && (
+                      <Button size="sm" variant="outline" className="justify-start text-amber-700 border-amber-200" onClick={() => cambiarEstadoCliente('SUSPENDIDO')} disabled={cambiandoEstado}>
+                        <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+                        Suspender cliente
+                      </Button>
+                    )}
+                    {(viewCliente.estadoCliente === 'SUSPENDIDO' || viewCliente.estadoCliente === 'ACTIVO') && (
+                      <Button size="sm" variant="outline" className="justify-start text-red-700 border-red-200" onClick={() => { if (confirm('¿Estás seguro? Esta acción marca al cliente como inactivo definitivamente.')) cambiarEstadoCliente('INACTIVO') }} disabled={cambiandoEstado}>
+                        <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
+                        Marcar como inactivo (cuenta cerrada)
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-2 space-y-1">
+                    <p>• <strong>Activo</strong> — operación normal</p>
+                    <p>• <strong>Suspendido</strong> — etapa previa al cierre</p>
+                    <p>• <strong>Inactivo</strong> — cuenta cerrada, ya no opera</p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── DIALOG: Crear / Editar ── */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2">
+              <Label className="text-xs">Razón Social *</Label>
+              <Input value={form.nombre} onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))} placeholder="Nombre de la empresa" />
+            </div>
+            <div>
+              <Label className="text-xs">Apellido (contacto)</Label>
+              <Input value={form.apellido} onChange={(e) => setForm((p) => ({ ...p, apellido: e.target.value }))} placeholder="Apellido" />
+            </div>
+            <div>
+              <Label className="text-xs">Email</Label>
+              <Input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="correo@ejemplo.com" />
+            </div>
+            <div>
+              <Label className="text-xs">CUIT / Tax ID</Label>
+              <Input value={form.taxId} onChange={(e) => setForm((p) => ({ ...p, taxId: e.target.value }))} placeholder="XX-XXXXXXXX-X" />
+            </div>
+            <div>
+              <Label className="text-xs">Contacto</Label>
+              <Input value={form.contacto} onChange={(e) => setForm((p) => ({ ...p, contacto: e.target.value }))} placeholder="Teléfono / persona" />
+            </div>
+            <div>
+              <Label className="text-xs">Tipología</Label>
+              <Select value={form.tipologia} onValueChange={(v) => setForm((p) => ({ ...p, tipologia: v }))}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {TIPOLOGIAS.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Estado</Label>
+              <Select value={estadoForm} onValueChange={setEstadoForm}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVO">Activo</SelectItem>
+                  <SelectItem value="SUSPENDIDO">Suspendido</SelectItem>
+                  <SelectItem value="INACTIVO">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Modo Envasado</Label>
+              <Select value={form.modoEnvasado} onValueChange={(v) => setForm((p) => ({ ...p, modoEnvasado: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cilindros">Cilindros</SelectItem>
+                  <SelectItem value="Bloques">Bloques</SelectItem>
+                  <SelectItem value="Microgranel">Microgranel</SelectItem>
+                  <SelectItem value="Granel">Granel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Gases Consumo</Label>
+              <Input value={form.gasesConsumo} onChange={(e) => setForm((p) => ({ ...p, gasesConsumo: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">Stock Crítico</Label>
+              <Input type="number" value={form.nivelesStockCritico} onChange={(e) => setForm((p) => ({ ...p, nivelesStockCritico: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">Contrato Comodato</Label>
+              <Input value={form.contratoComodato} onChange={(e) => setForm((p) => ({ ...p, contratoComodato: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">Venc. Contrato</Label>
+              <Input type="date" value={form.fechaVencimientoContrato} onChange={(e) => setForm((p) => ({ ...p, fechaVencimientoContrato: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Ubicaciones</Label>
+              <Input value={form.ubicaciones} onChange={(e) => setForm((p) => ({ ...p, ubicaciones: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Notas</Label>
+              <Input value={form.notas} onChange={(e) => setForm((p) => ({ ...p, notas: e.target.value }))} />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              <X className="w-4 h-4 mr-1" /> Cancelar
-            </Button>
-            <Button
-              onClick={saveCliente}
-              disabled={!form.nombre.trim()}
-              className="bg-gradient-to-r from-orange-500 to-red-600 hover:opacity-90"
-            >
-              <Save className="w-4 h-4 mr-1" /> Guardar
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={saveCliente} disabled={!form.nombre.trim()}>
+              <Save className="w-4 h-4 mr-1" /> {editId ? 'Actualizar' : 'Crear'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Tubos del cliente */}
-      <Dialog open={!!viewCylindersCliente} onOpenChange={(o) => { if (!o) setViewCylindersCliente(null) }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-sky-600" />
-              Tubos de {viewCylindersCliente?.nombre}
-            </DialogTitle>
-          </DialogHeader>
-          {loadingCylinders ? (
-            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-          ) : cylindersForCliente.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              <Package className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-              Este cliente no tiene tubos asignados
-            </div>
-          ) : (
-            <div className="overflow-x-auto max-h-96">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>N° Serie</TableHead>
-                    <TableHead>Gas</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Capacidad</TableHead>
-                    <TableHead>PH</TableHead>
-                    <TableHead>Ubicación</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cylindersForCliente.map((cyl) => (
-                    <TableRow key={cyl.id}>
-                      <TableCell className="font-mono text-xs font-semibold">{cyl.numeroSerie}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: cyl.gas.colorHex }} />
-                          <span className="text-sm">{cyl.gas.nombre}</span>
-                          <SgaBadge peligro={cyl.gas.peligro} />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`text-[10px] ${ESTADO_COLORS[cyl.estado] || 'bg-slate-100 text-slate-700'}`}>
-                          {ESTADO_LABELS[cyl.estado] || cyl.estado}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="tabular-nums">{cyl.capacidadLitros}L</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const d = daysUntil(cyl.fechaProximoRetest)
-                          if (d < 0) return <Badge variant="destructive" className="text-[10px]">Vencida</Badge>
-                          if (d <= 60) return <Badge className="bg-amber-100 text-amber-700 text-[10px]">{d}d</Badge>
-                          return <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">{formatDate(cyl.fechaProximoRetest)}</Badge>
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-xs">{cyl.ubicacionNombre}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog: Historial de uso por gas/mes */}
-      <Dialog open={!!viewHistoryCliente} onOpenChange={(o) => { if (!o) setViewHistoryCliente(null) }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="w-5 h-5 text-amber-600" />
-              Historial de uso — {viewHistoryCliente?.nombre}
-            </DialogTitle>
-            <DialogDescription>Movimientos de tubos agrupados por gas, mes y año</DialogDescription>
-          </DialogHeader>
-          {loadingHistory ? (
-            <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-          ) : historyData.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              <History className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-              Sin movimientos registrados
-            </div>
-          ) : (
-            <div className="overflow-x-auto max-h-96">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Gas</TableHead>
-                    <TableHead className="text-center">Mes / Año</TableHead>
-                    <TableHead className="text-right">Movimientos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historyData.map((h, i) => (
-                    <TableRow key={i}>
-                      <TableCell><div className="flex items-center gap-2"><span className="text-sm font-medium">{h.gas}</span></div></TableCell>
-                      <TableCell className="text-center font-mono text-sm">{h.mes}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary" className="font-mono tabular-nums">{h.cantidad}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog: Acceso */}
-      <Dialog open={!!viewAccesoCliente} onOpenChange={(o) => { if (!o) setViewAccesoCliente(null) }}>
+      {/* ── DIALOG: Reportes ── */}
+      <Dialog open={reportesOpen} onOpenChange={setReportesOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-indigo-600" />
-              Acceso de {viewAccesoCliente?.nombre}
+              <BarChart3 className="w-5 h-5 text-blue-500" /> Reportes de Clientes
             </DialogTitle>
-            <DialogDescription>
-              {accesoData ? 'Modificar o eliminar las credenciales de inicio de sesión' : 'Crear credenciales para que el cliente acceda al portal'}
-            </DialogDescription>
           </DialogHeader>
-          {loadingAcceso ? (
-            <div className="py-8 text-center text-slate-400">Cargando...</div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-xs font-medium">Usuario</Label>
-                <Input value={accesoForm.usuario} onChange={(e) => setAccesoForm(f => ({ ...f, usuario: e.target.value }))}
-                  placeholder="nombre de usuario" className="mt-1" />
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              ['Total', stats.total, 'text-slate-700 bg-slate-100'],
+              ['Activos', stats.activos, 'text-emerald-700 bg-emerald-50'],
+              ['Suspendidos', stats.suspendidos, 'text-amber-700 bg-amber-50'],
+              ['Inactivos', stats.inactivos, 'text-slate-500 bg-slate-100'],
+            ].map(([label, val, cls]) => (
+              <div key={label as string} className={`rounded-lg p-4 text-center ${cls}`}>
+                <div className="text-2xl font-bold">{val as number}</div>
+                <div className="text-xs mt-1">{label as string}</div>
               </div>
-              <div>
-                <Label className="text-xs font-medium">{accesoData ? 'Nueva contraseña (dejar vacío para mantener)' : 'Contraseña'}</Label>
-                <Input type="password" value={accesoForm.password} onChange={(e) => setAccesoForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder={accesoData ? '•••••••• (dejar vacío)' : '••••••••'} className="mt-1" />
-                <p className="text-xs text-slate-400 mt-1">Mínimo 6 caracteres</p>
-              </div>
-              {accesoData && (
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="accesoActivo" checked={accesoForm.activo}
-                    onChange={(e) => setAccesoForm(f => ({ ...f, activo: e.target.checked }))}
-                    className="rounded border-slate-300" />
-                  <Label htmlFor="accesoActivo" className="text-xs">Cuenta activa</Label>
-                </div>
-              )}
-              <div className="flex justify-between pt-2">
-                <div>
-                  {accesoData && (
-                    <Button variant="destructive" size="sm" onClick={eliminarAcceso} disabled={loadingAcceso}>
-                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar acceso
-                    </Button>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setViewAccesoCliente(null)}>Cancelar</Button>
-                  <Button size="sm" onClick={guardarAcceso} disabled={!accesoForm.usuario || (!accesoData && !accesoForm.password) || loadingAcceso}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90">
-                    <Save className="w-3.5 h-3.5 mr-1" /> {accesoData ? 'Actualizar' : 'Crear acceso'}
-                  </Button>
-                </div>
-              </div>
-              {accesoData && (
-                <p className="text-xs text-slate-400 text-center pt-2 border-t">
-                  Usuario actual: <strong>{accesoData.usuario}</strong> — {accesoData.activo ? 'Activo' : 'Inactivo'}
-                </p>
-              )}
+            ))}
+          </div>
+          <div className="rounded-lg p-4 text-center bg-indigo-50 text-indigo-700">
+            <div className="text-2xl font-bold">{stats.cilindros}</div>
+            <div className="text-xs mt-1">Cilindros en circulación</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── DIALOG: Configuración ── */}
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5" /> Configuración
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Items por página</Label>
+              <p className="text-sm text-slate-600">{pageSize}</p>
+              <p className="text-[10px] text-slate-400">Fijo a 12 para mantener 4×3 en el grid</p>
             </div>
-          )}
+            <div>
+              <Label className="text-xs">Columnas en grid</Label>
+              <p className="text-sm text-slate-600">4 (responsive: 1→2→3→4)</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

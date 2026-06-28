@@ -44,6 +44,8 @@ export async function PUT(
     const data: Record<string, unknown> = {}
 
     if (body.nombre !== undefined) data.nombre = body.nombre.trim()
+    if (body.apellido !== undefined) data.apellido = body.apellido || null
+    if (body.email !== undefined) data.email = body.email || null
     if (body.taxId !== undefined) data.taxId = body.taxId || null
     if (body.contacto !== undefined) data.contacto = body.contacto || null
     if (body.firmaDigital !== undefined) data.firmaDigital = body.firmaDigital || null
@@ -67,6 +69,13 @@ export async function PUT(
     if (body.lng !== undefined) data.lng = body.lng ? parseFloat(body.lng) : null
     if (body.notas !== undefined) data.notas = body.notas || null
     if (body.activo !== undefined) data.activo = Boolean(body.activo)
+
+    // Sync estadoCliente ↔ activo
+    if (body.estadoCliente !== undefined) {
+      data.estadoCliente = body.estadoCliente
+      if (body.estadoCliente === 'ACTIVO') data.activo = true
+      else if (body.estadoCliente === 'SUSPENDIDO' || body.estadoCliente === 'INACTIVO') data.activo = false
+    }
 
     const updated = await db.cliente.update({
       where: { id },

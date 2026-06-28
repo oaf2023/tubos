@@ -13,6 +13,7 @@ import {
   RefreshCw,
   DollarSign,
   Navigation,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -76,21 +77,47 @@ type VehiculoData = {
   estado: string
 }
 
+type ClienteCoordenada = {
+  id: string
+  nombre: string
+  taxId: string | null
+  contacto: string | null
+  lat: number | null
+  lng: number | null
+  ubicaciones: string | null
+  totalCilindros: number
+  pedidosPendientes: number
+  cilindrosPendientes: number
+}
+
+type ParadaInput = Location & {
+  clienteId?: string
+  demandaTubos?: number
+  pesoKg?: number
+  ventanaDesde?: number
+  ventanaHasta?: number
+  tiempoServicioMin?: number
+  prioridad?: number
+  tipoOperacion?: string
+}
+
 export default function RutasTab() {
   const { toast } = useToast()
   const [rutas, setRutas] = useState<Ruta[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const [clientes, setClientes] = useState<ClienteCoordenada[]>([])
   const [vehiculos, setVehiculos] = useState<VehiculoData[]>([])
   const [geocercas, setGeocercas] = useState<GeocercaData[]>([])
   const [loading, setLoading] = useState(true)
 
   // Nueva ruta
   const [nombreRuta, setNombreRuta] = useState('')
-  const [selectedParadas, setSelectedParadas] = useState<Location[]>([])
+  const [selectedParadas, setSelectedParadas] = useState<ParadaInput[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState('')
   const [costoPorKm, setCostoPorKm] = useState('')
   const [optimizando, setOptimizando] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [tabParadas, setTabParadas] = useState<'ubicaciones' | 'clientes'>('ubicaciones')
 
   // Distancia optimizada (OSRM)
   const [optDistance, setOptDistance] = useState<{ km: number; horas: number } | null>(null)
@@ -107,21 +134,31 @@ export default function RutasTab() {
   const [gpsSimulando, setGpsSimulando] = useState(false)
   const [gpsInterval, setGpsInterval] = useState<ReturnType<typeof setInterval> | null>(null)
 
+  // Conductor selector
+  const [conductores, setConductores] = useState<{ id: string; nombre: string }[]>([])
+  const [conductorAsignar, setConductorAsignar] = useState<Record<string, string>>({})
+
   const load = useCallback(async () => {
     try {
-      const [rRes, lRes, vRes, gRes] = await Promise.all([
+      const [rRes, lRes, vRes, gRes, cRes, uRes] = await Promise.all([
         fetch('/api/routes'),
         fetch('/api/locations'),
         fetch('/api/vehiculos'),
         fetch('/api/geocercas'),
+        fetch('/api/clientes/con-coordenadas'),
+        fetch('/api/usuarios'),
       ])
-      const [rData, lData, vData, gData] = await Promise.all([
-        rRes.json(), lRes.json(), vRes.json(), gRes.json(),
+      const [rData, lData, vData, gData, cData, uData] = await Promise.all([
+        rRes.json(), lRes.json(), vRes.json(), gRes.json(), cRes.json(), uRes.json(),
       ])
       setRutas(Array.isArray(rData) ? rData : [])
       setLocations(Array.isArray(lData) ? lData : [])
       setVehiculos(Array.isArray(vData) ? vData : [])
       setGeocercas(Array.isArray(gData) ? gData : [])
+      setClientes(Array.isArray(cData) ? cData : [])
+      if (Array.isArray(uData)) {
+        setConductores(uData.filter((u: any) => u.activo !== false).map((u: any) => ({ id: u.id, nombre: u.nombre })))
+      }
     } finally {
       setLoading(false)
     }
@@ -137,7 +174,33 @@ export default function RutasTab() {
     setSelectedParadas((prev) => {
       const exists = prev.find((p) => p.id === loc.id)
       if (exists) return prev.filter((p) => p.id !== loc.id)
-      return [...prev, loc]
+      const paradaInput: ParadaInput = { ...loc, tipoOperacion: 'ENTREGA' }
+      return [...prev, paradaInput]
+    })
+  }
+
+  function toggleCliente(cli: ClienteCoordenada) {
+    if (!cli.lat || !cli.lng) return
+    setSelectedParadas((prev) => {
+      const exists = prev.find((p) => p.id === `cli-${cli.id}`)
+      if (exists) return prev.filter((p) => p.id !== `cli-${cli.id}`)
+      const paradaInput: ParadaInput = {
+        id: `cli-${cli.id}`,
+        nombre: cli.nombre,
+        provincia: '',
+        lat: cli.lat!,
+        lng: cli.lng!,
+        esBase: false,
+        tipo: 'CLIENTE',
+        direccion: cli.ubicaciones || null,
+        telefono: cli.contacto || null,
+        clienteId: cli.id,
+        demandaTubos: cli.cilindrosPendientes || undefined,
+        pesoKg: (cli.cilindrosPendientes || 0) * 65,
+        prioridad: 5,
+        tipoOperacion: 'ENTREGA',
+      }
+      return [...prev, paradaInput]
     })
   }
 
@@ -190,7 +253,7 @@ export default function RutasTab() {
       const data = await res.json()
       const reordered = data.optimized
         .map((o: any) => selectedParadas.find((p) => p.id === o.id))
-        .filter(Boolean) as Location[]
+        .filter(Boolean) as ParadaInput[]
       setSelectedParadas(reordered)
       if (data.geometry) {
         setRouteGeometry(data.geometry)
@@ -235,6 +298,14 @@ export default function RutasTab() {
         provincia: p.provincia,
         cylinderIds: '',
         notas: '',
+        clienteId: p.clienteId || undefined,
+        demandaTubos: p.demandaTubos || undefined,
+        pesoKg: p.pesoKg || undefined,
+        ventanaDesde: p.ventanaDesde || undefined,
+        ventanaHasta: p.ventanaHasta || undefined,
+        tiempoServicioMin: p.tiempoServicioMin || undefined,
+        prioridad: p.prioridad ?? 5,
+        tipoOperacion: p.tipoOperacion || 'ENTREGA',
       })),
     }
 
@@ -378,13 +449,17 @@ export default function RutasTab() {
         popup: `<strong>Base Operativa</strong><br/>${base.nombre}`,
       })
       selectedParadas.forEach((p) => {
+        const extraInfo = p.clienteId
+          ? `<br/><span style="font-size:10px;color:#64748b;">🛢️ ${p.demandaTubos || 0} tubos · ${p.tipoOperacion || 'ENTREGA'}${p.ventanaDesde != null ? ` · ${Math.floor(p.ventanaDesde / 60)}:${String(p.ventanaDesde % 60).padStart(2, '0')}-${Math.floor((p.ventanaHasta || 0) / 60)}:${String((p.ventanaHasta || 0) % 60).padStart(2, '0')}` : ''}</span>`
+          : ''
+        const contacto = p.telefono ? `<br/>📞 ${p.telefono}` : ''
         markers.push({
           id: `planning-${p.id}`,
           lat: p.lat,
           lng: p.lng,
           color: '#3b82f6',
           label: p.nombre,
-          popup: p.nombre,
+          popup: `<strong>${p.nombre}</strong>${contacto}${extraInfo}`,
         })
       })
     }
@@ -469,18 +544,36 @@ export default function RutasTab() {
     return routes
   }, [rutaSeleccionada, base, selectedParadas, optDistance, routeGeometry])
 
+  // Demanda total de las paradas seleccionadas
+  const demandaTotal = useMemo(() => {
+    return selectedParadas.reduce((sum, p) => sum + (p.demandaTubos || 0), 0)
+  }, [selectedParadas])
+
+  const pesoTotalEstimado = useMemo(() => {
+    return selectedParadas.reduce((sum, p) => sum + (p.pesoKg || (p.demandaTubos || 0) * 65), 0)
+  }, [selectedParadas])
+
   // Capacidad del vehículo seleccionado
   const capacidadInfo = useMemo(() => {
     if (!selectedVehicleId) return null
     const v = vehiculos.find(v => v.id === selectedVehicleId)
     if (!v) return null
+    const maxTubos = v.maxTubos || 1
+    const pct = Math.round((demandaTotal / maxTubos) * 100)
+    const pctPeso = Math.round((pesoTotalEstimado / (maxTubos * 65)) * 100)
     return {
       maxTubos: v.maxTubos,
       patente: v.patente,
       costoPorKm: v.costoPorKm,
       tipo: v.tipo,
+      demandaTotal,
+      pesoTotalEstimado,
+      pctCapacidad: Math.min(pct, 100),
+      pctPeso: Math.min(pctPeso, 100),
+      excede: pct > 100,
+      barColor: pct > 100 ? 'bg-red-500' : pct > 80 ? 'bg-amber-500' : 'bg-emerald-500',
     }
-  }, [selectedVehicleId, vehiculos])
+  }, [selectedVehicleId, vehiculos, demandaTotal, pesoTotalEstimado])
 
   // Costo total estimado
   const costoTotalEstimado = useMemo(() => {
@@ -531,14 +624,46 @@ export default function RutasTab() {
               </Select>
             </div>
 
-            {/* Info de capacidad (vehículo seleccionado) */}
+            {/* Info de capacidad (vehículo seleccionado) + barra */}
             {capacidadInfo && (
-              <div className="bg-sky-50 border border-sky-200 rounded p-2 text-[10px] space-y-0.5">
+              <div className={`border rounded p-2 text-[10px] space-y-1.5 ${
+                capacidadInfo.excede ? 'bg-red-50 border-red-300' : 'bg-sky-50 border-sky-200'
+              }`}>
                 <div className="font-medium text-sky-800">{capacidadInfo.patente} ({capacidadInfo.tipo})</div>
                 <div className="flex justify-between">
                   <span>Capacidad</span>
                   <span className="font-mono">{capacidadInfo.maxTubos ?? 'N/A'} tubos</span>
                 </div>
+                {demandaTotal > 0 && (
+                  <>
+                    <div>
+                      <div className="flex justify-between mb-0.5">
+                        <span>Carga: {demandaTotal} tubos</span>
+                        <span className={capacidadInfo.excede ? 'text-red-600 font-bold' : ''}>
+                          {capacidadInfo.pctCapacidad}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${capacidadInfo.barColor}`}
+                          style={{ width: `${capacidadInfo.pctCapacidad}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-0.5">
+                        <span>Peso est.: {pesoTotalEstimado.toFixed(0)} kg</span>
+                        <span>{capacidadInfo.pctPeso}%</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-purple-400 transition-all"
+                          style={{ width: `${capacidadInfo.pctPeso}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
                 {capacidadInfo.costoPorKm && (
                   <div className="flex justify-between">
                     <span>Costo/km</span>
@@ -570,35 +695,96 @@ export default function RutasTab() {
               )}
             </div>
 
+            {/* Tabs: Ubicaciones / Clientes */}
             <div>
-              <Label className="text-xs">Ubicaciones disponibles</Label>
-              <ScrollArea className="h-[160px] border border-slate-200 rounded-md">
+              <div className="flex border-b border-slate-200 mb-2">
+                <button
+                  className={`text-xs px-3 py-1.5 font-medium border-b-2 transition-colors ${
+                    tabParadas === 'ubicaciones'
+                      ? 'border-orange-500 text-orange-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                  onClick={() => setTabParadas('ubicaciones')}
+                >
+                  📍 Ubicaciones
+                </button>
+                <button
+                  className={`text-xs px-3 py-1.5 font-medium border-b-2 transition-colors ${
+                    tabParadas === 'clientes'
+                      ? 'border-orange-500 text-orange-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                  onClick={() => setTabParadas('clientes')}
+                >
+                  👤 Clientes ({clientes.length})
+                </button>
+              </div>
+
+              <ScrollArea className="h-[180px] border border-slate-200 rounded-md">
                 <div className="p-1.5 space-y-0.5">
-                  {locations
-                    .filter((l) => !l.esBase)
-                    .map((l) => {
-                      const selected = selectedParadas.some((p) => p.id === l.id)
-                      return (
-                        <label
-                          key={l.id}
-                          className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer text-xs ${
-                            selected
-                              ? 'bg-orange-50 border border-orange-200'
-                              : 'hover:bg-slate-50 border border-transparent'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleParada(l)}
-                            className="w-3.5 h-3.5 accent-orange-500"
-                          />
-                          <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                          <span className="font-medium">{l.nombre}</span>
-                          <span className="text-[10px] text-slate-400 ml-auto">{l.provincia}</span>
-                        </label>
-                      )
-                    })}
+                  {tabParadas === 'ubicaciones' ? (
+                    locations
+                      .filter((l) => !l.esBase)
+                      .map((l) => {
+                        const selected = selectedParadas.some((p) => p.id === l.id)
+                        return (
+                          <label
+                            key={l.id}
+                            className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer text-xs ${
+                              selected
+                                ? 'bg-orange-50 border border-orange-200'
+                                : 'hover:bg-slate-50 border border-transparent'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleParada(l)}
+                              className="w-3.5 h-3.5 accent-orange-500"
+                            />
+                            <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                            <span className="font-medium truncate">{l.nombre}</span>
+                            <span className="text-[10px] text-slate-400 ml-auto shrink-0">{l.provincia}</span>
+                          </label>
+                        )
+                      })
+                  ) : (
+                    clientes.length === 0 ? (
+                      <div className="text-center py-6 text-slate-400 text-xs">
+                        No hay clientes con coordenadas
+                      </div>
+                    ) : (
+                      clientes.map((cli) => {
+                        const selected = selectedParadas.some((p) => p.id === `cli-${cli.id}`)
+                        return (
+                          <label
+                            key={cli.id}
+                            className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer text-xs ${
+                              selected
+                                ? 'bg-orange-50 border border-orange-200'
+                                : 'hover:bg-slate-50 border border-transparent'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleCliente(cli)}
+                              className="w-3.5 h-3.5 accent-orange-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium truncate">{cli.nombre}</span>
+                                <span className="text-[10px] text-slate-400 shrink-0">{cli.cilindrosPendientes} 🛢️</span>
+                              </div>
+                              <div className="text-[9px] text-slate-400 truncate">
+                                {cli.contacto || cli.taxId || 'Sin contacto'}
+                              </div>
+                            </div>
+                          </label>
+                        )
+                      })
+                    )
+                  )}
                 </div>
               </ScrollArea>
             </div>
@@ -751,8 +937,10 @@ export default function RutasTab() {
                             key={p.id}
                             variant={p.estado === 'ENTREGADO' ? 'default' : 'outline'}
                             className={`text-[9px] py-0 h-4 ${p.estado === 'ENTREGADO' ? 'bg-emerald-500' : ''}`}
+                            title={(p as any).demandaTubos ? `${(p as any).demandaTubos} tubos` : undefined}
                           >
                             {p.estado === 'ENTREGADO' ? '✓' : idx + 1}. {p.nombre}
+                            {(p as any).demandaTubos ? ` (${p.demandaTubos}🛢️)` : ''}
                           </Badge>
                         ))}
                       </div>
@@ -764,6 +952,40 @@ export default function RutasTab() {
                         <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => cambiarEstado(r, 'EN_PROGRESO')} disabled={r.estado !== 'PLANIFICADA'}>
                           Iniciar
                         </Button>
+                        {(r.estado === 'PLANIFICADA' || r.estado === 'EN_PROGRESO') && (
+                          <div className="flex items-center gap-1">
+                            <select
+                              className="h-7 text-[10px] border border-sky-200 rounded px-1 bg-white text-slate-600 max-w-[100px]"
+                              value={conductorAsignar[r.id] || ''}
+                              onChange={(e) => setConductorAsignar((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                            >
+                              <option value="">Link</option>
+                              {conductores.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nombre.split(' ')[0]}</option>
+                              ))}
+                            </select>
+                            <Button size="sm" variant="outline" className="h-7 text-[10px] text-sky-700 border-sky-300" onClick={async () => {
+                              const conductorId = conductorAsignar[r.id] || undefined
+                              const res = await fetch(`/api/routes/${r.id}/start-navigation`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ conductorId }),
+                              })
+                              if (res.ok) {
+                                const data = await res.json()
+                                if (conductorId) {
+                                  toast({ title: 'Ruta asignada', description: `Chofer notificado — puede verla en /chofer` })
+                                } else {
+                                  await navigator.clipboard.writeText(data.navigationUrl)
+                                  toast({ title: 'URL copiada', description: 'Compartí este link con el chofer' })
+                                }
+                                load()
+                              }
+                            }}>
+                              <Truck className="w-3 h-3 mr-1" /> {conductorAsignar[r.id] ? 'Asignar' : 'Compartir'}
+                            </Button>
+                          </div>
+                        )}
                         {r.estado === 'EN_PROGRESO' && (
                           <Button size="sm" variant="secondary" className="h-7 text-[10px]" onClick={() => iniciarNavegacion(r)}>
                             <Truck className="w-3 h-3 mr-1" /> Navegar
@@ -852,6 +1074,11 @@ export default function RutasTab() {
                           <p className="text-xs text-emerald-600 font-medium">PRÓXIMA PARADA</p>
                           <h3 className="font-bold text-lg">{actual.nombre}</h3>
                           <p className="text-xs text-slate-500">{actual.provincia}</p>
+                          {(actual as any).demandaTubos ? (
+                            <p className="text-xs text-emerald-700 mt-1">
+                              🛢️ {(actual as any).demandaTubos} tubos · {(actual as any).tipoOperacion || 'ENTREGA'}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     </CardContent>
@@ -896,6 +1123,46 @@ export default function RutasTab() {
                   )}
                 </div>
 
+                {/* Alerta de desvío + botón de recalcular */}
+                {gpsPings.length > 0 && restantes.length > 1 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-amber-800">Monitoreo de ruta activo</p>
+                        <p className="text-[10px] text-amber-600 mt-0.5">
+                          {restantes.length} parada(s) restante(s) · GPS tracking en vivo
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] mt-1 border-amber-300 text-amber-700"
+                          onClick={async () => {
+                            const ultimo = gpsPings[0]
+                            if (!ultimo) return
+                            const res = await fetch('/api/routing/recalculate', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                rutaId: r.id,
+                                posicionActual: { lat: ultimo.lat, lng: ultimo.lng },
+                              }),
+                            })
+                            if (res.ok) {
+                              toast({ title: 'Ruta recalculada', description: 'Paradas reordenadas desde posición actual' })
+                              load()
+                            } else {
+                              toast({ title: 'Error al recalcular', variant: 'destructive' })
+                            }
+                          }}
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" /> Recalcular ruta
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Lista de paradas */}
                 <div>
                   <Label className="text-xs text-slate-500 mb-1 block">
@@ -922,7 +1189,10 @@ export default function RutasTab() {
                             {delivered ? '✓' : idx + 1}
                           </div>
                           <span className={`flex-1 ${delivered ? 'line-through text-slate-400' : ''}`}>{p.nombre}</span>
-                          <span className="text-[10px] text-slate-400">{p.provincia}</span>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                            {(p as any).demandaTubos ? <span>🛢️{p.demandaTubos}</span> : null}
+                            <span>{p.provincia}</span>
+                          </div>
                           {!delivered && isCurrent && (
                             <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarEntregado(p.id)}>
                               Entregado

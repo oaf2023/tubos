@@ -24,7 +24,6 @@ async function capacidadVehiculo(vehicleId: string): Promise<{
       ? v.maxTubos * 65 // estimado: cada tubo lleno ~65kg promedio
       : undefined,
   }
-  }
 }
 
 // Valida que los cilindros quepan en el vehículo

@@ -235,7 +235,9 @@ model FacturaItem {
 
 model Cliente {
   id                    String         @id @default(cuid())
-  nombre                String         @unique // Razón social
+  nombre                String         @unique // Razón social / Nombre de contacto
+  apellido              String?        // Apellido del contacto (formato "APELLIDO, Nombre")
+  email                 String?        // Correo electrónico
   taxId                 String?        // CUIT / Tax ID
   contacto              String?        // Persona de contacto / receptor autorizado
   firmaDigital          String?        // Registro de aceptación de responsabilidad
@@ -259,10 +261,12 @@ model Cliente {
   lng                   Float?         // Ubicación principal longitud
   notas                 String?
   activo                Boolean        @default(true)
+  estadoCliente         String?        @default("ACTIVO") // ACTIVO | SUSPENDIDO | INACTIVO
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   cylinders             Cylinder[]     @relation("ClienteCylinders")
   acceso                ClienteAcceso?
+  paradas               RutaParada[]
 }
 
 model AlertConfig {
@@ -277,42 +281,56 @@ model AlertConfig {
 }
 
 model Ruta {
-  id           String       @id @default(cuid())
-  nombre       String
-  fecha        DateTime     @default(now())
-  estado       String       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
-  origenNombre String
-  origenLat    Float
-  origenLng    Float
-  distanciaKm  Float        @default(0)
-  duracionHoras Float       @default(0)
-  geometry     String?      // OSRM road geometry JSON: [[lat,lng],...]
-  costoPorKm   Float?       // Costo operativo por km (combustible + desgaste)
-  costoTotal   Float?       // costoPorKm * distanciaKm (calculado)
-  vehicleId    String?      // Vehículo asignado a esta ruta
-  vehicle      Vehiculo?    @relation(fields: [vehicleId], references: [id])
-  pedidoId     String?      // Pedido origen que generó la ruta
-  cylinderIds  String?      // IDs de cilindros separados por coma (carga completa)
-  paradas      RutaParada[]
-  ubicaciones  UbicacionGPS[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  nombre             String
+  fecha              DateTime     @default(now())
+  estado             String       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
+  origenNombre       String
+  origenLat          Float
+  origenLng          Float
+  distanciaKm        Float        @default(0)
+  duracionHoras      Float        @default(0)
+  geometry           String?      // OSRM road geometry JSON: [[lat,lng],...]
+  costoPorKm         Float?       // Costo operativo por km (combustible + desgaste)
+  costoTotal         Float?       // costoPorKm * distanciaKm (calculado)
+  vehicleId          String?      // Vehículo asignado a esta ruta
+  vehicle            Vehiculo?    @relation(fields: [vehicleId], references: [id])
+  pedidoId           String?      // Pedido origen que generó la ruta
+  cylinderIds        String?      // IDs de cilindros separados por coma (carga completa)
+  navigationToken    String?      @unique // Token para compartir con el chofer (PWA)
+  navigationStartedAt DateTime?  // Cuándo se inició la navegación
+  conductorId        String?      // FK → Usuario (chofer asignado)
+  conductor          Usuario?     @relation("ConductorRutas", fields: [conductorId], references: [id])
+  paradas            RutaParada[]
+  sesiones           SesionConductor[]
+  ubicaciones        UbicacionGPS[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 }
 
 model RutaParada {
-  id          String  @id @default(cuid())
-  rutaId      String
-  ruta        Ruta    @relation(fields: [rutaId], references: [id], onDelete: Cascade)
-  orden       Int
-  lat         Float
-  lng         Float
-  nombre      String
-  provincia   String
-  cylinderIds String  // IDs separados por coma
-  estado      String  // PENDIENTE, ENTREGADO, EN_PROGRESO
-  notas       String?
-  llegada     DateTime? // Timestamp de llegada real
-  salida      DateTime? // Timestamp de salida real
+  id               String    @id @default(cuid())
+  rutaId           String
+  ruta             Ruta      @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  orden            Int
+  lat              Float
+  lng              Float
+  nombre           String
+  provincia        String
+  cylinderIds      String    // IDs separados por coma
+  estado           String    // PENDIENTE, ENTREGADO, EN_PROGRESO
+  notas            String?
+  llegada          DateTime? // Timestamp de llegada real
+  salida           DateTime? // Timestamp de salida real
+  clienteId        String?   // FK → Cliente
+  cliente          Cliente?  @relation(fields: [clienteId], references: [id])
+  demandaTubos     Int?      // Tubos a entregar/retirar en esta parada
+  pesoKg           Float?    // Peso total estimado de la carga
+  ventanaDesde     Int?      // Minutos desde 00:00 (540 = 09:00)
+  ventanaHasta     Int?      // Minutos desde 00:00 (720 = 12:00)
+  tiempoServicioMin Int?     // Minutos estimados en la parada
+  prioridad        Int?      @default(5) // 1=urgente, 5=normal, 10=baja
+  tipoOperacion    String?   @default("ENTREGA") // ENTREGA, RETIRO, CANJE
 }
 
 model RouteCache {
@@ -411,6 +429,8 @@ model Usuario {
   activo      Boolean  @default(true)
   rolId       String?
   rol         Rol?     @relation(fields: [rolId], references: [id])
+  rutasAsignadas Ruta[] @relation("ConductorRutas") // Rutas donde es conductor
+  sesiones    SesionConductor[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -469,6 +489,7 @@ model Vehiculo {
   costoPorKm        Float?   // Costo operativo por km (combustible + mantenimiento)
 
   rutas             Ruta[]
+  ubicaciones       UbicacionGPS[]
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
   mantenimientos    MantenimientoVehiculo[]
@@ -810,15 +831,51 @@ model Geocerca {
 }
 
 model UbicacionGPS {
-  id        String   @id @default(cuid())
-  rutaId    String
-  ruta      Ruta     @relation(fields: [rutaId], references: [id], onDelete: Cascade)
-  lat       Float
-  lng       Float
-  velocidad Float?   // Km/h en el momento del ping
-  rumbo     Float?   // Grados (0=N, 90=E)
-  precision Float?   // Metros de precisión del GPS
-  fuente    String   @default("GPS") // GPS, MANUAL, SIMULADO
-  metadata  String?  // JSON extra
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  rutaId     String
+  ruta       Ruta      @relation(fields: [rutaId], references: [id], onDelete: Cascade)
+  vehiculoId String?   // FK → Vehiculo (opcional, tracking por vehículo)
+  vehiculo   Vehiculo? @relation(fields: [vehiculoId], references: [id])
+  lat        Float
+  lng        Float
+  velocidad  Float?    // Km/h en el momento del ping
+  rumbo      Float?    // Grados (0=N, 90=E)
+  precision  Float?    // Metros de precisión del GPS
+  fuente     String    @default("GPS") // GPS, MANUAL, SIMULADO
+  metadata   String?   // JSON extra
+  createdAt  DateTime  @default(now())
+}
+
+model SesionConductor {
+  id              String   @id @default(cuid())
+  conductorId     String   // FK → Usuario
+  conductor       Usuario  @relation(fields: [conductorId], references: [id], onDelete: Cascade)
+  rutaId          String?  // Ruta activa actual
+  ruta            Ruta?    @relation(fields: [rutaId], references: [id])
+  token           String   @unique // Token de sesión
+  estaEnLinea     Boolean  @default(true)
+  lat             Float?   // Última ubicación conocida
+  lng             Float?
+  velocidad       Float?   // Última velocidad
+  ultimoHeartbeat DateTime @default(now())
+  navegadorInfo   String?  // User agent
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TrafficHistory {
+  id         String   @id @default(cuid())
+  tramoHash  String   // Hash de origen->destino
+  origenLat  Float
+  origenLng  Float
+  destLat    Float
+  destLng    Float
+  hora       Int      // 0-23
+  diaSemana  Int      // 0=domingo, 6=sábado
+  velocidad  Float    // Velocidad promedio km/h
+  muestras   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tramoHash, hora, diaSemana])
 }

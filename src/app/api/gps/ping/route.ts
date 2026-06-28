@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { rutaId, lat, lng, velocidad, rumbo, precision, fuente, metadata } = body
+    const { rutaId, vehiculoId, lat, lng, velocidad, rumbo, precision, fuente, metadata } = body
 
     if (!rutaId || lat === undefined || lng === undefined) {
       return NextResponse.json({ error: 'Faltan campos: rutaId, lat, lng' }, { status: 400 })
@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const ubicacion = await db.ubicacionGPS.create({
       data: {
         rutaId,
+        vehiculoId: vehiculoId || null,
         lat,
         lng,
         velocidad: velocidad || null,
@@ -34,9 +35,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const rutaId = searchParams.get('rutaId')
+    const vehiculoId = searchParams.get('vehiculoId')
 
     const where: Record<string, unknown> = {}
     if (rutaId) where.rutaId = rutaId
+    if (vehiculoId) where.vehiculoId = vehiculoId
 
     const pings = await db.ubicacionGPS.findMany({
       where,

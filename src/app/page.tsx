@@ -42,6 +42,7 @@ import {
   BarChart3,
   Wallet,
   TrendingUp,
+  Navigation,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -101,10 +102,12 @@ const FinanzasTab = dynamic(() => import('@/components/finanzas-tab'), { ssr: fa
 const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const TableroTab = dynamic(() => import('@/components/tablero-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ClientePedidoTab = dynamic(() => import('@/components/cliente-pedido-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const ChoferesTab = dynamic(() => import('@/components/choferes-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
   const [authReady, setAuthReady] = useState(false)
+  const [tabActual, setTabActual] = useState('dashboard')
 
   useEffect(() => {
     const saved = sessionStorage.getItem('opencode_user')
@@ -175,7 +178,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs value={tabActual} onValueChange={setTabActual} className="w-full">
           <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start">
             <TabsTrigger value="dashboard" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Activity className="w-4 h-4" /><span>Dashboard</span>
@@ -243,6 +246,9 @@ export default function Home() {
             <TabsTrigger value="tablero" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <TrendingUp className="w-4 h-4" /><span>Tablero</span>
             </TabsTrigger>
+            <TabsTrigger value="choferes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Navigation className="w-4 h-4" /><span>Choferes</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -261,7 +267,7 @@ export default function Home() {
             <CatalogoTab />
           </TabsContent>
           <TabsContent value="clientes">
-            <ClientesTab />
+            <ClientesTab onNavigate={setTabActual} />
           </TabsContent>
           <TabsContent value="laboratorio">
             <LaboratorioTab />
@@ -312,6 +318,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="tablero">
             <TableroTab />
+          </TabsContent>
+          <TabsContent value="choferes">
+            <ChoferesTab />
           </TabsContent>
         </Tabs>
       </main>

@@ -95,11 +95,23 @@ export interface RutaParada {
   cylinderIds: string
   estado: string
   notas: string | null
+  llegada: string | null
+  salida: string | null
+  clienteId?: string | null
+  demandaTubos?: number | null
+  pesoKg?: number | null
+  ventanaDesde?: number | null
+  ventanaHasta?: number | null
+  tiempoServicioMin?: number | null
+  prioridad?: number | null
+  tipoOperacion?: string | null
 }
 
 export interface Cliente {
   id: string
   nombre: string
+  apellido: string | null
+  email: string | null
   taxId: string | null
   contacto: string | null
   firmaDigital: string | null
@@ -118,6 +130,7 @@ export interface Cliente {
   cargosRecurrentes: string | null
   penalizacionesExtravio: string | null
   estadoCuenta: string | null
+  estadoCliente: string | null  // ACTIVO | SUSPENDIDO | INACTIVO
   ubicaciones: string | null
   lat: number | null
   lng: number | null
@@ -153,7 +166,7 @@ export interface MapMarker {
   lng: number
   color: string
   label: string
-  count: number
-  isBase: boolean
+  count?: number
+  isBase?: boolean
   popup: string
 }

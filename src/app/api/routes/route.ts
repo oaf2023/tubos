@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { osrmTrip } from '@/lib/routing'
+import { validarCapacidadCarga } from '@/lib/ruta-utils'
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371
@@ -14,11 +15,24 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-// GET /api/routes
-export async function GET() {
+// GET /api/routes - con soporte para filtro por token de navegación
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const token = searchParams.get('token')
+
+    const where: Record<string, unknown> = {}
+    if (token) where.navigationToken = token
+
     const routes = await db.ruta.findMany({
-      include: { paradas: { orderBy: { orden: 'asc' } } },
+      where,
+      include: {
+        paradas: {
+          orderBy: { orden: 'asc' },
+          include: { cliente: { select: { id: true, nombre: true, contacto: true, taxId: true } } },
+        },
+        vehicle: true,
+      },
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json(routes)
@@ -28,11 +42,33 @@ export async function GET() {
   }
 }
 
-// POST /api/routes - create route with OSRM real distances if available
+function calcularDemandaTotal(paradas: any[]): {
+  totalCilindros: number
+  cylinderIds: string[]
+} {
+  const ids: string[] = []
+  for (const p of paradas) {
+    const demanda = p.demandaTubos || 0
+    // Simular IDs de cilindros según demanda
+    for (let i = 0; i < demanda; i++) {
+      ids.push(`demanda-${p.nombre}-${i}`)
+    }
+    if (p.cylinderIds) {
+      ids.push(...p.cylinderIds.split(',').filter(Boolean))
+    }
+  }
+  return { totalCilindros: ids.length, cylinderIds: ids }
+}
+
+// POST /api/routes - create route with OSRM real distances + capacity validation
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nombre, origenNombre, origenLat, origenLng, paradas, distanciaReal, duracionReal, geometry, vehicleId, costoPorKm, cylinderIds } = body
+    const {
+      nombre, origenNombre, origenLat, origenLng,
+      paradas, distanciaReal, duracionReal,
+      geometry, vehicleId, costoPorKm, cylinderIds,
+    } = body
 
     if (!nombre || !paradas || !Array.isArray(paradas) || paradas.length === 0) {
       return NextResponse.json({ error: 'Faltan campos: nombre, paradas' }, { status: 400 })
@@ -40,6 +76,19 @@ export async function POST(request: NextRequest) {
 
     const oLat = parseFloat(origenLat)
     const oLng = parseFloat(origenLng)
+
+    // Validate vehicle capacity if assigned
+    if (vehicleId) {
+      const demanda = calcularDemandaTotal(paradas)
+      const capacidad = await validarCapacidadCarga(vehicleId, demanda.cylinderIds)
+      if (!capacidad.valida) {
+        return NextResponse.json({
+          error: 'Capacidad de carga excedida',
+          detalles: capacidad.observaciones,
+          capacidad,
+        }, { status: 400 })
+      }
+    }
 
     // 1. Try OSRM real distance (if not pre-computed)
     let finalKm = 0
@@ -107,10 +156,18 @@ export async function POST(request: NextRequest) {
             lat: p.lat,
             lng: p.lng,
             nombre: p.nombre,
-            provincia: p.provincia,
+            provincia: p.provincia || '',
             cylinderIds: p.cylinderIds || '',
             estado: 'PENDIENTE',
             notas: p.notas || null,
+            clienteId: p.clienteId || null,
+            demandaTubos: p.demandaTubos || null,
+            pesoKg: p.pesoKg || null,
+            ventanaDesde: p.ventanaDesde || null,
+            ventanaHasta: p.ventanaHasta || null,
+            tiempoServicioMin: p.tiempoServicioMin || null,
+            prioridad: p.prioridad ?? 5,
+            tipoOperacion: p.tipoOperacion || 'ENTREGA',
           })),
         },
       },
