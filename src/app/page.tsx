@@ -42,7 +42,6 @@ import {
   BarChart3,
   Wallet,
   TrendingUp,
-  Navigation,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -102,7 +101,6 @@ const FinanzasTab = dynamic(() => import('@/components/finanzas-tab'), { ssr: fa
 const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const TableroTab = dynamic(() => import('@/components/tablero-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ClientePedidoTab = dynamic(() => import('@/components/cliente-pedido-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
-const ChoferesTab = dynamic(() => import('@/components/choferes-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
@@ -245,9 +243,6 @@ export default function Home() {
             <TabsTrigger value="tablero" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <TrendingUp className="w-4 h-4" /><span>Tablero</span>
             </TabsTrigger>
-            <TabsTrigger value="choferes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Navigation className="w-4 h-4" /><span>Choferes</span>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -317,9 +312,6 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="tablero">
             <TableroTab />
-          </TabsContent>
-          <TabsContent value="choferes">
-            <ChoferesTab />
           </TabsContent>
         </Tabs>
       </main>

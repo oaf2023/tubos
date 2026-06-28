@@ -27,6 +27,8 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
   User,
@@ -103,7 +105,11 @@ function formatearNombre(c: Cliente): { apellido: string; nombre: string } {
 }
 
 // ─── Componente principal ──────────────────────────────────────────────
-export default function ClientesTab() {
+export default function ClientesTab({
+  onNavigate,
+}: {
+  onNavigate?: (tab: string) => void
+}) {
   const { toast } = useToast()
   const searchRef = useRef<HTMLInputElement>(null)
 
