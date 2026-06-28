@@ -105,11 +105,7 @@ function formatearNombre(c: Cliente): { apellido: string; nombre: string } {
 }
 
 // ─── Componente principal ──────────────────────────────────────────────
-export default function ClientesTab({
-  onNavigate,
-}: {
-  onNavigate?: (tab: string) => void
-}) {
+export default function ClientesTab() {
   const { toast } = useToast()
   const searchRef = useRef<HTMLInputElement>(null)
 
