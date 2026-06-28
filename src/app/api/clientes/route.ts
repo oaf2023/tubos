@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // GET /api/clientes - listar clientes con filtros opcionales, paginación e índice alfabético
+//    Sin ?page → devuelve array plano (backward compat)
+//    Con ?page  → devuelve { clientes, total, page, totalPages }
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -10,88 +12,55 @@ export async function GET(request: NextRequest) {
     const activo = searchParams.get('activo')
     const letra = searchParams.get('letra') || undefined
     const estado = searchParams.get('estado') || undefined
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '12')))
+    const hasPage = searchParams.has('page')
+    const page = hasPage ? Math.max(1, parseInt(searchParams.get('page') || '1')) : 1
+    const limit = hasPage ? Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '12'))) : 9999
 
-    const where: Record<string, unknown> = {}
+    // Build where clause
+    const andConditions: Record<string, unknown>[] = []
 
-    // Búsqueda textual: busca en nombre Y apellido
     if (nombre) {
-      where.OR = [
-        { nombre: { contains: nombre, mode: 'insensitive' } },
-        { apellido: { contains: nombre, mode: 'insensitive' } },
-      ]
+      andConditions.push({
+        OR: [
+          { nombre: { contains: nombre, mode: 'insensitive' as const } },
+          { apellido: { contains: nombre, mode: 'insensitive' as const } },
+        ],
+      })
     }
 
+    if (letra && letra !== 'TODOS') {
+      andConditions.push({
+        OR: [
+          { nombre: { startsWith: letra, mode: 'insensitive' as const } },
+          { apellido: { startsWith: letra, mode: 'insensitive' as const } },
+        ],
+      })
+    }
+
+    const where: Record<string, unknown> = {}
     if (tipologia) where.tipologia = tipologia
     if (activo === 'true') where.activo = true
     if (activo === 'false') where.activo = false
     if (estado) where.estadoCliente = estado
+    if (andConditions.length === 1) where.AND = andConditions[0]
+    else if (andConditions.length > 1) where.AND = andConditions
 
-    // Filtro alfabético: busca por inicial en nombre O apellido
-    if (letra && letra !== 'TODOS') {
-      if (nombre) {
-        // ya hay OR, agregamos condición AND
-        where.AND = [
-          { OR: [
-            { nombre: { startsWith: letra, mode: 'insensitive' } },
-            { apellido: { startsWith: letra, mode: 'insensitive' } },
-          ] }
-        ]
-        delete where.OR
-        // rebuild properly
-      } else {
-        where.OR = [
-          { nombre: { startsWith: letra, mode: 'insensitive' } },
-          { apellido: { startsWith: letra, mode: 'insensitive' } },
-        ]
-      }
-    }
-
-    // Reconstruir where correctamente si hay nombre + letra
-    const finalWhere: Record<string, unknown> = {}
-    if (tipologia) finalWhere.tipologia = tipologia
-    if (activo === 'true') finalWhere.activo = true
-    if (activo === 'false') finalWhere.activo = false
-    if (estado) finalWhere.estadoCliente = estado
-
-    const filters: Record<string, unknown>[] = []
-
-    if (letra && letra !== 'TODOS') {
-      filters.push({
-        OR: [
-          { nombre: { startsWith: letra, mode: 'insensitive' } },
-          { apellido: { startsWith: letra, mode: 'insensitive' } },
-        ]
-      })
-    }
-
-    if (nombre) {
-      filters.push({
-        OR: [
-          { nombre: { contains: nombre, mode: 'insensitive' } },
-          { apellido: { contains: nombre, mode: 'insensitive' } },
-        ]
-      })
-    }
-
-    if (filters.length === 1) finalWhere.AND = filters
-    else if (filters.length > 1) finalWhere.AND = filters
-
-    const skip = (page - 1) * limit
+    const queryWhere = Object.keys(where).length > 0 ? where : undefined
+    const skip = hasPage ? (page - 1) * limit : 0
 
     const [clientes, total] = await Promise.all([
       db.cliente.findMany({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        where: queryWhere,
         include: { _count: { select: { cylinders: true } } },
         orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
         skip,
         take: limit,
       }),
-      db.cliente.count({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
-      }),
+      db.cliente.count({ where: queryWhere }),
     ])
+
+    // Sin ?page → devuelve array plano (backward compat)
+    if (!hasPage) return NextResponse.json(clientes)
 
     return NextResponse.json({
       clientes,
