@@ -27,8 +27,6 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
   ChevronLeft,
   ChevronRight,
   User,
