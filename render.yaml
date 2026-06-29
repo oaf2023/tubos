@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: tubos
+    env: node
+    repo: https://github.com/oaf2023/tubos
+    branch: main
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node start.js
+    envVars:
+      - key: JWT_SECRET
+        value: WPo5F2Lc01MEBOixuYKUb4hAdseVJmTkGHvqwpnZ6D9jrtNyflRCQ7X3IazgS8
+      - key: NEO4J_ENABLED
+        value: "false"
+
+  - type: web
+    name: tubos-ortools
+    env: docker
+    repo: https://github.com/oaf2023/tubos
+    branch: main
+    dockerfilePath: ./or-tools-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: "8000"
