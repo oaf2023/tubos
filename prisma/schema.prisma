@@ -14,6 +14,333 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ ENUMS DE ESTADO ============
+
+enum EstadoCilindro {
+  LLENO
+  VACIO
+  EN_CLIENTE
+  EN_REPARTO
+  EN_CARGA
+  EN_DEPOSITO
+  MANTENIMIENTO
+  RETENIDO
+  PH_VENCIDO
+  BAJA
+  EXTRAVIADO
+}
+
+enum ResultadoInspeccion {
+  APROBADO
+  RECHAZADO
+  CONDENADO
+}
+
+enum MetodoPrueba {
+  HIDROSTATICA
+  ULTRASONIDO
+  PRESION_PRUEBA
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  COMPLETADO
+  CANCELADO
+}
+
+enum EstadoCuentaCliente {
+  AL_DIA
+  PENDIENTE
+  MOROSO
+}
+
+enum EstadoCliente {
+  ACTIVO
+  SUSPENDIDO
+  INACTIVO
+}
+
+enum EstadoRuta {
+  PLANIFICADA
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+}
+
+enum EstadoParada {
+  PENDIENTE
+  ENTREGADO
+  EN_PROGRESO
+}
+
+enum TipoOperacionParada {
+  ENTREGA
+  RETIRO
+  CANJE
+}
+
+enum TipoRemito {
+  ENTREGA
+  DEVOLUCION
+  CAMBIO
+}
+
+enum EstadoRemito {
+  PENDIENTE
+  COMPLETADO
+  PARCIAL
+}
+
+enum TipoOperacionItemRemito {
+  ALQUILER
+  VENTA
+  CAMBIO
+  DEVOLUCION
+}
+
+enum EstadoFactura {
+  PENDIENTE
+  PAGADA
+  VENCIDA
+  ANULADA
+  BORRADOR
+}
+
+enum TipoItemFactura {
+  ALQUILER
+  GAS
+  FLETE
+  PENALIZACION
+  DESCUENTO
+  OTRO
+}
+
+enum EstadoVehiculo {
+  ACTIVO
+  EN_TALLER
+  BAJA
+  RESERVA
+}
+
+enum TipoVehiculo {
+  AUTO
+  CAMIONETA
+  CAMION
+  BUS
+  MAQUINARIA
+  MONTACARGA
+  MOTO
+  OTRO
+}
+
+enum CombustibleVehiculo {
+  NAFTA
+  GASOIL
+  GNC
+  ELECTRICO
+  HIBRIDO
+  OTRO
+}
+
+enum OrientacionTubos {
+  PARADOS
+  ACOSTADOS
+}
+
+enum EstadoCargaVehiculo {
+  ACTIVA
+  COMPLETADA
+  CANCELADA
+}
+
+enum TipoMantenimientoVehiculo {
+  PREVENTIVO
+  CORRECTIVO
+  PREDICTIVO
+}
+
+enum EstadoMantenimiento {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADO
+  CANCELADO
+}
+
+enum EstadoDocumentoVehiculo {
+  VIGENTE
+  VENCIDO
+  PROXIMO_A_VENCER
+}
+
+enum TipoDocumentoVehicular {
+  REVISION_TECNICA
+  PERMISO_CIRCULACION
+  SEGURO
+  LICENCIA
+  OTRO
+}
+
+enum TipoCargaCombustible {
+  CARGA
+  CARGA_ELECTRICA
+}
+
+enum EstadoReparto {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADO
+  CANCELADO
+}
+
+enum EstadoCilindroCliente {
+  ALQUILADO
+  PROPIETARIO
+  CONSIGNACION
+}
+
+enum DiagnosticoValidacion {
+  OK
+  INCONSISTENCIA
+  NO_REGISTRADO
+  SOSPECHOSO
+}
+
+enum FuenteGPS {
+  GPS
+  MANUAL
+  SIMULADO
+}
+
+enum CategoriaGas {
+  INERTE
+  ACTIVO
+  COMBUSTIBLE
+  COMBURENTE
+}
+
+enum PeligroGas {
+  INFLAMABLE
+  COMBURENTE
+  GAS_PRESION
+  NINGUNO
+}
+
+enum NivelAlerta {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum TipoAlerta {
+  CILINDRO_NO_REGISTRADO
+  INCONSISTENCIA_PESO
+  ZONA_NO_AUTORIZADA
+  LECTURA_MULTIPLE
+  OTRO
+}
+
+enum TipoEventoTrazabilidad {
+  PASO_CABINA
+  VALIDACION
+  ALERTA
+  INGRESO
+  EGRESO
+}
+
+enum TipoObservacion {
+  IMAGEN
+  VIDEO
+  NOTA
+  AUDIO
+}
+
+enum TipoArchivoObservacion {
+  IMAGE
+  VIDEO
+}
+
+enum TipoGeocerca {
+  DEPOSITO
+  CLIENTE
+  RESTRINGIDA
+  ENTREGA
+}
+
+enum TipoZonaLectura {
+  VACIOS
+  LLENOS
+  SALIDA_REPARTO
+  ENVIO_CARGA
+  RECEPCION_CARGA
+  MANTENIMIENTO
+  BAJA
+}
+
+enum TipoLector {
+  ESP32
+  RPI
+  GATEWAY
+}
+
+enum TipoSensorCabina {
+  RFID
+  BALANZA
+  CAMARA
+  UPS
+}
+
+enum TipoUbicacion {
+  BASE
+  CLIENTE
+  SUCURSAL
+  ALIADO
+}
+
+enum TipoMovimiento {
+  CARGA
+  DESCARGA
+  TRASLADO
+  INSPECCION
+  REPARACION
+  ALTA
+  BAJA
+}
+
+enum TipoMantenimiento {
+  CAMBIO_VALVULA
+  PINTURA
+  CAMBIO_GAS
+  REPARACION
+  INSPECCION
+  OTRO
+}
+
+enum OperacionEnvase {
+  CANJE
+  VENTA_NUEVO
+  SIN_ENVASE
+}
+
+enum TipoMovimientoStock {
+  ENTRADA
+  SALIDA
+  TRANSFERENCIA
+}
+
+enum OrigenEventoRFID {
+  AUTOMATICO
+  MANUAL
+}
+
+enum AccionAudit {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  CAMBIO_ESTADO
+}
+
 model Gas {
   id                   String     @id @default(cuid())
   codigo               String     @unique // AR, CO2, O2, C2H2, N2, He, H2, MIX-7525, AR-HE
@@ -22,8 +349,8 @@ model Gas {
   presionBar           Int        // Presión típica de carga del tubo
   colorHex             String     // Color de identificación (norma EN 1089-3)
   usoPrincipal         String
-  categoria            String     // INERTE, ACTIVO, COMBUSTIBLE, COMBURENTE
-  peligro              String     @default("GAS_PRESION") // INFLAMABLE, COMBURENTE, GAS_PRESION, NINGUNO
+  categoria            CategoriaGas
+  peligro              PeligroGas @default(GAS_PRESION)
   precioAlquilerDiario Float?    // Tarifa de alquiler diario del tubo
   precioAlquilerMensual Float?   // Tarifa de alquiler mensual del tubo
   precioVenta          Float?    // Precio de venta del gas (carga)
@@ -65,10 +392,10 @@ model Cylinder {
   fechaEnsayoInicial  String?  // MM/AAAA
   fechaUltimoRetest   DateTime? // Última inspección periódica
   fechaProximoRetest  DateTime  // Vencimiento de recalificación
-  resultadoInspeccion String   @default("APROBADO") // APROBADO | RECHAZADO | CONDENADO
+  resultadoInspeccion ResultadoInspeccion @default(APROBADO)
   inspectorId         String?  // ID del organismo inspector
   laboratorio         String?  // Centro de revisión acreditado
-  metodoPrueba        String?  // HIDROSTATICA | ULTRASONIDO | PRESION_PRUEBA
+  metodoPrueba        MetodoPrueba?
 
   // ============ ESPECÍFICOS DE GAS ============
   gasId               String
@@ -89,7 +416,7 @@ model Cylinder {
 
   // ============ ESTADO OPERATIVO ============
   // LLENO, VACIO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, BAJA, EXTRAVIADO
-  estado              String   @default("LLENO")
+  estado              EstadoCilindro @default(LLENO)
   ubicacionLat        Float
   ubicacionLng        Float
   ubicacionNombre     String
@@ -115,6 +442,12 @@ model Cylinder {
   eventosTrazabilidad EventoTrazabilidad[]
   alertas             Alerta[]
   sesionesRFID        SesionLecturaRFID[]
+
+  @@index([estado])
+  @@index([gasId])
+  @@index([clienteId])
+  @@index([fechaProximoRetest])
+  @@index([provincia], name: "cyl_provincia_idx")
 }
 
 model CylinderMovimiento {
@@ -122,7 +455,7 @@ model CylinderMovimiento {
   cylinderId  String
   cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
   fecha       DateTime @default(now())
-  tipo        String   // CARGA, DESCARGA, TRASLADO, INSPECCION, REPARACION, ALTA, BAJA
+  tipo        TipoMovimiento // CARGA, DESCARGA, TRASLADO, INSPECCION, REPARACION, ALTA, BAJA
   descripcion String
   usuario     String?
   latOrigen   Float?
@@ -136,7 +469,7 @@ model Mantenimiento {
   id          String   @id @default(cuid())
   cylinderId  String
   cylinder    Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
-  tipo        String   // CAMBIO_VALVULA, PINTURA, CAMBIO_GAS, REPARACION, INSPECCION, OTRO
+  tipo        TipoMantenimiento // CAMBIO_VALVULA, PINTURA, CAMBIO_GAS, REPARACION, INSPECCION, OTRO
   descripcion String?
   tecnico     String?
   costo       Float?
@@ -151,7 +484,7 @@ model Location {
   lat       Float
   lng       Float
   esBase    Boolean  @default(false)
-  tipo      String   // BASE, CLIENTE, SUCURSAL, ALIADO
+  tipo      TipoUbicacion // BASE, CLIENTE, SUCURSAL, ALIADO
   direccion String?
   telefono  String?
   createdAt   DateTime @default(now())
@@ -164,13 +497,17 @@ model Remito {
   clienteId     String
   cliente       String       // Nombre denormalizado
   fecha         DateTime     @default(now())
-  tipo          String       // ENTREGA, DEVOLUCION, CAMBIO
-  estado        String       @default("PENDIENTE") // PENDIENTE, COMPLETADO, PARCIAL
+  tipo          TipoRemito       // ENTREGA, DEVOLUCION, CAMBIO
+  estado        EstadoRemito     @default(PENDIENTE) // PENDIENTE, COMPLETADO, PARCIAL
   tecnico       String?
   observaciones String?
   items         RemitoItem[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([fecha])
 }
 
 model RemitoItem {
@@ -181,7 +518,7 @@ model RemitoItem {
   numeroSerie     String?  // Denormalizado
   gasId           String
   gasCodigo       String   // AR, O2, C2H2, etc.
-  tipoOperacion   String   // ALQUILER, VENTA, CAMBIO, DEVOLUCION
+  tipoOperacion   TipoOperacionItemRemito // ALQUILER, VENTA, CAMBIO, DEVOLUCION
   cantidad        Int      @default(1)
   fechaDevolucion DateTime? // Cuándo se devolvió
   diasAlquiler    Int?     // Calculado al facturar
@@ -210,11 +547,15 @@ model Factura {
   notasCredito     Float         @default(0)  // Notas de crédito aplicadas
   pagosAplicados   Float         @default(0)  // Pagos recibidos
   totalGeneral     Float         @default(0)  // total + saldoAnterior - notasCredito - pagosAplicados
-  estado           String        @default("PENDIENTE") // PENDIENTE, PAGADA, VENCIDA, ANULADA, BORRADOR
+  estado           EstadoFactura  @default(PENDIENTE) // PENDIENTE, PAGADA, VENCIDA, ANULADA, BORRADOR
   observaciones    String?
   items            FacturaItem[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([fecha])
 }
 
 model FacturaItem {
@@ -222,7 +563,7 @@ model FacturaItem {
   facturaId       String
   factura         Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
   concepto        String   // Ej: "Alquiler tubo N2 - 15 días"
-  tipo            String   @default("ALQUILER") // ALQUILER, GAS, FLETE, PENALIZACION, DESCUENTO, OTRO
+  tipo            TipoItemFactura @default(ALQUILER) // ALQUILER, GAS, FLETE, PENALIZACION, DESCUENTO, OTRO
   remitoItemId    String?  // Link al ítem de remito origen
   cylinderId      String?  // Link al cilindro
   numeroSerie     String?  // Número de serie del cilindro
@@ -255,18 +596,21 @@ model Cliente {
   historialDevoluciones String?        // Registro de activos devueltos
   cargosRecurrentes     String?        // Facturación automática
   penalizacionesExtravio String?       // Cargos por extravío
-  estadoCuenta          String?        // AL_DIA, PENDIENTE, MOROSO
+  estadoCuenta          EstadoCuentaCliente? // AL_DIA, PENDIENTE, MOROSO
   ubicaciones           String?        // Direcciones / coordenadas
   lat                   Float?         // Ubicación principal latitud
   lng                   Float?         // Ubicación principal longitud
   notas                 String?
   activo                Boolean        @default(true)
-  estadoCliente         String?        @default("ACTIVO") // ACTIVO | SUSPENDIDO | INACTIVO
+  estadoCliente         EstadoCliente? @default(ACTIVO) // ACTIVO | SUSPENDIDO | INACTIVO
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   cylinders             Cylinder[]     @relation("ClienteCylinders")
   acceso                ClienteAcceso?
   paradas               RutaParada[]
+
+  @@index([estadoCliente])
+  @@index([apellido])
 }
 
 model AlertConfig {
@@ -284,7 +628,7 @@ model Ruta {
   id                 String       @id @default(cuid())
   nombre             String
   fecha              DateTime     @default(now())
-  estado             String       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
+  estado             EstadoRuta       // PLANIFICADA, EN_PROGRESO, COMPLETADA, CANCELADA
   origenNombre       String
   origenLat          Float
   origenLng          Float
@@ -306,6 +650,11 @@ model Ruta {
   ubicaciones        UbicacionGPS[]
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+
+  @@index([estado])
+  @@index([fecha])
+  @@index([vehicleId])
+  @@index([conductorId])
 }
 
 model RutaParada {
@@ -318,7 +667,7 @@ model RutaParada {
   nombre           String
   provincia        String
   cylinderIds      String    // IDs separados por coma
-  estado           String    // PENDIENTE, ENTREGADO, EN_PROGRESO
+  estado           EstadoParada     // PENDIENTE, ENTREGADO, EN_PROGRESO
   notas            String?
   llegada          DateTime? // Timestamp de llegada real
   salida           DateTime? // Timestamp de salida real
@@ -330,7 +679,11 @@ model RutaParada {
   ventanaHasta     Int?      // Minutos desde 00:00 (720 = 12:00)
   tiempoServicioMin Int?     // Minutos estimados en la parada
   prioridad        Int?      @default(5) // 1=urgente, 5=normal, 10=baja
-  tipoOperacion    String?   @default("ENTREGA") // ENTREGA, RETIRO, CANJE
+  tipoOperacion    TipoOperacionParada? @default(ENTREGA) // ENTREGA, RETIRO, CANJE
+
+  @@index([rutaId])
+  @@index([estado])
+  @@index([clienteId])
 }
 
 model RouteCache {
@@ -359,12 +712,17 @@ model Pedido {
   phVigente       Boolean?         // null si es venta nueva
   phObservacion   String?
   total           Float            @default(0)
-  estado          String           @default("PENDIENTE") // PENDIENTE, COMPLETADO, CANCELADO
+  estado          EstadoPedido     @default(PENDIENTE)
   observaciones   String?
   items           PedidoItem[]
   cilindros       PedidoCilindro[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([fecha])
+  @@index([gasId])
 }
 
 model PedidoItem {
@@ -454,7 +812,7 @@ model ObservacionArchivo {
   tipo           String      // IMAGE, VIDEO
   nombre         String?
   datos          String      // base64 del archivo
-  createdAt      DateTime    @default(now())
+  createdAt   DateTime @default(now())
 }
 
 model Vehiculo {
@@ -466,12 +824,12 @@ model Vehiculo {
   anio              Int
   vin               String?
   numeroMotor       String?
-  tipo              String                   // AUTO, CAMIONETA, CAMION, BUS, MAQUINARIA, MONTACARGA, MOTO, OTRO
-  combustible       String                   // NAFTA, GASOIL, GNC, ELECTRICO, HIBRIDO, OTRO
+  tipo              TipoVehiculo
+  combustible       CombustibleVehiculo
   capacidad         String?
   kmActual          Int                      @default(0)
   horometroActual   Int?
-  estado            String                   @default("ACTIVO") // ACTIVO, EN_TALLER, BAJA, RESERVA
+  estado            EstadoVehiculo           @default(ACTIVO)
   areaAsignada      String?
   conductorAsignado String?
   centroCosto       String?
@@ -485,7 +843,7 @@ model Vehiculo {
   anchoCajaCm       Float?   // Ancho útil de la caja
   altoCajaCm        Float?   // Alto útil de la caja (para orientacion PARADOS)
   maxTubos          Int?     // Capacidad máxima de tubos
-  orientacionTubos  String   @default("PARADOS") // PARADOS | ACOSTADOS
+  orientacionTubos  OrientacionTubos         @default(PARADOS)
   costoPorKm        Float?   // Costo operativo por km (combustible + mantenimiento)
 
   rutas             Ruta[]
@@ -496,6 +854,9 @@ model Vehiculo {
   cargasCombustible CargaCombustible[]
   documentos        DocumentoVehiculo[]
   sesionesCarga     CargaVehiculo[]
+
+  @@index([estado])
+  @@index([tipo])
 }
 
 model CargaVehiculo {
@@ -503,7 +864,7 @@ model CargaVehiculo {
   vehiculoId  String
   vehiculo    Vehiculo             @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   fecha       DateTime             @default(now())
-  estado      String               @default("ACTIVA") // ACTIVA, COMPLETADA, CANCELADA
+  estado      EstadoCargaVehiculo @default(ACTIVA) // ACTIVA, COMPLETADA, CANCELADA
   createdAt   DateTime             @default(now())
   items       CargaVehiculoItem[]
 }
@@ -525,14 +886,14 @@ model MantenimientoVehiculo {
   id            String   @id @default(cuid())
   vehiculoId    String
   vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  tipo          String   // PREVENTIVO, CORRECTIVO, PREDICTIVO
+  tipo          TipoMantenimientoVehiculo // PREVENTIVO, CORRECTIVO, PREDICTIVO
   fecha         DateTime
   kmActual      Int?
   descripcion   String
   costo         Float?
   taller        String?
   responsable   String?
-  estado        String   @default("PENDIENTE") // PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO
+  estado        EstadoMantenimiento       @default(PENDIENTE)
   observaciones String?
   createdAt     DateTime @default(now())
 }
@@ -546,19 +907,19 @@ model CargaCombustible {
   costo      Float?
   kmActual   Int?
   rendimiento Float?
-  tipo       String   @default("CARGA") // CARGA, CARGA_ELECTRICA
-  createdAt  DateTime @default(now())
+  tipo       TipoCargaCombustible @default(CARGA) // CARGA, CARGA_ELECTRICA
+  createdAt     DateTime @default(now())
 }
 
 model DocumentoVehiculo {
   id               String   @id @default(cuid())
   vehiculoId       String
   vehiculo         Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
-  tipo             String   // REVISION_TECNICA, PERMISO_CIRCULACION, SEGURO, LICENCIA, OTRO
+  tipo             TipoDocumentoVehicular
   numero           String?
   fechaEmision     DateTime?
   fechaVencimiento DateTime?
-  estado           String   @default("VIGENTE") // VIGENTE, VENCIDO, PROXIMO_A_VENCER
+  estado           EstadoDocumentoVehiculo @default(VIGENTE)
   observaciones    String?
   createdAt        DateTime @default(now())
 }
@@ -570,7 +931,7 @@ model ZonaLectura {
   codigo      String   @unique
   nombre      String
   descripcion String?
-  tipo        String   // VACIOS, LLENOS, SALIDA_REPARTO, ENVIO_CARGA, RECEPCION_CARGA, MANTENIMIENTO, BAJA
+  tipo        TipoZonaLectura // VACIOS, LLENOS, SALIDA_REPARTO, ENVIO_CARGA, RECEPCION_CARGA, MANTENIMIENTO, BAJA
   activo      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -583,7 +944,7 @@ model LectorIoT {
   id            String      @id @default(cuid())
   codigo        String      @unique
   nombre        String
-  tipo          String      // ESP32, RPI, GATEWAY
+  tipo          TipoLector      // ESP32, RPI, GATEWAY
   ip            String?
   zonaLecturaId String
   zona          ZonaLectura @relation(fields: [zonaLecturaId], references: [id])
@@ -674,6 +1035,9 @@ model MovimientoStock {
   usuario       String?
   observacion   String?
   createdAt     DateTime @default(now())
+
+  @@index([gasId, createdAt])
+  @@index([tipo])
 }
 
 model Reparto {
@@ -683,7 +1047,7 @@ model Reparto {
   clienteId     String?
   cliente       String?  // Denormalizado
   vehiculoId    String?
-  estado        String   @default("PENDIENTE") // PENDIENTE, EN_CURSO, COMPLETADO, CANCELADO
+  estado        EstadoReparto @default(PENDIENTE)
   origenZonaId  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -757,7 +1121,7 @@ model ValidacionCabina {
   evidenciaFoto   EvidenciaFoto? @relation(fields: [evidenciaFotoId], references: [id])
   pesoRealKg      Float?
   pesoEsperadoKg  Float?
-  diagnostico     String   @default("OK") // OK, INCONSISTENCIA, NO_REGISTRADO, SOSPECHOSO
+  diagnostico     DiagnosticoValidacion @default(OK) // OK, INCONSISTENCIA, NO_REGISTRADO, SOSPECHOSO
   estadoFinal     String?
   alertaGenerada  Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -789,27 +1153,34 @@ model EventoTrazabilidad {
 
 model Alerta {
   id          String   @id @default(cuid())
-  tipo        String   // CILINDRO_NO_REGISTRADO, INCONSISTENCIA_PESO, ZONA_NO_AUTORIZADA, LECTURA_MULTIPLE, OTRO
+  tipo        TipoAlerta
   cabinaId    String?
   cabina      Cabina?  @relation(fields: [cabinaId], references: [id])
   cylinderId  String?
   cylinder    Cylinder? @relation(fields: [cylinderId], references: [id])
   mensaje     String
-  nivel       String   // INFO, WARNING, CRITICAL
+  nivel       NivelAlerta
   resuelta    Boolean  @default(false)
   fecha       DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  @@index([cylinderId])
+  @@index([resuelta])
+  @@index([nivel])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
-  accion    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  accion    AccionAudit  // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
   entidad   String   // Cylinder, Cliente, Pedido, Factura, Usuario, etc.
   entidadId String?  // ID del registro afectado
   usuario   String?  // usuario que ejecutó la acción
   detalle   String?  // JSON con datos relevantes del cambio
   direccionIp String?
   createdAt DateTime @default(now())
+
+  @@index([entidad, entidadId])
+  @@index([createdAt])
 }
 
 // ============ SPRINT 5 — RUTAS Y LOGÍSTICA ============
@@ -824,7 +1195,7 @@ model Geocerca {
   polygon     String?  // JSON opcional: [[lat,lng],[lat,lng],...] para polígono
   color       String   @default("#3b82f6")
   activa      Boolean  @default(true)
-  tipo        String   @default("DEPOSITO") // DEPOSITO, CLIENTE, RESTRINGIDA, ENTREGA
+  tipo        TipoGeocerca   @default(DEPOSITO) // DEPOSITO, CLIENTE, RESTRINGIDA, ENTREGA
   regla       String?  // JSON: reglas al entrar/salir (ej: notificar, alertar, bloquear)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -841,9 +1212,12 @@ model UbicacionGPS {
   velocidad  Float?    // Km/h en el momento del ping
   rumbo      Float?    // Grados (0=N, 90=E)
   precision  Float?    // Metros de precisión del GPS
-  fuente     String    @default("GPS") // GPS, MANUAL, SIMULADO
+  fuente     FuenteGPS    @default(GPS) // GPS, MANUAL, SIMULADO
   metadata   String?   // JSON extra
   createdAt  DateTime  @default(now())
+
+  @@index([rutaId, createdAt])
+  @@index([vehiculoId])
 }
 
 model SesionConductor {
