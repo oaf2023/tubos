@@ -114,6 +114,12 @@ export default function Home() {
     setAuthReady(true)
   }, [])
 
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    setUser(null)
+    sessionStorage.removeItem('opencode_user')
+  }
+
   if (!authReady) return null
 
   if (!user) {
@@ -147,7 +153,7 @@ export default function Home() {
                 {user.nombre}
               </Badge>
               <button
-                onClick={() => { setUser(null); sessionStorage.removeItem('opencode_user') }}
+                onClick={handleLogout}
                 className="text-xs text-slate-400 hover:text-red-500 transition-colors"
                 title="Cerrar sesión"
               >

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
+import { setSessionCookie } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +33,17 @@ export async function POST(req: NextRequest) {
 
     const { password: _, ...safeUser } = user
     await logAudit({ accion: 'LOGIN', entidad: 'Usuario', entidadId: user.id, usuario: user.usuario, detalle: { resultado: 'exitoso' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
-    return NextResponse.json({ user: { ...safeUser, tipo: 'usuario' } })
+
+    const response = NextResponse.json({ user: { ...safeUser, tipo: 'usuario' } })
+    await setSessionCookie(response, {
+      id: user.id,
+      nombre: user.nombre,
+      usuario: user.usuario,
+      rolId: user.rolId,
+      rol: user.rol?.nombre ?? '',
+      tipo: 'usuario',
+    })
+    return response
   } catch (e) {
     console.error('POST /api/auth/login', e)
     return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 })

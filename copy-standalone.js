@@ -32,12 +32,13 @@ if (existsSync(prismaSrcDir)) {
 }
 
 // 4. Copy .env (always overwrite)
-const envSrc = join(root, '.env')
-const envDst = join(standalone, '.env')
-if (existsSync(envSrc)) {
-  cpSync(envSrc, envDst)
-  console.log('  ✓ .env copied')
-}
+// NOT copied — secrets must be set via environment variables in the platform
+// const envSrc = join(root, '.env')
+// const envDst = join(standalone, '.env')
+// if (existsSync(envSrc)) {
+//   cpSync(envSrc, envDst)
+//   console.log('  ✓ .env copied')
+// }
 
 // 5. Copy config.json (always overwrite)
 const cfgSrc = join(root, 'config.json')
