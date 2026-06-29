@@ -10,7 +10,7 @@ Desarrollado para **Districon**, con base operativa en **San Nicolás de los Arr
 | **Framework** | Next.js 16.1 (App Router, React 19) |
 | **Lenguaje** | TypeScript 5 |
 | **Estilos** | Tailwind CSS v4 + shadcn/ui |
-| **Base de datos principal** | SQLite vía Prisma ORM |
+| **Base de datos principal** | PostgreSQL 16 vía Prisma ORM |
 | **Base de datos de grafos** | Neo4j 5 (Community) — opcional con degradación graceful |
 | **Mapas** | Leaflet + React-Leaflet (OpenStreetMap) |
 | **Gráficos** | Recharts |
@@ -54,8 +54,11 @@ npx prisma generate
 Editar `.env` en la raíz del proyecto:
 
 ```env
-# Base de datos SQLite (ajustar ruta según tu sistema)
-DATABASE_URL=file:C:\ruta\al\proyecto\db\custom.db
+# Base de datos PostgreSQL (Render)
+DATABASE_URL=postgresql://usuario:password@host:5432/gastrack
+
+# JWT secret para autenticación de sesiones
+JWT_SECRET=your-secret-key
 
 # Neo4j (opcional — sin esto funciona con mock en memoria)
 NEO4J_ENABLED=true
@@ -64,13 +67,10 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=gastrack123
 ```
 
-## Base de datos SQLite
+## Base de datos PostgreSQL
 
-El proyecto incluye una base de datos pre-poblada en `db/custom.db` con:
-- **80 cilindros** con datos normativos completos
-- **10 gases** (Argón, CO2, Acetileno, Oxígeno, Nitrógeno, Helio, Hidrógeno, Mezclas)
-- **10 ubicaciones** en Buenos Aires, Santa Fe, Córdoba, etc.
-- **Ruta de demo** ("Ruta Litoral Norte - Lunes", 5 paradas)
+La base de datos principal es **PostgreSQL 16** alojada en Render.
+Para conectar localmente, configurar `DATABASE_URL` en `.env` apuntando al túnel SSL.
 
 Para regenerar los datos de semilla:
 

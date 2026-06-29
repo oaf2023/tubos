@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getIdempotencyKey, checkIdempotency, saveIdempotency } from '@/lib/idempotency'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +9,12 @@ export async function POST(request: NextRequest) {
 
     if (!rutaId || lat === undefined || lng === undefined) {
       return NextResponse.json({ error: 'Faltan campos: rutaId, lat, lng' }, { status: 400 })
+    }
+
+    const idempotencyKey = getIdempotencyKey(request)
+    if (idempotencyKey) {
+      const cached = await checkIdempotency(idempotencyKey)
+      if (cached) return NextResponse.json(cached.response, { status: cached.status })
     }
 
     const ubicacion = await db.ubicacionGPS.create({
@@ -23,6 +30,10 @@ export async function POST(request: NextRequest) {
         metadata: metadata ? JSON.stringify(metadata) : null,
       },
     })
+
+    if (idempotencyKey) {
+      await saveIdempotency(idempotencyKey, ubicacion, 201)
+    }
 
     return NextResponse.json(ubicacion, { status: 201 })
   } catch (e) {

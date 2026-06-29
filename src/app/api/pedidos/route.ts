@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
-const PRECIOS_GAS: Record<string, number> = {
-  AR: 15000, C2H2: 22000, O2: 12000, CO2: 18000, N2: 10000,
-  'MIX-7525': 16000, HE: 28000, 'AR-HE': 24000, H2: 35000,
-}
+import { jsonResponse } from '@/lib/api-response'
+import { createPedido } from '@/lib/services/pedido-service'
 
 export async function GET() {
   try {
@@ -12,7 +9,7 @@ export async function GET() {
       include: { gas: true, items: true, cilindros: true },
       orderBy: { createdAt: 'desc' },
     })
-    return NextResponse.json(pedidos)
+    return jsonResponse(pedidos)
   } catch (e) {
     console.error('GET /api/pedidos', e)
     return NextResponse.json({ error: 'Error al obtener pedidos' }, { status: 500 })
@@ -29,41 +26,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const items: { concepto: string; monto: number }[] = []
-    let total = 0
-
-    for (const r of body.renglones) {
-      const gas = await db.gas.findUnique({ where: { id: r.gasId } })
-      if (!gas) continue
-      const precioUnit = PRECIOS_GAS[gas.codigo] || 15000
-      const cant = r.cantidad || 1
-
-      items.push({ concepto: `${gas.nombre} × ${cant}`, monto: precioUnit * cant })
-      total += precioUnit * cant
-    }
-
-    const primerGasId = body.renglones[0]?.gasId
-    const opEnvase = body.operacionEnvase || body.renglones[0]?.operacionEnvase || 'Sin envase'
-
-    const pedido = await db.pedido.create({
-      data: {
-        fecha: body.fecha ? new Date(body.fecha) : new Date(),
-        cliente: body.cliente,
-        clienteId: body.clienteId || null,
-        estadoCuenta: body.estadoCuenta || 'OK',
-        gasId: primerGasId,
-        operacionEnvase: opEnvase,
-        phVigente: null,
-        phObservacion: null,
-        total,
-        estado: body.estado || 'PENDIENTE',
-        observaciones: body.observaciones || null,
-        items: { create: items },
-      },
-      include: { gas: true, items: true, cilindros: true },
-    })
-
-    return NextResponse.json(pedido, { status: 201 })
+    const pedido = await createPedido(body)
+    return jsonResponse(pedido, 201)
   } catch (e) {
     console.error('POST /api/pedidos', e)
     return NextResponse.json(

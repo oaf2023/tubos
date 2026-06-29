@@ -1,7 +1,10 @@
 import { db } from './db'
+import type { PrismaClient } from '@prisma/client'
+
+type AuditAccion = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'CAMBIO_ESTADO'
 
 interface AuditInput {
-  accion: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  accion: AuditAccion
   entidad: string
   entidadId?: string
   usuario?: string | null
@@ -9,9 +12,10 @@ interface AuditInput {
   direccionIp?: string
 }
 
-export async function logAudit(input: AuditInput) {
+export async function logAudit(input: AuditInput, tx?: PrismaClient) {
+  const client = tx || db
   try {
-    await db.auditLog.create({
+    await client.auditLog.create({
       data: {
         accion: input.accion,
         entidad: input.entidad,

@@ -16,19 +16,23 @@ title: Despliegue en Render y PythonAnywhere
      ```bash
      node start.js
      ```
-   - **Environment Variables** (opcionales, el proyecto usa defaults):
-     | Variable | Valor | Motivo |
-     |---|---|---|
-     | `NEO4J_ENABLED` | `false` | Render no tiene Neo4j |
-     | `NODE_ENV` | `production` | (default) |
-     | `PORT` | `10000` | Render asigna automáticamente |
+   - **Environment Variables** (requeridas):
+      | Variable | Valor | Motivo |
+      |---|---|---|
+      | `DATABASE_URL` | `postgresql://...` | Connection string de Render PostgreSQL |
+      | `JWT_SECRET` | `<secret>` | Firma de tokens de sesión (mismo que en `.env` local) |
+      | `NEO4J_ENABLED` | `false` | Render no tiene Neo4j |
+      | `NODE_ENV` | `production` | (default) |
+      | `PORT` | `10000` | Render asigna automáticamente |
 
 3. Hacer **Manual Deploy → Deploy latest commit**
 
 ### Notas importantes
-- `DATABASE_URL` **no necesita configurarse** — `start.js` calcula la ruta absoluta automáticamente.
-- La base SQLite `db/custom.db` viene con datos de prueba (80 cilindros, 15 clientes, etc.).
-- En el tier free de Render, el filesystem es efímero: los datos se pierden al redeploy. Para persistencia, usar Starter+ ($7/mes) con disco persistente.
+- Se requiere un **PostgreSQL externo** en Render Dashboard → Create New PostgreSQL.
+- Configurar `DATABASE_URL` en Render Environment Variables con la connection string provista.
+- `JWT_SECRET` debe configurarse en Environment Variables (mismo valor que en `.env` local).
+- La migración de schema se hace automáticamente con `prisma db push` en `start.js`.
+- En caso de schema nuevo, ejecutar `prisma/migration-enums-safe.sql` y `prisma/migration-decimal.sql` vía psql.
 
 ---
 
