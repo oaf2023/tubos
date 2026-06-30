@@ -442,6 +442,9 @@ model Cylinder {
   eventosTrazabilidad EventoTrazabilidad[]
   alertas             Alerta[]
   sesionesRFID        SesionLecturaRFID[]
+  identificadores     IdentificadorTubo[]
+  eventosTubo         EventoTubo[]
+  pedidosLectura      PedidoLecturaItem[]
 
   @@index([estado])
   @@index([gasId])
@@ -1254,6 +1257,133 @@ model TrafficHistory {
   updatedAt  DateTime @updatedAt
 
   @@unique([tramoHash, hora, diaSemana])
+}
+
+// ============ LECTURA CELULAR — MÓDULO MÓVIL ============
+
+enum TipoIdentificador {
+  UHF_EPC
+  UHF_TID
+  NFC_UID
+  NFC_TOKEN
+  QR_TOKEN
+}
+
+enum OrigenLectura {
+  PORTAL_UHF
+  HANDHELD_UHF
+  CELULAR_NFC
+  CELULAR_QR
+  CLIENTE_MOVIL
+}
+
+enum AccionEventoTubo {
+  CONSULTA
+  CONTROL
+  PEDIDO_REPOSICION
+  RETIRO
+  NOVEDAD
+  ENTREGA
+  DEVOLUCION
+}
+
+enum EstadoPedidoLectura {
+  BORRADOR
+  ENVIADO
+  VALIDADO
+  EN_PREPARACION
+  EN_REPARTO
+  ENTREGADO
+  CERRADO
+  RECHAZADO
+}
+
+enum AccionItemPedidoLectura {
+  REPONER
+  RETIRAR
+  MANTENER
+  REPORTAR
+}
+
+model IdentificadorTubo {
+  id              String             @id @default(cuid())
+  cylinderId      String
+  cylinder        Cylinder           @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  tipo            TipoIdentificador
+  valor           String             @unique
+  activo          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([cylinderId])
+  @@index([tipo])
+  @@index([valor])
+}
+
+model EventoTubo {
+  id              String             @id @default(cuid())
+  cylinderId      String
+  cylinder        Cylinder           @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
+  fechaHora       DateTime           @default(now())
+  origen          OrigenLectura
+  accion          AccionEventoTubo
+  usuarioId       String?
+  usuarioNombre   String?
+  clienteId       String?
+  clienteNombre   String?
+  latitud         Float?
+  longitud        Float?
+  estadoAnterior  String?
+  estadoNuevo     String?
+  observacion     String?
+  fotoUrl         String?
+  hashEvento      String?
+  createdAt       DateTime           @default(now())
+
+  @@index([cylinderId])
+  @@index([clienteId])
+  @@index([fechaHora])
+}
+
+model PedidoLectura {
+  id              String                @id @default(cuid())
+  clienteId       String?
+  clienteNombre   String?
+  obraId          String?
+  obraNombre      String?
+  usuarioId       String?
+  usuarioNombre   String?
+  estado          EstadoPedidoLectura   @default(BORRADOR)
+  prioridad       String                @default("NORMAL")
+  observacion     String?
+  contactoObra    String?
+  fechaCreacion   DateTime              @default(now())
+  fechaEnvio      DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  items           PedidoLecturaItem[]
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([fechaCreacion])
+}
+
+model PedidoLecturaItem {
+  id              String                 @id @default(cuid())
+  pedidoId        String
+  pedido          PedidoLectura          @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  cylinderId      String?
+  cylinder        Cylinder?              @relation(fields: [cylinderId], references: [id])
+  codigoTubo      String?
+  tipoGas         String?
+  capacidad       Int?
+  accion          AccionItemPedidoLectura
+  cantidad        Int                    @default(1)
+  observacion     String?
+  fotoUrl         String?
+  createdAt       DateTime               @default(now())
+
+  @@index([pedidoId])
 }
 
 // ============ IDEMPOTENCIA ============

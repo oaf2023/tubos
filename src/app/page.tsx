@@ -42,6 +42,7 @@ import {
   BarChart3,
   Wallet,
   TrendingUp,
+  Smartphone,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -101,6 +102,7 @@ const FinanzasTab = dynamic(() => import('@/components/finanzas-tab'), { ssr: fa
 const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const TableroTab = dynamic(() => import('@/components/tablero-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ClientePedidoTab = dynamic(() => import('@/components/cliente-pedido-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const LecturaTab = dynamic(() => import('@/components/lectura-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
@@ -165,7 +167,22 @@ export default function Home() {
           </div>
         </header>
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <ClientePedidoTab clienteId={user.clienteId} clienteNombre={user.nombre} />
+          <Tabs defaultValue="lectura" className="w-full">
+            <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex">
+              <TabsTrigger value="lectura" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+                <Smartphone className="w-4 h-4" /><span>Lectura</span>
+              </TabsTrigger>
+              <TabsTrigger value="pedidos-cliente" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+                <ShoppingCart className="w-4 h-4" /><span>Pedidos</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="lectura">
+              <LecturaTab user={user} />
+            </TabsContent>
+            <TabsContent value="pedidos-cliente">
+              <ClientePedidoTab clienteId={user.clienteId} clienteNombre={user.nombre} />
+            </TabsContent>
+          </Tabs>
         </main>
         <footer className="mt-auto border-t border-slate-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-500">
@@ -237,6 +254,9 @@ export default function Home() {
             <TabsTrigger value="deposito" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Warehouse className="w-4 h-4" /><span>Depósito</span>
             </TabsTrigger>
+            <TabsTrigger value="lectura" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Smartphone className="w-4 h-4" /><span>Lectura</span>
+            </TabsTrigger>
             <TabsTrigger value="cabina" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <ScanLine className="w-4 h-4" /><span>Cabina</span>
             </TabsTrigger>
@@ -304,6 +324,11 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="deposito">
             <DepositoTab />
+          </TabsContent>
+          <TabsContent value="lectura">
+            <TabErrorBoundary name="Lectura">
+              <LecturaTab user={user} />
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="cabina">
             <CabinaTab />
