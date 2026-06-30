@@ -6,6 +6,7 @@ import {
   AlertTriangle, CheckCircle2, XCircle, Send, Plus, Minus,
   Eye, RefreshCw, MapPin, Calendar, Building2, User,
   FileText, ClipboardList, ListOrdered, QrCode, Trash2,
+  Tags, Link2, ImageIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -61,6 +62,17 @@ interface ClienteOption {
   id: string; nombre: string
 }
 
+interface IdentificadorTubo {
+  id: string; cylinderId: string; tipo: string; valor: string; activo: boolean
+  createdAt: string
+  cylinder?: { numeroSerie: string; gas: { nombre: string; codigo: string; colorHex: string } }
+}
+
+interface CylinderOption {
+  id: string; numeroSerie: string
+  gas: { nombre: string; codigo: string }
+}
+
 const ESTADO_PEDIDO_COLORS: Record<string, string> = {
   BORRADOR: 'bg-slate-100 text-slate-600',
   ENVIADO: 'bg-blue-100 text-blue-700',
@@ -86,6 +98,14 @@ const ESTADO_TUBO_COLORS: Record<string, string> = {
   BAJA: 'bg-gray-600', EXTRAVIADO: 'bg-pink-700',
 }
 
+const TIPOS_IDENTIFICADOR = [
+  { value: 'QR_TOKEN', label: 'QR Token' },
+  { value: 'NFC_UID', label: 'NFC UID' },
+  { value: 'NFC_TOKEN', label: 'NFC Token' },
+  { value: 'UHF_EPC', label: 'UHF EPC' },
+  { value: 'UHF_TID', label: 'UHF TID' },
+]
+
 function getAlertColor(alert: string) {
   if (alert.includes('VENCIDA') || alert.includes('RECALIFICACIÓN')) return 'text-red-600 bg-red-50 border-red-200'
   if (alert.includes('PRÓXIMA')) return 'text-amber-600 bg-amber-50 border-amber-200'
@@ -94,7 +114,7 @@ function getAlertColor(alert: string) {
 
 export default function LecturaTab({ user }: { user?: any }) {
   const { toast } = useToast()
-  const [activeView, setActiveView] = useState<'scanner' | 'carrito' | 'pedidos'>('scanner')
+  const [activeView, setActiveView] = useState<'scanner' | 'carrito' | 'pedidos' | 'tokens'>('scanner')
 
   // Scanner state
   const [tagInput, setTagInput] = useState('')
@@ -123,6 +143,22 @@ export default function LecturaTab({ user }: { user?: any }) {
   const [selectedClienteId, setSelectedClienteId] = useState('')
   const [selectedClienteNombre, setSelectedClienteNombre] = useState('')
 
+  // ---- Token management state ----
+  const [identificadores, setIdentificadores] = useState<IdentificadorTubo[]>([])
+  const [cylinderOptions, setCylinderOptions] = useState<CylinderOption[]>([])
+  const [tokenSearch, setTokenSearch] = useState('')
+  const [newTokenCylinderId, setNewTokenCylinderId] = useState('')
+  const [newTokenTipo, setNewTokenTipo] = useState('QR_TOKEN')
+  const [newTokenValor, setNewTokenValor] = useState('')
+
+  // ---- Report dialog state ----
+  const [reportDialog, setReportDialog] = useState<{ open: boolean; tubeId: string; codigoTubo: string }>({ open: false, tubeId: '', codigoTubo: '' })
+  const [reportObservacion, setReportObservacion] = useState('')
+  const [reportFoto, setReportFoto] = useState<string | null>(null)
+  const [reportPhotoStream, setReportPhotoStream] = useState<MediaStream | null>(null)
+  const reportVideoRef = useRef<HTMLVideoElement>(null)
+  const reportCanvasRef = useRef<HTMLCanvasElement>(null)
+
   const esCliente = user?.tipo === 'cliente'
   const esUsuario = !esCliente
 
@@ -142,6 +178,25 @@ export default function LecturaTab({ user }: { user?: any }) {
         .catch(() => {})
     }
   }, [esUsuario])
+
+  // ---- Load cylinders for token selector ----
+  const loadCylinders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cylinders')
+      const data = await res.json()
+      setCylinderOptions(Array.isArray(data) ? data.map((c: any) => ({ id: c.id, numeroSerie: c.numeroSerie, gas: c.gas })) : [])
+    } catch { /* ok */ }
+  }, [])
+
+  const loadIdentificadores = useCallback(async () => {
+    try {
+      const params = new URLSearchParams()
+      if (tokenSearch) params.set('cylinderId', tokenSearch)
+      const res = await fetch(`/api/mobile/identificadores?${params}`)
+      const data = await res.json()
+      setIdentificadores(Array.isArray(data) ? data : [])
+    } catch { /* ok */ }
+  }, [tokenSearch])
 
   // ---- Camera handling ----
   const startCamera = useCallback(async () => {
@@ -170,6 +225,42 @@ export default function LecturaTab({ user }: { user?: any }) {
   useEffect(() => {
     return () => { stopCamera() }
   }, [stopCamera])
+
+  // ---- Report photo camera ----
+  const startReportCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      setReportPhotoStream(stream)
+      if (reportVideoRef.current) {
+        reportVideoRef.current.srcObject = stream
+      }
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo acceder a la cámara', variant: 'destructive' })
+    }
+  }, [toast])
+
+  const stopReportCamera = useCallback(() => {
+    if (reportPhotoStream) {
+      reportPhotoStream.getTracks().forEach(t => t.stop())
+    }
+    setReportPhotoStream(null)
+  }, [reportPhotoStream])
+
+  const capturePhoto = useCallback(() => {
+    const video = reportVideoRef.current
+    const canvas = reportCanvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setReportFoto(dataUrl)
+    stopReportCamera()
+  }, [stopReportCamera])
 
   // ---- Resolve tag ----
   const resolveTag = useCallback(async (valor: string, origen = 'CELULAR_QR') => {
@@ -213,6 +304,51 @@ export default function LecturaTab({ user }: { user?: any }) {
     toast({ title: 'Agregado', description: `${quickView.codigoTubo} - ${accion}` })
     setResolveResult(null)
   }, [resolveResult, cart, toast])
+
+  // ---- Report with photo ----
+  const openReportDialog = useCallback(() => {
+    if (!resolveResult) return
+    setReportDialog({ open: true, tubeId: resolveResult.tubeId, codigoTubo: resolveResult.quickView.codigoTubo })
+    setReportObservacion('')
+    setReportFoto(null)
+  }, [resolveResult])
+
+  const submitReport = useCallback(async () => {
+    try {
+      let fotoUrl: string | null = null
+      if (reportFoto) {
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: reportFoto }),
+        })
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          fotoUrl = uploadData.url
+        }
+      }
+      if (!resolveResult) return
+      const res = await fetch(`/api/mobile/tubes/${reportDialog.tubeId}/event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accion: 'NOVEDAD',
+          observacion: reportObservacion || 'Reporte con foto',
+          origen: 'CELULAR_QR',
+          fotoUrl,
+        }),
+      })
+      if (!res.ok) throw new Error('Error al reportar')
+      toast({ title: 'Reporte enviado', description: 'La novedad fue registrada con la foto' })
+      setReportDialog({ open: false, tubeId: '', codigoTubo: '' })
+      setReportObservacion('')
+      setReportFoto(null)
+      setResolveResult(null)
+      stopReportCamera()
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+    }
+  }, [reportFoto, reportDialog, reportObservacion, resolveResult, toast, stopReportCamera])
 
   // ---- Create and submit order ----
   const enviarPedido = useCallback(async () => {
@@ -304,6 +440,41 @@ export default function LecturaTab({ user }: { user?: any }) {
     setCart(cart.filter(c => c.tubeId !== tubeId))
   }, [cart])
 
+  // ---- Token management ----
+  const createIdentificador = useCallback(async () => {
+    if (!newTokenCylinderId || !newTokenValor.trim()) {
+      toast({ title: 'Completá todos los campos', variant: 'destructive' })
+      return
+    }
+    try {
+      const res = await fetch('/api/mobile/identificadores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cylinderId: newTokenCylinderId,
+          tipo: newTokenTipo,
+          valor: newTokenValor.trim(),
+        }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
+      toast({ title: 'Token asignado', description: `${newTokenTipo} → ${newTokenValor}` })
+      setNewTokenValor('')
+      loadIdentificadores()
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+    }
+  }, [newTokenCylinderId, newTokenValor, newTokenTipo, toast, loadIdentificadores])
+
+  const deleteIdentificador = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/mobile/identificadores/${id}`, { method: 'DELETE' })
+      toast({ title: 'Token eliminado' })
+      loadIdentificadores()
+    } catch {
+      toast({ title: 'Error al eliminar', variant: 'destructive' })
+    }
+  }, [toast, loadIdentificadores])
+
   // ---------------- Render ----------------
   return (
     <div className="space-y-4">
@@ -339,6 +510,11 @@ export default function LecturaTab({ user }: { user?: any }) {
           <TabsTrigger value="pedidos" className="flex items-center gap-1">
             <ListOrdered className="w-4 h-4" /><span>Pedidos</span>
           </TabsTrigger>
+          {esUsuario && (
+            <TabsTrigger value="tokens" className="flex items-center gap-1">
+              <Tags className="w-4 h-4" /><span>Tokens</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ========== SCANNER ========== */}
@@ -388,7 +564,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                 </div>
               )}
 
-              {/* Manual input */}
               <div className="flex gap-2">
                 <Input
                   placeholder="Código del tag / QR..."
@@ -403,7 +578,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                 </Button>
               </div>
 
-              {/* NFC hint */}
               <p className="text-xs text-slate-400 text-center flex items-center justify-center gap-1">
                 <Smartphone className="w-3 h-3" />
                 Si tu dispositivo tiene NFC, acercalo al tubo
@@ -426,7 +600,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                   </div>
                 </div>
 
-                {/* Gas info */}
                 <div className="grid grid-cols-2 gap-3 text-sm bg-slate-50 rounded-lg p-3">
                   <div>
                     <span className="text-slate-500 text-xs">Gas</span>
@@ -442,7 +615,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                   <div><span className="text-slate-500 text-xs">Últ. movimiento</span><p className="font-semibold">{resolveResult.quickView.ultimoMovimiento ? formatDate(resolveResult.quickView.ultimoMovimiento) : '—'}</p></div>
                 </div>
 
-                {/* Alertas */}
                 {resolveResult.quickView.alertas.length > 0 && (
                   <div className="space-y-1">
                     {resolveResult.quickView.alertas.map((a, i) => (
@@ -453,7 +625,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                   </div>
                 )}
 
-                {/* Actions */}
                 {resolveResult.permisos.puedeOperar ? (
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => addToCart('REPONER')}>
@@ -465,7 +636,7 @@ export default function LecturaTab({ user }: { user?: any }) {
                     <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => addToCart('MANTENER')}>
                       <CheckCircle2 className="w-4 h-4 mr-1" />Mantener
                     </Button>
-                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={() => addToCart('REPORTAR')}>
+                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={openReportDialog}>
                       <AlertTriangle className="w-4 h-4 mr-1" />Reportar
                     </Button>
                   </div>
@@ -569,7 +740,6 @@ export default function LecturaTab({ user }: { user?: any }) {
 
         {/* ========== PEDIDOS ========== */}
         <TabsContent value="pedidos" className="space-y-4 mt-2">
-          {/* Client filter for usuarios */}
           {esUsuario && (
             <div className="flex gap-2">
               <Select value={selectedClienteId} onValueChange={(v) => {
@@ -620,7 +790,6 @@ export default function LecturaTab({ user }: { user?: any }) {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewPedido(p)} title="Ver detalle">
                           <Eye className="w-4 h-4 text-slate-500" />
                         </Button>
-                        {/* Internal actions */}
                         {esUsuario && p.estado === 'ENVIADO' && (
                           <>
                             <Button variant="outline" size="sm" className="h-7 text-xs text-emerald-600 border-emerald-300" onClick={() => internalAction('validate', p.id)}>Validar</Button>
@@ -641,6 +810,124 @@ export default function LecturaTab({ user }: { user?: any }) {
             </div>
           )}
         </TabsContent>
+
+        {/* ========== TOKENS (ADMIN) ========== */}
+        {esUsuario && (
+          <TabsContent value="tokens" className="space-y-4 mt-2">
+            {/* Create token form */}
+            <Card className="border-orange-200">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2 border-b border-orange-100 pb-2">
+                  <Link2 className="w-4 h-4 text-orange-500" />
+                  <h3 className="font-semibold text-sm">Asignar nuevo token</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-500">Tubo *</Label>
+                    <Select value={newTokenCylinderId} onValueChange={setNewTokenCylinderId}>
+                      <SelectTrigger className="bg-white mt-1" onFocus={() => loadCylinders()}>
+                        <SelectValue placeholder="Seleccionar tubo..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cylinderOptions.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.numeroSerie} — {c.gas?.nombre || ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Tipo *</Label>
+                    <Select value={newTokenTipo} onValueChange={setNewTokenTipo}>
+                      <SelectTrigger className="bg-white mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPOS_IDENTIFICADOR.map(t => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Valor *</Label>
+                    <Input
+                      value={newTokenValor}
+                      onChange={(e) => setNewTokenValor(e.target.value)}
+                      placeholder="Código QR / UID NFC..."
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={createIdentificador}
+                  disabled={!newTokenCylinderId || !newTokenValor.trim()}
+                  className="bg-gradient-to-r from-orange-500 to-red-600"
+                >
+                  <Link2 className="w-4 h-4 mr-1" />Asignar token
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Token list */}
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-1">
+                    <Tags className="w-4 h-4 text-slate-500" />
+                    Tokens asignados
+                  </h3>
+                  <Input
+                    placeholder="Buscar por ID de tubo..."
+                    value={tokenSearch}
+                    onChange={(e) => setTokenSearch(e.target.value)}
+                    className="max-w-xs h-8 text-xs"
+                  />
+                </div>
+                {identificadores.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-sm">
+                    <Tags className="w-8 h-8 mx-auto mb-1 text-slate-300" />
+                    No hay tokens asignados
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tubo</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead className="text-center">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {identificadores.map(idt => (
+                          <TableRow key={idt.id}>
+                            <TableCell className="font-mono text-xs font-semibold">
+                              {idt.cylinder?.numeroSerie || idt.cylinderId}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px]">{idt.tipo}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[200px] truncate">{idt.valor}</TableCell>
+                            <TableCell className="text-xs text-slate-500">{formatDate(idt.createdAt)}</TableCell>
+                            <TableCell className="text-center">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => deleteIdentificador(idt.id)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ========== ORDER DETAIL DIALOG ========== */}
@@ -674,6 +961,7 @@ export default function LecturaTab({ user }: { user?: any }) {
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-semibold text-xs">{i.codigoTubo || '—'}</span>
                         <Badge className="text-[10px] bg-slate-200 text-slate-700">{i.accion}</Badge>
+                        {i.fotoUrl && <ImageIcon className="w-3 h-3 text-sky-500" title="Tiene foto" />}
                       </div>
                       <div className="flex items-center gap-2">
                         {i.tipoGas && <span className="text-xs text-slate-500">{i.tipoGas}</span>}
@@ -708,6 +996,82 @@ export default function LecturaTab({ user }: { user?: any }) {
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setRejectDialog({ open: false, orderId: '' })}>Cancelar</Button>
               <Button variant="destructive" onClick={() => internalAction('reject', rejectDialog.orderId)} disabled={!rejectMotivo.trim()}>Rechazar pedido</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========== REPORT DIALOG ========== */}
+      <Dialog open={reportDialog.open} onOpenChange={(o) => {
+        if (!o) { setReportDialog({ open: false, tubeId: '', codigoTubo: '' }); stopReportCamera() }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Reportar problema — {reportDialog.codigoTubo}
+            </DialogTitle>
+            <DialogDescription>Registrá una novedad con foto opcional</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-slate-500">Descripción del problema</Label>
+              <Textarea
+                value={reportObservacion}
+                onChange={(e) => setReportObservacion(e.target.value)}
+                placeholder="Describí la novedad..."
+                rows={3}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs text-slate-500">Foto</Label>
+              <div className="mt-1">
+                {reportFoto ? (
+                  <div className="relative">
+                    <img src={reportFoto} alt="Foto" className="w-full max-h-48 object-cover rounded-lg border" />
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => { setReportFoto(null); startReportCamera() }}>
+                        <Camera className="w-3 h-3 mr-1" />Retomar foto
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs text-red-500" onClick={() => setReportFoto(null)}>
+                        <XCircle className="w-3 h-3 mr-1" />Quitar
+                      </Button>
+                    </div>
+                  </div>
+                ) : reportPhotoStream ? (
+                  <div className="relative">
+                    <video ref={reportVideoRef} autoPlay playsInline className="w-full max-h-48 rounded-lg bg-black" />
+                    <div className="flex gap-2 mt-2">
+                      <Button onClick={capturePhoto} className="bg-orange-500 text-white text-xs">
+                        <Camera className="w-4 h-4 mr-1" />Tomar foto
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs" onClick={stopReportCamera}>
+                        <XCircle className="w-3 h-3 mr-1" />Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={startReportCamera} className="w-full border-dashed">
+                    <Camera className="w-4 h-4 mr-2" />Abrir cámara para tomar foto
+                  </Button>
+                )}
+                <canvas ref={reportCanvasRef} className="hidden" />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={() => { setReportDialog({ open: false, tubeId: '', codigoTubo: '' }); stopReportCamera() }}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={submitReport}
+                disabled={!reportObservacion.trim() && !reportFoto}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                <Send className="w-4 h-4 mr-1" />Enviar reporte
+              </Button>
             </div>
           </div>
         </DialogContent>
