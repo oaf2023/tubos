@@ -10,6 +10,9 @@ import {
   MapPin,
   Map as MapIcon,
   FileText,
+  ClipboardList,
+  Search,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -28,6 +31,7 @@ import {
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -118,6 +122,9 @@ function ConfiguracionTab() {
         </TabsTrigger>
         <TabsTrigger value="empresa" className="flex items-center gap-1.5">
           <Building2 className="w-4 h-4" /><span>Datos de la Empresa</span>
+        </TabsTrigger>
+        <TabsTrigger value="auditoria" className="flex items-center gap-1.5">
+          <ClipboardList className="w-4 h-4" /><span>Bitácora</span>
         </TabsTrigger>
       </TabsList>
 
@@ -253,6 +260,10 @@ function ConfiguracionTab() {
 
       <TabsContent value="empresa">
         <ConfigEmpresaForm />
+      </TabsContent>
+
+      <TabsContent value="auditoria">
+        <AuditoriaView />
       </TabsContent>
     </Tabs>
   )
@@ -512,6 +523,153 @@ function ConfigEmpresaForm() {
               <Save className="w-4 h-4" /> {saving ? 'Guardando...' : 'Guardar configuración'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AuditoriaView() {
+  const { toast } = useToast()
+  const [logs, setLogs] = useState<any[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [filtroAccion, setFiltroAccion] = useState('')
+  const [filtroUsuario, setFiltroUsuario] = useState('')
+  const [filtroEntidad, setFiltroEntidad] = useState('')
+  const [page, setPage] = useState(0)
+  const pageSize = 50
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('limit', String(pageSize))
+      params.set('offset', String(page * pageSize))
+      if (filtroAccion) params.set('accion', filtroAccion)
+      if (filtroUsuario) params.set('usuario', filtroUsuario)
+      if (filtroEntidad) params.set('entidad', filtroEntidad)
+      const res = await fetch(`/api/audit?${params}`)
+      const data = await res.json()
+      setLogs(Array.isArray(data.logs) ? data.logs : [])
+      setTotal(data.total || 0)
+    } catch { setLogs([]) }
+    finally { setLoading(false) }
+  }, [filtroAccion, filtroUsuario, filtroEntidad, page])
+
+  useEffect(() => { load() }, [load])
+
+  const accionBadge = (accion: string) => {
+    const colors: Record<string, string> = {
+      LOGIN: 'bg-emerald-100 text-emerald-700',
+      LOGOUT: 'bg-slate-100 text-slate-600',
+      CREATE: 'bg-blue-100 text-blue-700',
+      UPDATE: 'bg-amber-100 text-amber-700',
+      DELETE: 'bg-red-100 text-red-700',
+      CAMBIO_ESTADO: 'bg-violet-100 text-violet-700',
+    }
+    return <Badge className={`text-[10px] ${colors[accion] || 'bg-slate-100 text-slate-600'}`}>{accion}</Badge>
+  }
+
+  const totalPages = Math.ceil(total / pageSize)
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-orange-500" />
+            Bitácora del Sistema
+          </CardTitle>
+          <CardDescription>
+            Historial de ingresos, egresos y acciones de auditoría ({total} registros)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-1">
+              <Search className="w-3 h-3 text-slate-400" />
+              <select
+                value={filtroAccion}
+                onChange={(e) => { setFiltroAccion(e.target.value); setPage(0) }}
+                className="text-xs border rounded px-2 py-1 bg-white"
+              >
+                <option value="">Todas las acciones</option>
+                <option value="LOGIN">LOGIN</option>
+                <option value="LOGOUT">LOGOUT</option>
+                <option value="CREATE">CREATE</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DELETE">DELETE</option>
+                <option value="CAMBIO_ESTADO">CAMBIO_ESTADO</option>
+              </select>
+            </div>
+            <Input
+              placeholder="Filtrar por usuario..."
+              value={filtroUsuario}
+              onChange={(e) => { setFiltroUsuario(e.target.value); setPage(0) }}
+              className="max-w-[180px] h-8 text-xs"
+            />
+            <Input
+              placeholder="Filtrar por entidad..."
+              value={filtroEntidad}
+              onChange={(e) => { setFiltroEntidad(e.target.value); setPage(0) }}
+              className="max-w-[180px] h-8 text-xs"
+            />
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setFiltroAccion(''); setFiltroUsuario(''); setFiltroEntidad(''); setPage(0) }}>
+              <RefreshCw className="w-3 h-3 mr-1" />Limpiar
+            </Button>
+          </div>
+
+          {/* Tabla */}
+          {loading ? (
+            <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <ClipboardList className="w-8 h-8 mx-auto mb-1 text-slate-300" />
+              No hay registros de auditoría
+            </div>
+          ) : (
+            <div className="overflow-x-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Fecha/Hora</TableHead>
+                    <TableHead className="text-xs">Acción</TableHead>
+                    <TableHead className="text-xs">Usuario</TableHead>
+                    <TableHead className="text-xs">Entidad</TableHead>
+                    <TableHead className="text-xs">ID Entidad</TableHead>
+                    <TableHead className="text-xs">IP</TableHead>
+                    <TableHead className="text-xs">Detalle</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="text-xs whitespace-nowrap font-mono">{formatDate(l.createdAt)}</TableCell>
+                      <TableCell>{accionBadge(l.accion)}</TableCell>
+                      <TableCell className="text-xs font-medium">{l.usuario || '—'}</TableCell>
+                      <TableCell className="text-xs text-slate-500">{l.entidad}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-400">{l.entidadId ? l.entidadId.substring(0, 12) + '…' : '—'}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{l.direccionIp || '—'}</TableCell>
+                      <TableCell className="text-xs text-slate-500 max-w-[200px] truncate" title={l.detalle || ''}>{l.detalle || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>Página {page + 1} de {totalPages} ({total} registros)</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Siguiente</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { setSessionCookie } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,15 +18,18 @@ export async function POST(req: NextRequest) {
     })
 
     if (!acceso || !acceso.activo) {
+      await logAudit({ accion: 'LOGIN', entidad: 'ClienteAcceso', detalle: { usuario, resultado: 'fallo: no encontrado o inactivo' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
     if (!acceso.cliente.activo) {
+      await logAudit({ accion: 'LOGIN', entidad: 'ClienteAcceso', entidadId: acceso.id, detalle: { usuario, resultado: 'fallo: cliente desactivado' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
       return NextResponse.json({ error: 'Cuenta de cliente desactivada' }, { status: 401 })
     }
 
     const match = await bcrypt.compare(password, acceso.password)
     if (!match) {
+      await logAudit({ accion: 'LOGIN', entidad: 'ClienteAcceso', entidadId: acceso.id, detalle: { usuario, resultado: 'fallo: contraseña incorrecta' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
@@ -36,6 +40,8 @@ export async function POST(req: NextRequest) {
       usuario: acceso.usuario,
       tipo: 'cliente' as const,
     }
+
+    await logAudit({ accion: 'LOGIN', entidad: 'ClienteAcceso', entidadId: acceso.id, usuario: acceso.usuario, detalle: { resultado: 'exitoso', cliente: acceso.cliente.nombre }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
 
     const response = NextResponse.json({ user })
     await setSessionCookie(response, {
