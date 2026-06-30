@@ -247,3 +247,41 @@ NO HACER:
 - No intentar leer RFID UHF con el celular sin hardware externo.
 - No exponer historial comercial completo a usuarios publicos.
 - No automatizar facturacion sin validacion en MVP.
+
+# BACKLOG INICIAL SUGERIDO
+
+| Prioridad | Historia de usuario | Criterio de aceptacion |
+|-----------|---------------------|------------------------|
+| P0 | Como administrador quiero dar de alta un tubo con codigo unico. | El tubo queda activo y visible para asignacion. |
+| P0 | Como administrador quiero asociar QR/NFC token a un tubo. | El token resuelve correctamente la ficha del tubo. |
+| P0 | Como cliente quiero escanear un QR del tubo. | Veo ficha rapida si el tubo pertenece a mi cuenta. |
+| P0 | Como cliente quiero armar pedido parcial con tubos escaneados. | El pedido guarda items y queda en borrador. |
+| P0 | Como cliente quiero enviar el pedido. | El panel interno lo recibe como ENVIADO. |
+| P1 | Como supervisor interno quiero validar pedido. | El pedido cambia a VALIDADO y registra auditoria. |
+| P1 | Como cliente quiero reportar problema con foto. | La novedad queda adjunta al tubo y al pedido. |
+| P2 | Como operario quiero trabajar con baja conectividad. | El sistema guarda borrador local y sincroniza despues. |
+
+# FUENTES TECNICAS
+
+Fuentes usadas como marco tecnico para estandares y compatibilidad. Se recomienda validarlas durante la etapa de seleccion final de tags, telefonos y lectores industriales.
+
+| Organismo | Documento | Uso dentro del proyecto |
+|-----------|-----------|------------------------|
+| NFC Forum | NFC Technology | Compatibilidad de dispositivos NFC con ISO/IEC 14443 A/B, ISO/IEC 15693, NFC Forum Tags y otros modos. |
+| NFC Forum | Specifications | Referencia a frecuencia base NFC de 13,56 MHz. |
+| Android Developers | Near field communication overview / NFC basics | Modo lector/escritor para leer y escribir tags NFC pasivos; manejo de NDEF. |
+| MDN Web Docs | Web NFC API | Web NFC permite intercambiar mensajes NDEF pero tiene disponibilidad limitada y debe revisarse antes de produccion. |
+| GS1 | EPC Gen2 Protocol Standard | RFID UHF Gen2 opera en 860-960 MHz y referencia ISO/IEC 18000-63. |
+| RAIN Alliance | RAIN RFID System Design Guidelines | RAIN RFID se apoya en interfaces UHF GS1 EPC Gen2 / ISO/IEC 18000-63. |
+
+- https://nfc-forum.org/learn/nfc-technology/
+- https://nfc-forum.org/build/specifications
+- https://developer.android.com/develop/connectivity/nfc
+- https://developer.android.com/develop/connectivity/nfc/nfc
+- https://developer.mozilla.org/en-US/docs/Web/API/Web_NFC_API
+- https://www.gs1.org/sites/default/files/docs/epc/Gen2_Protocol_Standard.pdf
+- https://therainalliance.org/wp-content/uploads/2023/09/RAIN-RFID_System_Design_Guidelines-V2.pdf
+
+# CIERRE EJECUTIVO
+
+La lectura celular agrega valor comercial y operativo cuando el tubo esta fuera de la empresa. Con NFC/QR el cliente se convierte en parte activa del circuito de control y reposicion, mientras que la empresa mantiene gobernanza, trazabilidad y control patrimonial mediante backend y RFID UHF interno.
