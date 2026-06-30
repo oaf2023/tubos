@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { osrmTable, osrmTrip } from '@/lib/routing'
+import { haversineKm } from '@/lib/haversine'
 
 // POST /api/routes/matrix - OSRM distance/duration matrix with caching
 export async function POST(req: NextRequest) {
@@ -38,16 +39,4 @@ export async function POST(req: NextRequest) {
     console.error('POST /api/routes/matrix', e)
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
-}
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
 }

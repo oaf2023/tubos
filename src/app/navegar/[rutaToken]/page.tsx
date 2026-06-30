@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
-import { Truck, Navigation, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Truck, Navigation, CheckCircle, AlertTriangle, RefreshCw, Camera, XCircle, Send } from 'lucide-react'
 
 const MapView = dynamic(() => import('@/components/map-view'), { ssr: false })
 
@@ -15,6 +15,8 @@ type ParadaNavegacion = {
   lng: number
   demandaTubos?: number | null
   tipoOperacion?: string | null
+  fotoUrl?: string | null
+  notasConductor?: string | null
 }
 
 type RutaNavegacion = {
@@ -34,6 +36,14 @@ export default function NavegarPage() {
   const [entregadas, setEntregadas] = useState<Set<string>>(new Set())
   const [enviando, setEnviando] = useState<string | null>(null)
 
+  // Delivery dialog state
+  const [deliverDialog, setDeliverDialog] = useState<{ open: boolean; paradaId: string }>({ open: false, paradaId: '' })
+  const [deliverNotas, setDeliverNotas] = useState('')
+  const [deliverFoto, setDeliverFoto] = useState<string | null>(null)
+  const [deliverPhotoStream, setDeliverPhotoStream] = useState<MediaStream | null>(null)
+  const deliverVideoRef = useRef<HTMLVideoElement>(null)
+  const deliverCanvasRef = useRef<HTMLCanvasElement>(null)
+
   // Load route by token
   useEffect(() => {
     async function loadRuta() {
@@ -42,9 +52,7 @@ export default function NavegarPage() {
         if (!res.ok) throw new Error('Ruta no encontrada')
         const rutas = await res.json()
         const rutasArr = Array.isArray(rutas) ? rutas : []
-        const encontrada = rutasArr.find(
-          (r: any) => r.navigationToken === rutaToken
-        )
+        const encontrada = rutasArr[0]
         if (!encontrada) throw new Error('Token de navegación inválido')
         setRuta({
           id: encontrada.id,
@@ -101,17 +109,74 @@ export default function NavegarPage() {
     return () => navigator.geolocation.clearWatch(watchId)
   }, [ruta, gpsActivo])
 
-  async function marcarEntregado(paradaId: string) {
+  // Camera handling for delivery photo
+  const startDeliverCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      setDeliverPhotoStream(stream)
+      if (deliverVideoRef.current) {
+        deliverVideoRef.current.srcObject = stream
+      }
+    } catch {
+      // camera not available
+    }
+  }, [])
+
+  const stopDeliverCamera = useCallback(() => {
+    if (deliverPhotoStream) {
+      deliverPhotoStream.getTracks().forEach(t => t.stop())
+    }
+    setDeliverPhotoStream(null)
+  }, [deliverPhotoStream])
+
+  const captureDeliverPhoto = useCallback(() => {
+    const video = deliverVideoRef.current
+    const canvas = deliverCanvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setDeliverFoto(dataUrl)
+    stopDeliverCamera()
+  }, [stopDeliverCamera])
+
+  async function submitDelivery(paradaId: string) {
     if (!ruta) return
     setEnviando(paradaId)
     try {
+      let fotoUrl: string | null = null
+      if (deliverFoto) {
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: deliverFoto }),
+        })
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          fotoUrl = uploadData.url
+        }
+      }
       const res = await fetch(`/api/routes/${ruta.id}/paradas/${paradaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'ENTREGADO', llegada: true, salida: true }),
+        body: JSON.stringify({
+          estado: 'ENTREGADO',
+          llegada: true,
+          salida: true,
+          fotoUrl,
+          notasConductor: deliverNotas.trim() || undefined,
+        }),
       })
       if (res.ok) {
         setEntregadas((prev) => new Set(prev).add(paradaId))
+        setDeliverDialog({ open: false, paradaId: '' })
+        setDeliverNotas('')
+        setDeliverFoto(null)
       }
     } catch { /* ignore */ }
     setEnviando(null)
@@ -265,7 +330,7 @@ export default function NavegarPage() {
                 </div>
                 {isCurrent && !done && (
                   <button
-                    onClick={() => marcarEntregado(p.id)}
+                    onClick={() => setDeliverDialog({ open: true, paradaId: p.id })}
                     disabled={enviando === p.id}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-sm font-medium"
                   >
@@ -277,6 +342,74 @@ export default function NavegarPage() {
           })}
         </div>
       </div>
+
+      {/* Delivery dialog */}
+      {deliverDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 border border-slate-600">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+              Completar entrega
+            </h3>
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Notas del conductor</label>
+              <textarea
+                value={deliverNotas}
+                onChange={(e) => setDeliverNotas(e.target.value)}
+                placeholder="Observaciones de la entrega..."
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Foto de entrega</label>
+              {deliverFoto ? (
+                <div className="relative">
+                  <img src={deliverFoto} alt="Foto entrega" className="w-full max-h-40 object-cover rounded-lg border border-slate-600" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => { setDeliverFoto(null); startDeliverCamera() }} className="px-3 py-1.5 bg-slate-700 rounded-lg text-xs">Retomar foto</button>
+                    <button onClick={() => setDeliverFoto(null)} className="px-3 py-1.5 bg-red-700 rounded-lg text-xs">Quitar</button>
+                  </div>
+                </div>
+              ) : deliverPhotoStream ? (
+                <div className="relative">
+                  <video ref={deliverVideoRef} autoPlay playsInline className="w-full max-h-40 rounded-lg bg-black" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={captureDeliverPhoto} className="px-3 py-1.5 bg-emerald-600 rounded-lg text-xs flex items-center gap-1">
+                      <Camera className="w-3 h-3" /> Tomar foto
+                    </button>
+                    <button onClick={stopDeliverCamera} className="px-3 py-1.5 bg-slate-700 rounded-lg text-xs">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={startDeliverCamera} className="w-full py-3 border-2 border-dashed border-slate-600 rounded-lg text-sm text-slate-400 hover:border-emerald-500 hover:text-emerald-400 transition flex items-center justify-center gap-2">
+                  <Camera className="w-4 h-4" /> Tomar foto
+                </button>
+              )}
+              <canvas ref={deliverCanvasRef} className="hidden" />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+              <button
+                onClick={() => { setDeliverDialog({ open: false, paradaId: '' }); setDeliverNotas(''); setDeliverFoto(null); stopDeliverCamera() }}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => submitDelivery(deliverDialog.paradaId)}
+                disabled={enviando === deliverDialog.paradaId}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+              >
+                {enviando === deliverDialog.paradaId ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                Confirmar entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -20,6 +20,8 @@ export async function PUT(
       const data: Record<string, unknown> = {}
       if (body.estado !== undefined) data.estado = body.estado
       if (body.notas !== undefined) data.notas = body.notas
+      if (body.fotoUrl !== undefined) data.fotoUrl = body.fotoUrl
+      if (body.notasConductor !== undefined) data.notasConductor = body.notasConductor
       if (body.llegada === true) data.llegada = new Date()
       if (body.salida === true) data.salida = new Date()
 
@@ -45,7 +47,9 @@ export async function PUT(
             fecha: new Date(),
             tipo: (p.tipoOperacion === 'RETIRO' ? 'DEVOLUCION' : 'ENTREGA') as any,
             estado: 'COMPLETADO',
-            observaciones: `Generado desde ruta - Parada #${p.orden}`,
+            observaciones: body.notasConductor
+              ? `Generado desde ruta - Parada #${p.orden} - Nota: ${body.notasConductor}`
+              : `Generado desde ruta - Parada #${p.orden}`,
             items: defaultGasId && p.demandaTubos
               ? {
                   create: [{

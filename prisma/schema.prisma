@@ -683,6 +683,8 @@ model RutaParada {
   tiempoServicioMin Int?     // Minutos estimados en la parada
   prioridad        Int?      @default(5) // 1=urgente, 5=normal, 10=baja
   tipoOperacion    TipoOperacionParada? @default(ENTREGA) // ENTREGA, RETIRO, CANJE
+  fotoUrl          String?   // Foto de entrega (data URI)
+  notasConductor   String?   // Notas del conductor al entregar
 
   @@index([rutaId])
   @@index([estado])

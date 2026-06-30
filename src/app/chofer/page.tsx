@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Truck, Navigation, MapPin, CheckCircle, AlertTriangle,
-  LogOut, RefreshCw, User, Clock,
+  LogOut, RefreshCw, User, Clock, Camera, Send, XCircle,
 } from 'lucide-react'
 
 const MapView = dynamic(() => import('@/components/map-view'), { ssr: false })
@@ -49,6 +49,14 @@ export default function ChoferPage() {
   const [logging, setLogging] = useState(false)
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Delivery dialog state
+  const [deliverDialog, setDeliverDialog] = useState<{ open: boolean; paradaId: string }>({ open: false, paradaId: '' })
+  const [deliverNotas, setDeliverNotas] = useState('')
+  const [deliverFoto, setDeliverFoto] = useState<string | null>(null)
+  const [deliverPhotoStream, setDeliverPhotoStream] = useState<MediaStream | null>(null)
+  const deliverVideoRef = useRef<HTMLVideoElement>(null)
+  const deliverCanvasRef = useRef<HTMLCanvasElement>(null)
+
   // Login
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -89,7 +97,6 @@ export default function ChoferPage() {
   useEffect(() => {
     if (!token) return
 
-    // Iniciar GPS
     if (navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => setPosicion(pos),
@@ -98,7 +105,6 @@ export default function ChoferPage() {
       )
       setGpsActivo(true)
 
-      // Heartbeat cada 15 segundos
       heartbeatRef.current = setInterval(async () => {
         const pos = posicionRef.current
         try {
@@ -135,19 +141,69 @@ export default function ChoferPage() {
     }
   }, [token])
 
-  // Ref para posición actual en heartbeat
   const posicionRef = useRef(posicion)
   posicionRef.current = posicion
 
-  // Marcar parada como entregada
-  async function marcarEntregado(paradaId: string) {
+  // Camera handling
+  const startDeliverCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      setDeliverPhotoStream(stream)
+      if (deliverVideoRef.current) {
+        deliverVideoRef.current.srcObject = stream
+      }
+    } catch { /* camera not available */ }
+  }, [])
+
+  const stopDeliverCamera = useCallback(() => {
+    if (deliverPhotoStream) {
+      deliverPhotoStream.getTracks().forEach(t => t.stop())
+    }
+    setDeliverPhotoStream(null)
+  }, [deliverPhotoStream])
+
+  const captureDeliverPhoto = useCallback(() => {
+    const video = deliverVideoRef.current
+    const canvas = deliverCanvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setDeliverFoto(dataUrl)
+    stopDeliverCamera()
+  }, [stopDeliverCamera])
+
+  async function submitDelivery(paradaId: string) {
     if (!ruta) return
     setEntregando(paradaId)
     try {
+      let fotoUrl: string | null = null
+      if (deliverFoto) {
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: deliverFoto }),
+        })
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          fotoUrl = uploadData.url
+        }
+      }
       await fetch(`/api/routes/${ruta.id}/paradas/${paradaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'ENTREGADO', llegada: true, salida: true }),
+        body: JSON.stringify({
+          estado: 'ENTREGADO',
+          llegada: true,
+          salida: true,
+          fotoUrl,
+          notasConductor: deliverNotas.trim() || undefined,
+        }),
       })
       setRuta((prev) => {
         if (!prev) return prev
@@ -156,6 +212,9 @@ export default function ChoferPage() {
           paradas: prev.paradas.filter((p) => p.id !== paradaId),
         }
       })
+      setDeliverDialog({ open: false, paradaId: '' })
+      setDeliverNotas('')
+      setDeliverFoto(null)
     } catch { /* ignore */ }
     setEntregando(null)
   }
@@ -212,7 +271,6 @@ export default function ChoferPage() {
     )
   }
 
-  // Pantalla principal del chofer
   const pendientes = ruta?.paradas?.filter((p) => p.estado !== 'ENTREGADO') ?? []
   const actual = pendientes[0]
   const completadas = (ruta?.paradas?.length ?? 0) - pendientes.length
@@ -233,7 +291,6 @@ export default function ChoferPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-2">
@@ -281,7 +338,6 @@ export default function ChoferPage() {
         </div>
       ) : (
         <>
-          {/* Barra de progreso */}
           <div className="px-4 py-2 bg-slate-800/50">
             <div className="max-w-lg mx-auto">
               <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
@@ -297,7 +353,6 @@ export default function ChoferPage() {
             </div>
           </div>
 
-          {/* Parada actual */}
           <div className="px-4 py-3 bg-slate-800/30">
             <div className="max-w-lg mx-auto">
               {actual ? (
@@ -326,12 +381,10 @@ export default function ChoferPage() {
             </div>
           </div>
 
-          {/* Mapa */}
           <div className="flex-1 relative">
             <MapView markers={markers as any} routes={[]} geocercas={[]} height="100%" />
           </div>
 
-          {/* GPS info */}
           {posicion && (
             <div className="bg-slate-800 border-t border-slate-700 px-4 py-2">
               <div className="max-w-lg mx-auto flex items-center gap-4 text-[10px] text-slate-400">
@@ -342,7 +395,6 @@ export default function ChoferPage() {
             </div>
           )}
 
-          {/* Lista de paradas */}
           <div className="bg-slate-800 border-t border-slate-700 max-h-44 overflow-y-auto">
             <div className="max-w-lg mx-auto p-4 space-y-2">
               {ruta.paradas.map((p) => {
@@ -374,7 +426,7 @@ export default function ChoferPage() {
                     </div>
                     {isCurrent && !done && (
                       <button
-                        onClick={() => marcarEntregado(p.id)}
+                        onClick={() => setDeliverDialog({ open: true, paradaId: p.id })}
                         disabled={entregando === p.id}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-sm font-medium"
                       >
@@ -387,6 +439,74 @@ export default function ChoferPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Delivery dialog */}
+      {deliverDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 border border-slate-600">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+              Completar entrega
+            </h3>
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Notas del conductor</label>
+              <textarea
+                value={deliverNotas}
+                onChange={(e) => setDeliverNotas(e.target.value)}
+                placeholder="Observaciones de la entrega..."
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Foto de entrega</label>
+              {deliverFoto ? (
+                <div className="relative">
+                  <img src={deliverFoto} alt="Foto entrega" className="w-full max-h-40 object-cover rounded-lg border border-slate-600" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => { setDeliverFoto(null); startDeliverCamera() }} className="px-3 py-1.5 bg-slate-700 rounded-lg text-xs">Retomar foto</button>
+                    <button onClick={() => setDeliverFoto(null)} className="px-3 py-1.5 bg-red-700 rounded-lg text-xs">Quitar</button>
+                  </div>
+                </div>
+              ) : deliverPhotoStream ? (
+                <div className="relative">
+                  <video ref={deliverVideoRef} autoPlay playsInline className="w-full max-h-40 rounded-lg bg-black" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={captureDeliverPhoto} className="px-3 py-1.5 bg-emerald-600 rounded-lg text-xs flex items-center gap-1">
+                      <Camera className="w-3 h-3" /> Tomar foto
+                    </button>
+                    <button onClick={stopDeliverCamera} className="px-3 py-1.5 bg-slate-700 rounded-lg text-xs">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={startDeliverCamera} className="w-full py-3 border-2 border-dashed border-slate-600 rounded-lg text-sm text-slate-400 hover:border-emerald-500 hover:text-emerald-400 transition flex items-center justify-center gap-2">
+                  <Camera className="w-4 h-4" /> Tomar foto
+                </button>
+              )}
+              <canvas ref={deliverCanvasRef} className="hidden" />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+              <button
+                onClick={() => { setDeliverDialog({ open: false, paradaId: '' }); setDeliverNotas(''); setDeliverFoto(null); stopDeliverCamera() }}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => submitDelivery(deliverDialog.paradaId)}
+                disabled={entregando === deliverDialog.paradaId}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+              >
+                {entregando === deliverDialog.paradaId ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                Confirmar entrega
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

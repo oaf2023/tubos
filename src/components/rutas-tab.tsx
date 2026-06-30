@@ -14,6 +14,11 @@ import {
   DollarSign,
   Navigation,
   AlertTriangle,
+  FileText,
+  CheckCircle,
+  Camera,
+  XCircle,
+  Send,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -43,7 +48,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import type { Ruta, RutaParada, Location, MapMarker } from '@/lib/tab-types'
 import type { GeocercaData } from '@/components/map-view'
@@ -133,6 +140,11 @@ export default function RutasTab() {
   const [gpsPings, setGpsPings] = useState<any[]>([])
   const [gpsSimulando, setGpsSimulando] = useState(false)
   const [gpsInterval, setGpsInterval] = useState<ReturnType<typeof setInterval> | null>(null)
+
+  // Delivery dialog (photo + notes)
+  const [deliverDialog, setDeliverDialog] = useState<{ open: boolean; paradaId: string }>({ open: false, paradaId: '' })
+  const [deliverNotas, setDeliverNotas] = useState('')
+  const [deliverFoto, setDeliverFoto] = useState<string | null>(null)
 
   // Conductor selector
   const [conductores, setConductores] = useState<{ id: string; nombre: string }[]>([])
@@ -359,12 +371,32 @@ export default function RutasTab() {
   async function marcarEntregado(paradaId: string) {
     const r = navegando
     if (!r) return
+    let fotoUrl: string | null = null
+    if (deliverFoto) {
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: deliverFoto }),
+      })
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json()
+        fotoUrl = uploadData.url
+      }
+    }
     await fetch(`/api/routes/${r.id}/paradas/${paradaId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: 'ENTREGADO', llegada: true }),
+      body: JSON.stringify({
+        estado: 'ENTREGADO',
+        llegada: true,
+        fotoUrl,
+        notasConductor: deliverNotas.trim() || undefined,
+      }),
     })
     setCurrentStopIdx((prev) => Math.min(prev + 1, r.paradas.length))
+    setDeliverDialog({ open: false, paradaId: '' })
+    setDeliverNotas('')
+    setDeliverFoto(null)
     load()
   }
 
@@ -991,6 +1023,36 @@ export default function RutasTab() {
                             <Truck className="w-3 h-3 mr-1" /> Navegar
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={async () => {
+                          const res = await fetch(`/api/routes/${r.id}/manifest`)
+                          if (res.ok) {
+                            const data = await res.json()
+                            const text = [
+                              `MANIFIESTO: ${data.ruta.nombre}`,
+                              `Fecha: ${new Date(data.ruta.fecha).toLocaleDateString()}`,
+                              `Estado: ${data.ruta.estado}`,
+                              `Vehículo: ${data.vehicle?.patente || 'N/A'}`,
+                              `Origen: ${data.ruta.origen.nombre}`,
+                              `Distancia: ${data.ruta.distanciaKm} km | Duración: ${data.ruta.duracionHoras} h`,
+                              `Total tubos: ${data.resumen.totalTubos} | Entregados: ${data.resumen.entregadosTubos}`,
+                              ``,
+                              `Paradas (${data.paradas.length}):`,
+                              ...data.paradas.map((p: any) =>
+                                `  ${p.orden}. ${p.nombre} (${p.provincia}) - ${p.estado}${p.demandaTubos ? ` - ${p.demandaTubos} tubos` : ''}${p.notasConductor ? ` - Nota: ${p.notasConductor}` : ''}`
+                              ),
+                            ].join('\n')
+                            const blob = new Blob([text], { type: 'text/plain' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `manifiesto-${r.nombre.replace(/\s+/g, '-').toLowerCase()}.txt`
+                            a.click()
+                            URL.revokeObjectURL(url)
+                            toast({ title: 'Manifiesto descargado' })
+                          }
+                        }}>
+                          <FileText className="w-3 h-3 mr-1" /> Manifiesto
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => cambiarEstado(r, 'COMPLETADA')} disabled={r.estado === 'COMPLETADA'}>
                           Completar
                         </Button>
@@ -1194,9 +1256,19 @@ export default function RutasTab() {
                             <span>{p.provincia}</span>
                           </div>
                           {!delivered && isCurrent && (
-                            <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarEntregado(p.id)}>
+                            <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => setDeliverDialog({ open: true, paradaId: p.id })}>
                               Entregado
                             </Button>
+                          )}
+                          {(p as any).fotoUrl && (
+                            <a href={(p as any).fotoUrl} target="_blank" rel="noopener noreferrer" title="Ver foto de entrega">
+                              <Camera className="w-3.5 h-3.5 text-sky-500" />
+                            </a>
+                          )}
+                          {(p as any).notasConductor && (
+                            <span className="text-[10px] text-slate-400 italic max-w-[120px] truncate" title={(p as any).notasConductor}>
+                              {(p as any).notasConductor}
+                            </span>
                           )}
                         </div>
                       )
@@ -1225,6 +1297,70 @@ export default function RutasTab() {
                     </div>
                   )}
                 </div>
+
+                {/* Delivery dialog */}
+                {deliverDialog.open && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-5 space-y-4 border shadow-xl mx-4">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-emerald-500" />
+                        Completar entrega — {r.paradas.find(p => p.id === deliverDialog.paradaId)?.nombre}
+                      </h3>
+                      <div>
+                        <Label className="text-xs text-slate-500">Notas del conductor</Label>
+                        <Textarea
+                          value={deliverNotas}
+                          onChange={(e) => setDeliverNotas(e.target.value)}
+                          placeholder="Observaciones..."
+                          rows={3}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-slate-500">Foto de entrega</Label>
+                        <div className="mt-1">
+                          {deliverFoto ? (
+                            <div>
+                              <img src={deliverFoto} alt="Foto" className="w-full max-h-40 object-cover rounded-lg border" />
+                              <div className="flex gap-2 mt-2">
+                                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDeliverFoto(null)}>
+                                  <XCircle className="w-3 h-3 mr-1" />Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button variant="outline" onClick={async () => {
+                              try {
+                                const stream = await navigator.mediaDevices.getUserMedia({
+                                  video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                                })
+                                const video = document.createElement('video')
+                                video.srcObject = stream
+                                await video.play()
+                                const canvas = document.createElement('canvas')
+                                canvas.width = video.videoWidth
+                                canvas.height = video.videoHeight
+                                canvas.getContext('2d')!.drawImage(video, 0, 0)
+                                setDeliverFoto(canvas.toDataURL('image/jpeg', 0.8))
+                                stream.getTracks().forEach(t => t.stop())
+                              } catch { /* camera not available */ }
+                            }} className="w-full border-dashed">
+                              <Camera className="w-4 h-4 mr-2" />Tomar foto
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2 border-t">
+                        <Button variant="outline" onClick={() => { setDeliverDialog({ open: false, paradaId: '' }); setDeliverNotas(''); setDeliverFoto(null) }}>
+                          Cancelar
+                        </Button>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarEntregado(deliverDialog.paradaId)}>
+                          <Send className="w-4 h-4 mr-1" />Confirmar entrega
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setNavegando(null); setCurrentStopIdx(0); setGpsSimulando(false); setGpsPings([]); load() }}>
