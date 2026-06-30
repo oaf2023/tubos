@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
+import { createHash } from 'crypto'
+
+const EVENT_HASH_SALT = process.env.EVENT_HASH_SALT || 'tubos-gastrack-default-salt'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ tubeId: string }> }) {
   try {
@@ -41,6 +44,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tub
       })
     }
 
+    const fechaHora = new Date().toISOString()
+    const hashPayload = `${tubeId}${accion}${origen || 'CELULAR_QR'}${fechaHora}${EVENT_HASH_SALT}`
+    const hashEvento = createHash('sha256').update(hashPayload).digest('hex')
+
     const evento = await db.eventoTubo.create({
       data: {
         cylinderId: tubeId,
@@ -56,6 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tub
         estadoNuevo,
         observacion: observacion || null,
         fotoUrl: fotoUrl || null,
+        hashEvento,
       },
     })
 
@@ -64,10 +72,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tub
       entidad: 'Cylinder',
       entidadId: tubeId,
       usuario: user?.usuario || 'anónimo',
-      detalle: { accion, estadoAnterior, estadoNuevo, observacion },
+      detalle: { accion, estadoAnterior, estadoNuevo, observacion, hashEvento },
     })
 
-    return NextResponse.json({ eventId: evento.id, estadoAnterior, estadoNuevo })
+    return NextResponse.json({ eventId: evento.id, estadoAnterior, estadoNuevo, hashEvento })
   } catch (e) {
     console.error('POST /api/mobile/tubes/[tubeId]/event', e)
     return NextResponse.json({ error: 'Error al registrar evento' }, { status: 500 })

@@ -1280,6 +1280,7 @@ enum OrigenLectura {
 enum AccionEventoTubo {
   CONSULTA
   CONTROL
+  CONTROL_EXTERNO
   PEDIDO_REPOSICION
   RETIRO
   NOVEDAD
@@ -1326,6 +1327,7 @@ model EventoTubo {
   cylinder        Cylinder           @relation(fields: [cylinderId], references: [id], onDelete: Cascade)
   fechaHora       DateTime           @default(now())
   origen          OrigenLectura
+  readSource      String?
   accion          AccionEventoTubo
   usuarioId       String?
   usuarioNombre   String?

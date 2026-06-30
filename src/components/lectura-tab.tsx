@@ -36,8 +36,9 @@ interface QuickView {
 
 interface ResolveResponse {
   tubeId: string; quickView: QuickView
-  permisos: { puedeOperar: boolean; puedePedirReposicion: boolean; puedeRetirar: boolean; puedeReportar: boolean }
-  accionesDisponibles: string[]
+  quick_view_url?: string
+  permisos?: { puedeOperar: boolean; puedePedirReposicion: boolean; puedeRetirar: boolean; puedeReportar: boolean }
+  accionesDisponibles?: string[]
 }
 
 interface PedidoLectura {
@@ -267,11 +268,20 @@ export default function LecturaTab({ user }: { user?: any }) {
     if (!valor.trim()) return
     setScanning(true)
     setResolveResult(null)
+    const readSource = origen === 'CELULAR_QR' ? 'QR' : origen === 'MANUAL' ? 'MANUAL' : origen
+    const body: Record<string, any> = { valor: valor.trim(), origen, read_source: readSource }
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 }))
+        body.lat = pos.coords.latitude
+        body.lng = pos.coords.longitude
+      } catch { /* geolocation unavailable */ }
+    }
     try {
       const res = await fetch('/api/mobile/resolve-tag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valor: valor.trim(), origen }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -426,7 +436,7 @@ export default function LecturaTab({ user }: { user?: any }) {
         body: action === 'reject' ? JSON.stringify({ motivo: rejectMotivo }) : undefined,
       })
       if (!res.ok) throw new Error('Error')
-      toast({ title: 'Actualizado', description: `Pedido ${action === 'reject' ? 'rechazado' : action === 'validate' ? 'validado' : action === 'prepare' ? 'en preparación' : 'cerrado'}` })
+      toast({ title: 'Actualizado', description: `Pedido ${action === 'reject' ? 'rechazado' : action === 'validate' ? 'validado' : action === 'prepare' ? 'en preparación' : action === 'dispatch' ? 'despachado' : action === 'deliver' ? 'entregado' : 'cerrado'}` })
       setRejectDialog({ open: false, orderId: '' })
       setRejectMotivo('')
       loadPedidos()
@@ -609,11 +619,16 @@ export default function LecturaTab({ user }: { user?: any }) {
                     </div>
                   </div>
                   <div><span className="text-slate-500 text-xs">Capacidad</span><p className="font-semibold">{resolveResult.quickView.capacidad} L</p></div>
-                  <div><span className="text-slate-500 text-xs">Cliente</span><p className="font-semibold">{resolveResult.quickView.clienteAsignado || '—'}</p></div>
-                  <div><span className="text-slate-500 text-xs">Ubicación</span><p className="font-semibold text-xs">{resolveResult.quickView.ubicacion || '—'}</p></div>
-                  <div><span className="text-slate-500 text-xs">Venc. PH</span><p className="font-semibold">{formatDate(resolveResult.quickView.fechaVencimientoPrueba)}</p></div>
-                  <div><span className="text-slate-500 text-xs">Últ. movimiento</span><p className="font-semibold">{resolveResult.quickView.ultimoMovimiento ? formatDate(resolveResult.quickView.ultimoMovimiento) : '—'}</p></div>
+                  {'clienteAsignado' in resolveResult.quickView && <div><span className="text-slate-500 text-xs">Cliente</span><p className="font-semibold">{(resolveResult.quickView as any).clienteAsignado || '—'}</p></div>}
+                  {'ubicacion' in resolveResult.quickView && <div><span className="text-slate-500 text-xs">Ubicación</span><p className="font-semibold text-xs">{(resolveResult.quickView as any).ubicacion || '—'}</p></div>}
+                  {'fechaVencimientoPrueba' in resolveResult.quickView && <div><span className="text-slate-500 text-xs">Venc. PH</span><p className="font-semibold">{formatDate((resolveResult.quickView as any).fechaVencimientoPrueba)}</p></div>}
+                  {'ultimoMovimiento' in resolveResult.quickView && <div><span className="text-slate-500 text-xs">Últ. movimiento</span><p className="font-semibold">{(resolveResult.quickView as any).ultimoMovimiento ? formatDate((resolveResult.quickView as any).ultimoMovimiento) : '—'}</p></div>}
                 </div>
+                {resolveResult.quick_view_url && (
+                  <a href={resolveResult.quick_view_url} target="_blank" rel="noopener noreferrer" className="text-xs text-sky-600 hover:underline flex items-center gap-1">
+                    <Eye className="w-3 h-3" />Ver detalle completo
+                  </a>
+                )}
 
                 {resolveResult.quickView.alertas.length > 0 && (
                   <div className="space-y-1">
@@ -625,25 +640,31 @@ export default function LecturaTab({ user }: { user?: any }) {
                   </div>
                 )}
 
-                {resolveResult.permisos.puedeOperar ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => addToCart('REPONER')}>
-                      <Package className="w-4 h-4 mr-1" />Reponer
-                    </Button>
-                    <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => addToCart('RETIRAR')}>
-                      <Send className="w-4 h-4 mr-1" />Retirar
-                    </Button>
-                    <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => addToCart('MANTENER')}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" />Mantener
-                    </Button>
-                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={openReportDialog}>
-                      <AlertTriangle className="w-4 h-4 mr-1" />Reportar
-                    </Button>
-                  </div>
+                {resolveResult.permisos ? (
+                  resolveResult.permisos.puedeOperar ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => addToCart('REPONER')}>
+                        <Package className="w-4 h-4 mr-1" />Reponer
+                      </Button>
+                      <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => addToCart('RETIRAR')}>
+                        <Send className="w-4 h-4 mr-1" />Retirar
+                      </Button>
+                      <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => addToCart('MANTENER')}>
+                        <CheckCircle2 className="w-4 h-4 mr-1" />Mantener
+                      </Button>
+                      <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={openReportDialog}>
+                        <AlertTriangle className="w-4 h-4 mr-1" />Reportar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center text-sm text-amber-700">
+                      <AlertTriangle className="w-4 h-4 inline mr-1" />
+                      Este tubo no está asignado a tu cuenta
+                    </div>
+                  )
                 ) : (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center text-sm text-amber-700">
-                    <AlertTriangle className="w-4 h-4 inline mr-1" />
-                    Este tubo no está asignado a tu cuenta
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center text-sm text-slate-500">
+                    <span className="flex items-center justify-center gap-1">Iniciá sesión para operar</span>
                   </div>
                 )}
               </CardContent>
@@ -797,10 +818,19 @@ export default function LecturaTab({ user }: { user?: any }) {
                           </>
                         )}
                         {esUsuario && p.estado === 'VALIDADO' && (
-                          <Button variant="outline" size="sm" className="h-7 text-xs text-amber-600 border-amber-300" onClick={() => internalAction('prepare', p.id)}>Preparar</Button>
+                          <>
+                            <Button variant="outline" size="sm" className="h-7 text-xs text-amber-600 border-amber-300" onClick={() => internalAction('prepare', p.id)}>Preparar</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs text-violet-600 border-violet-300" onClick={() => internalAction('dispatch', p.id)}>Despachar</Button>
+                          </>
                         )}
-                        {esUsuario && (p.estado === 'EN_PREPARACION' || p.estado === 'EN_REPARTO') && (
+                        {esUsuario && p.estado === 'EN_PREPARACION' && (
                           <Button variant="outline" size="sm" className="h-7 text-xs text-slate-600" onClick={() => internalAction('close', p.id)}>Cerrar</Button>
+                        )}
+                        {esUsuario && p.estado === 'EN_REPARTO' && (
+                          <>
+                            <Button variant="outline" size="sm" className="h-7 text-xs text-green-600 border-green-300" onClick={() => internalAction('deliver', p.id)}>Entregar</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs text-slate-600" onClick={() => internalAction('close', p.id)}>Cerrar</Button>
+                          </>
                         )}
                       </div>
                     </div>
