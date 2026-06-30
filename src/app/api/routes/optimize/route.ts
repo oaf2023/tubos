@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { solveTSP } from '@/lib/tsp'
 import { osrmTable, osrmTrip } from '@/lib/routing'
 import { haversineKm } from '@/lib/haversine'
+import type { LatLng, NamedPoint, RouteResult, OptimizeResult, RoutingSource, OptimizationEngine } from '@/lib/routing-types'
 
-// POST /api/routes/optimize - TSP optimization from origin through all paradas
+// POST /api/routes/optimize — TSP optimization + OSRM real geometry
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { points, origen } = body
+    const { points, origen, returnToBase = true } = body
 
     if (!points || !Array.isArray(points) || points.length < 2) {
       return NextResponse.json({ error: 'Se requieren al menos 2 paradas' }, { status: 400 })
@@ -16,66 +17,84 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'origen {lat, lng} requerido' }, { status: 400 })
     }
 
-    // Build full list: origin + all paradas
-    const origenPoint = { id: 'origen', lat: origen.lat, lng: origen.lng, nombre: 'Base' }
-    const allPoints = [origenPoint, ...points]
+    const origenPoint: NamedPoint = { id: 'origen', lat: origen.lat, lng: origen.lng, nombre: 'Base' }
+    const allPoints: NamedPoint[] = [origenPoint, ...points]
+    let routingSource: RoutingSource = 'NONE'
+    let optimizationEngine: OptimizationEngine = 'TSP'
 
-    // Try OSRM real distances matrix (for all points including origin)
+    // 1. Try OSRM real distance matrix
     let realDist: number[][] | null = null
     try {
       const osrmResult = await osrmTable(allPoints)
       if (osrmResult) {
         realDist = osrmResult.distances
+        routingSource = 'OSRM_LOCAL'
       }
-    } catch {
-      // fallback to Haversine
-    }
+    } catch { /* fallback */ }
 
-    // Solve TSP: start from origin (index 0), visit all paradas optimally
+    // 2. If no OSRM, routing source is haversine
+    if (!realDist) routingSource = 'HAVERSINE_ESTIMATED'
+
+    // 3. Solve TSP with real distances if available
     const result = solveTSP(allPoints, 0, realDist)
 
-    // result.order has origins's visits: [0, 3, 1, 2, ...]
-    // Remove origin (idx 0) from result, keep paradas in optimized order
+    // 4. Build optimized paradas list (exclude origin)
     const orderSinOrigen = result.order.filter((idx: number) => idx !== 0)
-    const optimized = orderSinOrigen.map((idx: number) => points.find((p: any) => p.id === allPoints[idx].id)!)
+    const optimized: NamedPoint[] = orderSinOrigen.map((idx: number) => {
+      const orig = allPoints[idx]
+      return points.find((p: any) => p.id === orig.id) || orig
+    })
 
-    // Compute full trip distance: origin -> paradas[0] -> ... -> paradas[n-1] -> origin
-    const fullTripIndices = result.order
+    // 5. Build full trip indices (origin → optimized → origin if returnToBase)
+    const fullIndices = returnToBase
+      ? [...result.order, 0]
+      : result.order
+
+    // 6. Calculate total distance
     const totalKm = realDist
-      ? computeTotalDistanceFromMatrix(realDist, fullTripIndices)
-      : computeTotalDistanceHaversine(allPoints, fullTripIndices)
+      ? computeTotalDistanceFromMatrix(realDist, fullIndices)
+      : computeTotalDistanceHaversine(allPoints, fullIndices)
+    const totalConRetorno = Math.round(totalKm * 10) / 10
+    const totalMinEstimado = Math.round((totalKm / 70) * 60)
 
-    // Add return to origin
-    const lastIdx = fullTripIndices[fullTripIndices.length - 1]
-    const returnKm = realDist
-      ? (realDist[lastIdx]?.[0] ?? 0)
-      : haversineKm(allPoints[lastIdx].lat, allPoints[lastIdx].lng, origen.lat, origen.lng)
-
-    const totalConRetorno = Math.round((totalKm + returnKm) * 10) / 10
-    const totalMin = Math.round(((totalKm + returnKm) / 70) * 60)
-
-    // Fetch OSRM road geometry for the full route (origin -> stops -> origin)
+    // 7. Request real OSRM geometry for the full trip
     let geometry: [number, number][] | null = null
+    let tripResult: RouteResult | null = null
+    let warning: string | null = null
+
     try {
-      const tripRoutePoints = allPoints.filter((_, idx) => fullTripIndices.includes(idx))
-        .sort((a, b) => fullTripIndices.indexOf(allPoints.indexOf(a)) - fullTripIndices.indexOf(allPoints.indexOf(b)))
-      tripRoutePoints.push(origenPoint)
-      const osrmRoute = await osrmTrip(tripRoutePoints)
-      if (osrmRoute) {
-        geometry = osrmRoute.geometry
+      const tripPoints: LatLng[] = fullIndices.map((idx: number) => ({
+        lat: allPoints[idx].lat,
+        lng: allPoints[idx].lng,
+      }))
+      tripResult = await osrmTrip(tripPoints)
+      if (tripResult.isRealRoute) {
+        geometry = tripResult.geometry
+        routingSource = tripResult.source
+      } else {
+        warning = tripResult.error || 'No se pudo obtener geometría real'
       }
     } catch {
-      // no geometry
+      warning = 'Error al solicitar geometría a OSRM'
     }
 
-    return NextResponse.json({
+    // Compute real duration from OSRM if available
+    const durationMin = tripResult?.isRealRoute
+      ? tripResult.durationMin
+      : totalMinEstimado
+
+    const response: OptimizeResult = {
       optimized,
-      distanceTotal: totalConRetorno,
-      durationMin: totalMin,
-      distanceVuelta: Math.round(returnKm * 10) / 10,
+      distanceTotal: tripResult?.isRealRoute ? tripResult.distanceKm : totalConRetorno,
+      durationMin,
       geometry,
-      usaLiveMatrix: realDist !== null,
-    })
+      isRealRoute: tripResult?.isRealRoute ?? false,
+      routingSource,
+      optimizationEngine,
+      warning,
+    }
+
+    return NextResponse.json(response)
   } catch (e) {
     console.error('POST /api/routes/optimize', e)
     return NextResponse.json({ error: 'Error al optimizar' }, { status: 500 })
@@ -90,7 +109,7 @@ function computeTotalDistanceFromMatrix(dist: number[][], indices: number[]): nu
   return total
 }
 
-function computeTotalDistanceHaversine(points: { lat: number; lng: number }[], indices: number[]): number {
+function computeTotalDistanceHaversine(points: LatLng[], indices: number[]): number {
   let total = 0
   for (let i = 0; i < indices.length - 1; i++) {
     total += haversineKm(points[indices[i]].lat, points[indices[i]].lng, points[indices[i + 1]].lat, points[indices[i + 1]].lng)

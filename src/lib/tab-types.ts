@@ -81,6 +81,9 @@ export interface Ruta {
   distanciaKm: number
   duracionHoras: number
   geometry?: string | null
+  isRealRoute?: boolean
+  routingSource?: string
+  optimizationEngine?: string
   paradas: RutaParada[]
   createdAt: string
 }

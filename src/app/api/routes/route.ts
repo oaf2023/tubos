@@ -3,8 +3,9 @@ import { db } from '@/lib/db'
 import { osrmTrip } from '@/lib/routing'
 import { validarCapacidadCarga } from '@/lib/ruta-utils'
 import { haversineKm } from '@/lib/haversine'
+import type { LatLng, RouteResult, RoutingSource } from '@/lib/routing-types'
 
-// GET /api/routes - con soporte para filtro por token de navegación
+// GET /api/routes — list all routes, optionally filter by navigation token
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -31,14 +32,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function calcularDemandaTotal(paradas: any[]): {
-  totalCilindros: number
-  cylinderIds: string[]
-} {
+function calcularDemandaTotal(paradas: any[]) {
   const ids: string[] = []
   for (const p of paradas) {
     const demanda = p.demandaTubos || 0
-    // Simular IDs de cilindros según demanda
     for (let i = 0; i < demanda; i++) {
       ids.push(`demanda-${p.nombre}-${i}`)
     }
@@ -49,14 +46,16 @@ function calcularDemandaTotal(paradas: any[]): {
   return { totalCilindros: ids.length, cylinderIds: ids }
 }
 
-// POST /api/routes - create route with OSRM real distances + capacity validation
+// POST /api/routes — create route with OSRM real geometry + metadata
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
       nombre, origenNombre, origenLat, origenLng,
-      paradas, distanciaReal, duracionReal,
-      geometry, vehicleId, costoPorKm, cylinderIds,
+      paradas, geometry, vehicleId, costoPorKm, cylinderIds,
+      isRealRoute: frontIsReal, routingSource: frontRoutingSource,
+      optimizationEngine: frontOptimizationEngine,
+      distanceTotal, durationMin,
     } = body
 
     if (!nombre || !paradas || !Array.isArray(paradas) || paradas.length === 0) {
@@ -79,34 +78,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 1. Try OSRM real distance (if not pre-computed)
+    // --- Routing: try OSRM, fallback to Haversine ---
+    let routeResult: RouteResult | null = null
+    let routingSource: RoutingSource = 'NONE'
+    let isRealRoute = false
     let finalKm = 0
     let finalHoras = 0
-    let fuente = 'haversine'
+    let finalGeometry = ''
 
-    if (distanciaReal && duracionReal) {
-      finalKm = distanciaReal
-      finalHoras = duracionReal
-      fuente = 'precalculada (OSRM)'
+    // If metadata was pre-computed (from optimize), use it
+    if (frontIsReal !== undefined || frontRoutingSource || geometry) {
+      finalGeometry = geometry ? (typeof geometry === 'string' ? geometry : JSON.stringify(geometry)) : ''
+      finalKm = distanceTotal || 0
+      finalHoras = durationMin ? Math.round((durationMin / 60) * 10) / 10 : 0
+      routingSource = frontRoutingSource || 'OSRM_PUBLIC'
+      isRealRoute = frontIsReal !== false
     } else {
-      try {
-        const tripPoints = [
-          { lat: oLat, lng: oLng },
-          ...paradas.map((p: any) => ({ lat: p.lat, lng: p.lng })),
-          { lat: oLat, lng: oLng },
-        ]
-        const osrm = await osrmTrip(tripPoints)
-        if (osrm) {
-          finalKm = osrm.distanceKm
-          finalHoras = Math.round((osrm.durationMin / 60) * 10) / 10
-          fuente = 'OSRM'
-        }
-      } catch {
-        // fall through to Haversine
+      // Try OSRM live
+      const tripPoints: LatLng[] = [
+        { lat: oLat, lng: oLng },
+        ...paradas.map((p: any) => ({ lat: p.lat, lng: p.lng })),
+        { lat: oLat, lng: oLng },
+      ]
+      routeResult = await osrmTrip(tripPoints)
+      if (routeResult.isRealRoute) {
+        finalKm = routeResult.distanceKm
+        finalHoras = Math.round((routeResult.durationMin / 60) * 10) / 10
+        finalGeometry = JSON.stringify(routeResult.geometry)
+        routingSource = routeResult.source
+        isRealRoute = true
       }
     }
 
-    // 2. Fallback to Haversine
+    // Fallback: Haversine estimate
     if (finalKm === 0) {
       let total = 0
       let ant = { lat: oLat, lng: oLng }
@@ -117,11 +121,9 @@ export async function POST(request: NextRequest) {
       total += haversineKm(ant.lat, ant.lng, oLat, oLng)
       finalKm = Math.round(total * 10) / 10
       finalHoras = Math.round((total / 70) * 10) / 10
+      routingSource = 'HAVERSINE_ESTIMATED'
+      isRealRoute = false
     }
-
-    const geometryStr = geometry
-      ? (typeof geometry === 'string' ? geometry : JSON.stringify(geometry))
-      : undefined
 
     const costoTotal = costoPorKm ? costoPorKm * finalKm : null
 
@@ -134,7 +136,10 @@ export async function POST(request: NextRequest) {
         origenLng: oLng,
         distanciaKm: finalKm,
         duracionHoras: finalHoras,
-        geometry: geometryStr,
+        geometry: finalGeometry || undefined,
+        isRealRoute,
+        routingSource,
+        optimizationEngine: frontOptimizationEngine || 'NONE',
         vehicleId: vehicleId || null,
         costoPorKm: costoPorKm || null,
         costoTotal,
@@ -166,7 +171,34 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ ...ruta, _fuente: fuente }, { status: 201 })
+    // Audit
+    try {
+      const { logRouteCalc } = await import('@/lib/route-audit')
+      const userHeader = request.headers.get('x-user')
+      const user = userHeader ? JSON.parse(userHeader) : null
+      await logRouteCalc({
+        rutaId: ruta.id,
+        userName: user?.nombre || user?.email || 'unknown',
+        paradaCount: paradas.length,
+        engine: frontOptimizationEngine || 'NONE',
+        source: routingSource,
+        distanceKm: finalKm,
+        durationMin: Math.round(finalHoras * 60),
+        isRealRoute,
+        error: !isRealRoute ? 'Sin geometría real OSRM' : undefined,
+      })
+    } catch { /* audit non-fatal */ }
+
+    return NextResponse.json({
+      ...ruta,
+      _routing: {
+        source: routingSource,
+        isRealRoute,
+        geometryAvailable: !!finalGeometry,
+        optimizationEngine: frontOptimizationEngine || 'NONE',
+        calculatedAt: new Date().toISOString(),
+      },
+    }, { status: 201 })
   } catch (e) {
     console.error('POST /api/routes', e)
     return NextResponse.json({ error: 'Error al crear ruta' }, { status: 500 })

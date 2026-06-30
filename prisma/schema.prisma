@@ -648,6 +648,9 @@ model Ruta {
   navigationStartedAt DateTime?  // Cuándo se inició la navegación
   conductorId        String?      // FK → Usuario (chofer asignado)
   conductor          Usuario?     @relation("ConductorRutas", fields: [conductorId], references: [id])
+  isRealRoute        Boolean?     @default(false) // true si se obtuvo geometría real de OSRM
+  routingSource      String?      // OSRM_LOCAL | OSRM_PUBLIC | HAVERSINE_ESTIMATED | NONE
+  optimizationEngine String?      // OR_TOOLS | TSP | NONE
   paradas            RutaParada[]
   sesiones           SesionConductor[]
   ubicaciones        UbicacionGPS[]
@@ -1388,6 +1391,24 @@ model PedidoLecturaItem {
   createdAt       DateTime               @default(now())
 
   @@index([pedidoId])
+}
+
+// ============ AUDITORÍA DE RUTAS ============
+model RouteCalcLog {
+  id              String   @id @default(cuid())
+  rutaId          String?
+  userName        String?
+  paradaCount     Int
+  engine          String   // OR_TOOLS | TSP | NONE
+  source          String   // OSRM_LOCAL | OSRM_PUBLIC | HAVERSINE_ESTIMATED | NONE
+  distanceKm      Float
+  durationMin     Int
+  isRealRoute     Boolean  @default(false)
+  error           String?
+  createdAt       DateTime @default(now())
+
+  @@index([rutaId])
+  @@index([createdAt])
 }
 
 // ============ IDEMPOTENCIA ============

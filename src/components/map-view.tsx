@@ -22,6 +22,9 @@ export interface MapRoute {
   nombre: string
   distanciaKm?: number
   geometry?: [number, number][] // OSRM road-following coords
+  isRealRoute?: boolean
+  routingSource?: string
+  warning?: string
 }
 
 export interface GeocercaData {
@@ -112,20 +115,44 @@ export default function MapView({
     layerRef.current.clearLayers()
 
     // Dibujar rutas primero (debajo de los marcadores)
+    // Reglas visuales:
+    // - isRealRoute=true AND geometry → solid colored line
+    // - isRealRoute=false OR no geometry → dotted gray line with warning label
+    // - Never draw straight lines as valid routes
     routes.forEach((route) => {
       if (route.points.length < 2) return
 
-      // Use OSRM geometry if available, otherwise straight-line
-      const latlngs: [number, number][] = route.geometry && route.geometry.length >= 2
-        ? route.geometry
-        : route.points.map((p) => [p.lat, p.lng]) as [number, number][]
+      const hasRealGeo = route.isRealRoute && route.geometry && route.geometry.length >= 2
+      const latlngs: [number, number][] = hasRealGeo
+        ? route.geometry!
+        : [] // No straight-line fallback
 
-      // Línea de ruta (solid if OSRM, dashed if straight-line)
+      if (latlngs.length < 2) {
+        // Draw dotted gray placeholder between first and last point to hint at missing route
+        const first = route.points[0]
+        const last = route.points[route.points.length - 1]
+        const placeholder: [number, number][] = [[first.lat, first.lng], [last.lat, last.lng]]
+        L.polyline(placeholder, {
+          color: '#94a3b8',
+          weight: 2,
+          opacity: 0.5,
+          dashArray: '6, 6',
+        }).addTo(layerRef.current!).bindPopup(`
+          <div style="font-family:system-ui,sans-serif;min-width:160px;">
+            <strong style="color:#ef4444">⚠ SIN RUTEO REAL</strong><br/>
+            <span style="color:#64748b;font-size:11px;">${route.nombre}</span><br/>
+            <span style="color:#94a3b8;font-size:10px;">${route.warning || 'No hay geometría OSRM disponible'}</span><br/>
+            <span style="color:#94a3b8;font-size:10px;">${route.routingSource ? `Fuente: ${route.routingSource}` : ''}</span>
+          </div>
+        `)
+        return
+      }
+
+      // Línea de ruta (real OSRM geometry)
       L.polyline(latlngs, {
-        color: route.color,
-        weight: route.geometry ? 4 : 3,
-        opacity: 0.7,
-        dashArray: route.geometry ? undefined : '10, 8',
+        color: route.color || '#22c55e',
+        weight: 4,
+        opacity: 0.8,
       }).addTo(layerRef.current!)
 
       // Marcadores numerados para cada parada
@@ -145,6 +172,7 @@ export default function MapView({
               <strong>${p.nombre}</strong><br/>
               <span style="color:#64748b;font-size:11px;">${route.nombre}</span>
               ${route.distanciaKm ? `<br/><span style="color:#f97316;font-size:10px;">${route.distanciaKm} km</span>` : ''}
+              ${route.isRealRoute ? `<br/><span style="color:#16a34a;font-size:9px;">✅ Ruteo real (${route.routingSource || 'OSRM'})</span>` : `<br/><span style="color:#dc2626;font-size:9px;">⚠ Ruteo estimado</span>`}
             </div>`
           )
           .addTo(layerRef.current!)

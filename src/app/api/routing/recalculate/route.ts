@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { osrmRoute } from '@/lib/routing'
-import { haversineKm } from '@/lib/haversine'
+import { osrmRoute, osrmTrip } from '@/lib/routing'
+import type { LatLng, RouteResult } from '@/lib/routing-types'
 
 // POST /api/routing/recalculate - Reoptimiza paradas pendientes desde posición actual
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { rutaId, posicionActual } = body
+    const { rutaId, posicionActual, origin, points: explicitPoints, returnToBase: explicitReturn } = body
+
+    // Two modes:
+    // Mode 1: rutaId + posicionActual -> recalculate from GPS position
+    // Mode 2: origin + points -> direct geometry recalculate (for admin panel)
+
+    if (origin && explicitPoints) {
+      return handleDirectRecalculate(origin, explicitPoints, explicitReturn)
+    }
 
     if (!rutaId || !posicionActual) {
       return NextResponse.json({ error: 'Faltan campos: rutaId, posicionActual' }, { status: 400 })
@@ -20,7 +28,6 @@ export async function POST(request: NextRequest) {
           where: { estado: { not: 'ENTREGADO' } },
           orderBy: { orden: 'asc' },
         },
-        vehicle: true,
       },
     })
 
@@ -33,64 +40,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No hay paradas pendientes' }, { status: 400 })
     }
 
-    // Calcular nueva ruta desde posición actual a través de paradas pendientes
-    const points = [
+    // Build full trip from current position through pendientes to origin (return to base)
+    const tripPoints: LatLng[] = [
       posicionActual,
       ...pendientes.map((p) => ({ lat: p.lat, lng: p.lng })),
+      { lat: ruta.origenLat, lng: ruta.origenLng },
     ]
 
-    let distanciaTotal = 0
-    let duracionTotal = 0
-    const geometry: [number, number][] = []
-    const etas: { paradaId: string; eta: string }[] = []
-    let etaActual = new Date()
-
-    for (let i = 0; i < points.length; i++) {
-      if (i === 0) continue
-      const from = points[i - 1]
-      const to = points[i]
-      const osrm = await osrmRoute(from, to)
-
-      let distKm: number
-      let durMin: number
-      let geom: [number, number][] | null = null
-
-      if (osrm) {
-        distKm = osrm.distanceKm
-        durMin = osrm.durationMin
-        geom = osrm.geometry
-      } else {
-        distKm = haversineKm(from.lat, from.lng, to.lat, to.lng)
-        durMin = Math.round((distKm / 70) * 60)
-      }
-
-      distanciaTotal += distKm
-      duracionTotal += durMin
-      etaActual = new Date(etaActual.getTime() + durMin * 60 * 1000)
-
-      if (geom) geometry.push(...geom)
-
-      if (i > 0 && pendientes[i - 1]) {
-        etas.push({
-          paradaId: pendientes[i - 1].id,
-          eta: etaActual.toISOString(),
-        })
-      }
-    }
+    const tripResult: RouteResult = await osrmTrip(tripPoints)
 
     return NextResponse.json({
       rutaId,
-      distanciaKm: Math.round(distanciaTotal * 10) / 10,
-      duracionMin: Math.round(duracionTotal),
+      distanciaKm: tripResult.distanceKm,
+      duracionMin: tripResult.durationMin,
+      geometry: tripResult.geometry,
+      isRealRoute: tripResult.isRealRoute,
+      routingSource: tripResult.source,
+      warning: tripResult.error || undefined,
       paradasRecalculadas: pendientes.map((p, i) => ({
         id: p.id,
         orden: i + 1,
         nombre: p.nombre,
-        eta: etas[i]?.eta ?? null,
       })),
-      geometry,
       posicionActual,
-      _fuente: 'recalculado',
     })
   } catch (e) {
     console.error('POST /api/routing/recalculate', e)
@@ -98,4 +70,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function handleDirectRecalculate(origin: LatLng, points: LatLng[], returnToBase?: boolean) {
+  const tripPoints: LatLng[] = [origin, ...points]
+  if (returnToBase !== false) {
+    tripPoints.push(origin)
+  }
 
+  const tripResult: RouteResult = await osrmTrip(tripPoints)
+
+  return NextResponse.json({
+    distanceTotal: tripResult.distanceKm,
+    durationMin: tripResult.durationMin,
+    geometry: tripResult.geometry,
+    isRealRoute: tripResult.isRealRoute,
+    routingSource: tripResult.source,
+    warning: tripResult.error || undefined,
+  })
+}

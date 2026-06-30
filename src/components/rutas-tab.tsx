@@ -132,6 +132,12 @@ export default function RutasTab() {
   // Geometría de ruta optimizada (OSRM)
   const [routeGeometry, setRouteGeometry] = useState<[number, number][] | null>(null)
 
+  // Routing metadata from optimize
+  const [isRouteReal, setIsRouteReal] = useState(false)
+  const [routingSource, setRoutingSource] = useState<'OSRM_LOCAL' | 'OSRM_PUBLIC' | 'HAVERSINE_ESTIMATED' | 'NONE'>('NONE')
+  const [routingWarning, setRoutingWarning] = useState<string | null>(null)
+  const [returnToBase, setReturnToBase] = useState(true)
+
   // Navegación
   const [navegando, setNavegando] = useState<Ruta | null>(null)
   const [currentStopIdx, setCurrentStopIdx] = useState(0)
@@ -252,14 +258,15 @@ export default function RutasTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          origen: { lat: base.lat, lng: base.lng },
-          points: selectedParadas.map((p) => ({
-            id: p.id,
-            lat: p.lat,
-            lng: p.lng,
-            nombre: p.nombre,
-          })),
-        }),
+            origen: { lat: base.lat, lng: base.lng },
+            points: selectedParadas.map((p) => ({
+              id: p.id,
+              lat: p.lat,
+              lng: p.lng,
+              nombre: p.nombre,
+            })),
+            returnToBase,
+          }),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -269,12 +276,18 @@ export default function RutasTab() {
       setSelectedParadas(reordered)
       if (data.geometry) {
         setRouteGeometry(data.geometry)
+      } else {
+        setRouteGeometry(null)
       }
+      setIsRouteReal(data.isRealRoute ?? false)
+      setRoutingSource(data.routingSource || 'NONE')
+      setRoutingWarning(data.warning || null)
       setOptDistance({ km: data.distanceTotal, horas: Math.round(data.durationMin / 60 * 10) / 10 })
-      const modo = data.usaLiveMatrix ? 'OSRM' : 'Haversine'
+      const sourceLabel = data.routingSource === 'OSRM_LOCAL' ? 'OSRM Local' : data.routingSource === 'OSRM_PUBLIC' ? 'OSRM Público' : 'Haversine Estimado'
       toast({
-        title: `Ruta optimizada (${modo})`,
-        description: `${data.distanceTotal} km totales, ~${data.durationMin} min`,
+        title: `Ruta optimizada (${sourceLabel})`,
+        description: `${data.distanceTotal} km totales, ~${data.durationMin} min${data.isRealRoute ? '' : ' · SIN RUTEO REAL'}`,
+        variant: data.isRealRoute ? 'default' : 'destructive',
       })
     } catch {
       toast({ title: 'Error al optimizar', variant: 'destructive' })
@@ -319,6 +332,11 @@ export default function RutasTab() {
         prioridad: p.prioridad ?? 5,
         tipoOperacion: p.tipoOperacion || 'ENTREGA',
       })),
+      isRealRoute: isRouteReal,
+      routingSource,
+      optimizationEngine: 'OR_TOOLS',
+      distanceTotal: optDistance?.km || 0,
+      durationMin: optDistance?.horas ? optDistance.horas * 60 : 0,
     }
 
     if (optDistance) {
@@ -327,7 +345,7 @@ export default function RutasTab() {
     }
 
     if (routeGeometry && routeGeometry.length >= 2) {
-      body.geometry = JSON.stringify(routeGeometry)
+      body.geometry = routeGeometry
     }
 
     const res = await fetch('/api/routes', {
@@ -348,6 +366,9 @@ export default function RutasTab() {
     setCostoPorKm('')
     setOptDistance(null)
     setRouteGeometry(null)
+    setIsRouteReal(false)
+    setRoutingSource('NONE')
+    setRoutingWarning(null)
     load()
   }
 
@@ -542,6 +563,8 @@ export default function RutasTab() {
         distanciaKm: optDistance?.km,
         points: planningPoints,
         geometry: routeGeometry || undefined,
+        isRealRoute: !!routeGeometry,
+        routingSource: routeGeometry ? 'OSRM_PUBLIC' : 'PLANIFICACIÓN',
       })
     }
 
@@ -561,6 +584,9 @@ export default function RutasTab() {
         nombre: rutaSeleccionada.nombre,
         distanciaKm: rutaSeleccionada.distanciaKm,
         geometry: savedGeometry,
+        isRealRoute: rutaSeleccionada.isRealRoute ?? false,
+        routingSource: rutaSeleccionada.routingSource || (savedGeometry ? 'OSRM_PUBLIC' : 'HAVERSINE_ESTIMATED'),
+        warning: !rutaSeleccionada.isRealRoute ? 'Sin ruteo real OSRM' : undefined,
         points: [
           { lat: base.lat, lng: base.lng, nombre: base.nombre },
           ...rutaSeleccionada.paradas.map((p) => ({
@@ -705,6 +731,20 @@ export default function RutasTab() {
               </div>
             )}
 
+            {/* Routing quality indicator */}
+            {routingSource !== 'NONE' && (
+              <div className={`border rounded p-2 text-[10px] space-y-1 ${isRouteReal ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center gap-1 font-medium">
+                  {isRouteReal ? <span className="text-emerald-600">✅ Ruteo real</span> : <span className="text-amber-600">⚠ Ruteo estimado</span>}
+                  <Badge variant="outline" className="text-[8px] h-4 ml-auto">
+                    {routingSource === 'OSRM_LOCAL' ? 'OSRM Local' : routingSource === 'OSRM_PUBLIC' ? 'OSRM Público' : routingSource === 'HAVERSINE_ESTIMATED' ? 'Haversine' : routingSource}
+                  </Badge>
+                </div>
+                {routingWarning && <p className="text-amber-700">{routingWarning}</p>}
+                {optDistance && <p className="text-slate-500">{optDistance.km} km · ~{optDistance.horas} h</p>}
+              </div>
+            )}
+
             {/* Costo por km manual */}
             <div>
               <Label className="text-xs">Costo por km ($)</Label>
@@ -826,6 +866,15 @@ export default function RutasTab() {
                 <div className="flex items-center justify-between mb-1">
                   <Label className="text-xs">Orden de paradas ({selectedParadas.length})</Label>
                   <div className="flex gap-1">
+                    <label className="flex items-center gap-1 text-[10px] text-slate-500 cursor-pointer mr-1">
+                      <input
+                        type="checkbox"
+                        checked={returnToBase}
+                        onChange={(e) => setReturnToBase(e.target.checked)}
+                        className="w-3 h-3 accent-orange-500"
+                      />
+                      Retorno
+                    </label>
                     <Button
                       size="sm"
                       variant="outline"
@@ -961,6 +1010,12 @@ export default function RutasTab() {
                         {(r as any).costoTotal && (
                           <span className="tabular-nums text-emerald-600">${(r as any).costoTotal}</span>
                         )}
+                        {r.routingSource && (
+                          <Badge variant="outline" className={`text-[8px] h-4 ${r.isRealRoute ? 'text-emerald-600 border-emerald-300' : 'text-amber-600 border-amber-300'}`}>
+                            {r.routingSource === 'OSRM_LOCAL' ? 'OSRM Local' : r.routingSource === 'OSRM_PUBLIC' ? 'OSRM Público' : r.routingSource === 'HAVERSINE_ESTIMATED' ? 'Estimado' : r.routingSource}
+                            {r.isRealRoute ? ' ✓' : ' ⚠'}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap gap-1 mb-1.5">
@@ -1023,6 +1078,26 @@ export default function RutasTab() {
                             <Truck className="w-3 h-3 mr-1" /> Navegar
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={async () => {
+                          const res = await fetch(`/api/routing/recalculate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              rutaId: r.id,
+                              origin: { lat: r.origenLat, lng: r.origenLng },
+                              points: r.paradas.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, nombre: p.nombre })),
+                              returnToBase: true,
+                            }),
+                          })
+                          if (res.ok) {
+                            toast({ title: 'Geometría recalculada' })
+                            load()
+                          } else {
+                            toast({ title: 'Error al recalcular', description: 'OSRM no disponible', variant: 'destructive' })
+                          }
+                        }}>
+                          <RefreshCw className="w-3 h-3 mr-1" /> Recalcular
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={async () => {
                           const res = await fetch(`/api/routes/${r.id}/manifest`)
                           if (res.ok) {
