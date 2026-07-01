@@ -6,7 +6,7 @@ import {
   Edit3, Trash2, Save, X, Hash, FlaskConical, Truck, FileText, DollarSign,
   Key, Phone, Mail, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft,
   ChevronsRight, CheckCircle, XCircle, AlertTriangle, Compass, Loader2,
-  Map, User, Briefcase, ShieldAlert, Calendar, Coins, Info, Sparkles,
+  User, Briefcase, ShieldAlert, Calendar, Coins, Info, Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -30,21 +30,7 @@ import {
   ESTADO_COLORS, ESTADO_LABELS, daysUntil,
 } from '@/lib/tab-constants'
 import { geocodificarDireccion } from '@/lib/geocoding'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-
-// Fix Leaflet default marker icon path issue with bundlers
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-L.Marker.prototype.options.icon = defaultIcon
+import StaticMap from '@/lib/static-map'
 
 const ITEMS_PER_PAGE = 12
 const ABECEDARIO = ['Todos', ...'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')]
@@ -602,10 +588,7 @@ export default function ClientesTab() {
                     </div>
                     <div className="h-64 rounded-2xl border overflow-hidden bg-slate-100 flex flex-col">
                       {geo ? (
-                        <MapContainer center={[c.lat!, c.lng!]} zoom={15} className="w-full h-full z-0" scrollWheelZoom={false}>
-                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' />
-                          <Marker position={[c.lat!, c.lng!]}><Popup>{clientName(c)}</Popup></Marker>
-                        </MapContainer>
+                        <StaticMap lat={c.lat!} lng={c.lng!} zoom={14} className="w-full h-full" height={256} />
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                           <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
@@ -738,10 +721,7 @@ export default function ClientesTab() {
                   </div>
                   {form.lat && form.lng && (
                     <div className="rounded-xl overflow-hidden border h-36 bg-slate-100">
-                      <MapContainer center={[parseFloat(form.lat), parseFloat(form.lng)]} zoom={15} className="w-full h-full z-0" scrollWheelZoom={false}>
-                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' />
-                        <Marker position={[parseFloat(form.lat), parseFloat(form.lng)]} />
-                      </MapContainer>
+                      <StaticMap lat={parseFloat(form.lat)} lng={parseFloat(form.lng)} zoom={14} height={144} />
                     </div>
                   )}
                 </div>
