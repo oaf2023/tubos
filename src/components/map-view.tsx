@@ -116,18 +116,17 @@ export default function MapView({
 
     // Dibujar rutas primero (debajo de los marcadores)
     // Reglas visuales:
-    // - isRealRoute=true AND geometry → solid colored line
-    // - isRealRoute=false OR no geometry → dotted gray line with warning label
+    // - Geometry exists + isRealRoute=true → solid colored line
+    // - Geometry exists + isRealRoute=false → dashed colored line (legacy, tiene datos)
+    // - No geometry  → dotted gray placeholder between first/last with warning
     // - Never draw straight lines as valid routes
     routes.forEach((route) => {
       if (route.points.length < 2) return
 
-      const hasRealGeo = route.isRealRoute && route.geometry && route.geometry.length >= 2
-      const latlngs: [number, number][] = hasRealGeo
-        ? route.geometry!
-        : [] // No straight-line fallback
+      const hasGeometry = route.geometry && route.geometry.length >= 2
+      const isReal = route.isRealRoute === true
 
-      if (latlngs.length < 2) {
+      if (!hasGeometry) {
         // Draw dotted gray placeholder between first and last point to hint at missing route
         const first = route.points[0]
         const last = route.points[route.points.length - 1]
@@ -148,11 +147,12 @@ export default function MapView({
         return
       }
 
-      // Línea de ruta (real OSRM geometry)
-      L.polyline(latlngs, {
-        color: route.color || '#22c55e',
-        weight: 4,
-        opacity: 0.8,
+      // Línea de ruta con geometría (OSRM o legacy)
+      L.polyline(route.geometry!, {
+        color: isReal ? (route.color || '#22c55e') : '#94a3b8',
+        weight: isReal ? 4 : 2,
+        opacity: isReal ? 0.8 : 0.5,
+        dashArray: isReal ? undefined : '6, 6',
       }).addTo(layerRef.current!)
 
       // Marcadores numerados para cada parada
