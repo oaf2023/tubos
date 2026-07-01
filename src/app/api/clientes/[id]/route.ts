@@ -64,6 +64,10 @@ export async function PUT(
     if (body.empresa !== undefined) data.empresa = body.empresa || null
     if (body.rubro !== undefined) data.rubro = body.rubro || null
     if (body.condicionIva !== undefined) data.condicionIva = body.condicionIva || null
+    if (body.iibb !== undefined) data.iibb = body.iibb || null
+    if (body.condicionIibb !== undefined) data.condicionIibb = body.condicionIibb || null
+    if (body.categoriaMonotributo !== undefined) data.categoriaMonotributo = body.categoriaMonotributo || null
+    if (body.domicilioFiscal !== undefined) data.domicilioFiscal = body.domicilioFiscal || null
     if (body.limiteCredito !== undefined) data.limiteCredito = body.limiteCredito != null ? parseFloat(body.limiteCredito) : null
     if (body.firmaDigital !== undefined) data.firmaDigital = body.firmaDigital || null
     if (body.tipologia !== undefined) data.tipologia = body.tipologia || null

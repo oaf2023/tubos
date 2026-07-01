@@ -142,7 +142,7 @@ export default function ClientesTab() {
     telefonoSecundario: '', fechaNacimiento: '', genero: 'Masculino',
     tipoDocumento: '', numeroDocumento: '',
     calle: '', altura: '', piso: '', codigoPostal: '', ciudad: '', provincia: '', pais: 'Argentina',
-    empresa: '', rubro: '', condicionIva: 'Consumidor Final', limiteCredito: '',
+    empresa: '', rubro: '', condicionIva: 'Consumidor Final', iibb: '', condicionIibb: '', categoriaMonotributo: '', domicilioFiscal: '', limiteCredito: '',
     firmaDigital: '', tipologia: '', procesoSoldadura: '', materialesBase: '',
     parametrosIngenieria: '', modoEnvasado: 'Cilindros', gasesConsumo: '',
     serviciosEspecializados: '', nivelesStockCritico: '', contratoComodato: '',
@@ -269,7 +269,7 @@ export default function ClientesTab() {
       telefonoSecundario: c.telefonoSecundario || '', fechaNacimiento: c.fechaNacimiento ? c.fechaNacimiento.split('T')[0] : '', genero: c.genero || 'Masculino',
       tipoDocumento: c.tipoDocumento || '', numeroDocumento: c.numeroDocumento || '',
       calle: c.calle || '', altura: c.altura || '', piso: c.piso || '', codigoPostal: c.codigoPostal || '', ciudad: c.ciudad || '', provincia: c.provincia || '', pais: c.pais || 'Argentina',
-      empresa: c.empresa || '', rubro: c.rubro || '', condicionIva: c.condicionIva || 'Consumidor Final', limiteCredito: c.limiteCredito != null ? String(c.limiteCredito) : '',
+      empresa: c.empresa || '', rubro: c.rubro || '', condicionIva: c.condicionIva || 'Consumidor Final', iibb: c.iibb || '', condicionIibb: c.condicionIibb || '', categoriaMonotributo: c.categoriaMonotributo || '', domicilioFiscal: c.domicilioFiscal || '', limiteCredito: c.limiteCredito != null ? String(c.limiteCredito) : '',
       firmaDigital: c.firmaDigital || '', tipologia: c.tipologia || '', procesoSoldadura: c.procesoSoldadura || '',
       materialesBase: c.materialesBase || '', parametrosIngenieria: c.parametrosIngenieria || '', modoEnvasado: c.modoEnvasado || 'Cilindros',
       gasesConsumo: c.gasesConsumo || '', serviciosEspecializados: c.serviciosEspecializados || '',
@@ -562,6 +562,9 @@ export default function ClientesTab() {
                         {c.empresa && <div className="flex items-center justify-between"><span className="text-[11px] font-semibold text-slate-500"><Briefcase className="w-3 h-3 inline mr-1" />Empresa</span><span className="text-xs font-semibold">{c.empresa}</span></div>}
                         {c.rubro && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Rubro</span><span className="text-xs font-semibold">{c.rubro}</span></div>}
                         {c.condicionIva && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">IVA</span><span className="text-xs font-semibold">{c.condicionIva}</span></div>}
+                        {c.iibb && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">IIBB</span><span className="text-xs font-semibold">{c.iibb}{c.condicionIibb ? ` (${c.condicionIibb})` : ''}</span></div>}
+                        {c.categoriaMonotributo && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Monotributo</span><span className="text-xs font-semibold">Categoría {c.categoriaMonotributo}</span></div>}
+                        {c.domicilioFiscal && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Domicilio fiscal</span><span className="text-xs font-semibold">{c.domicilioFiscal}</span></div>}
                         {c.limiteCredito != null && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500"><Coins className="w-3 h-3 inline mr-1" />Límite crédito</span><span className="text-xs font-bold">${c.limiteCredito.toLocaleString('es-AR')}</span></div>}
                         {c.estadoCuenta && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Estado cuenta</span>
                           <Badge className={`text-[10px] border ${ESTADO_CUENTA_COLORS[c.estadoCuenta] || ''}`}>{ESTADO_CUENTA_LABELS[c.estadoCuenta] || c.estadoCuenta}</Badge>
@@ -743,22 +746,58 @@ export default function ClientesTab() {
 
             {/* TAB 3: Contacto y Comerciales */}
             {activeFormTab === 'comercial' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label className="text-xs">Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="cliente@empresa.com" /></div>
-                <div><Label className="text-xs">Teléfono Principal *</Label><Input value={form.telefono} onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="11-4444-1111" /></div>
-                <div><Label className="text-xs">Teléfono Secundario</Label><Input value={form.telefonoSecundario} onChange={(e) => setForm(f => ({ ...f, telefonoSecundario: e.target.value }))} placeholder="11-4444-2222" /></div>
-                <div><Label className="text-xs">Persona de Contacto</Label><Input value={form.contacto} onChange={(e) => setForm(f => ({ ...f, contacto: e.target.value }))} placeholder="Responsable / receptor" /></div>
-                <div><Label className="text-xs">Empresa</Label><Input value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} placeholder="Razón social comercial" /></div>
-                <div><Label className="text-xs">Rubro / Sector</Label><Input value={form.rubro} onChange={(e) => setForm(f => ({ ...f, rubro: e.target.value }))} placeholder="Logística, Construcción..." /></div>
-                <div><Label className="text-xs">Condición de IVA</Label>
-                  <Select value={form.condicionIva} onValueChange={(v) => setForm(f => ({ ...f, condicionIva: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{COND_IVA_OPTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
+              <div className="space-y-6">
+                {/* Contacto */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5"><Contact className="w-3.5 h-3.5" /> Contacto</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><Label className="text-xs">Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="cliente@empresa.com" /></div>
+                    <div><Label className="text-xs">Teléfono Principal *</Label><Input value={form.telefono} onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="11-4444-1111" /></div>
+                    <div><Label className="text-xs">Teléfono Secundario</Label><Input value={form.telefonoSecundario} onChange={(e) => setForm(f => ({ ...f, telefonoSecundario: e.target.value }))} placeholder="11-4444-2222" /></div>
+                    <div><Label className="text-xs">Persona de Contacto</Label><Input value={form.contacto} onChange={(e) => setForm(f => ({ ...f, contacto: e.target.value }))} placeholder="Responsable / receptor" /></div>
+                  </div>
                 </div>
-                <div><Label className="text-xs">Límite de Crédito ($)</Label><Input type="number" value={form.limiteCredito} onChange={(e) => setForm(f => ({ ...f, limiteCredito: e.target.value }))} placeholder="500000" /></div>
-                <div className="md:col-span-2"><Label className="text-xs">Firma Digital</Label><Input value={form.firmaDigital} onChange={(e) => setForm(f => ({ ...f, firmaDigital: e.target.value }))} placeholder="Registro digital de aceptación" /></div>
-                <div className="md:col-span-2"><Label className="text-xs">Notas</Label><Input value={form.notas} onChange={(e) => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Información adicional" /></div>
+                {/* Comercial */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Comercial</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><Label className="text-xs">Empresa</Label><Input value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} placeholder="Razón social comercial" /></div>
+                    <div><Label className="text-xs">Rubro / Sector</Label><Input value={form.rubro} onChange={(e) => setForm(f => ({ ...f, rubro: e.target.value }))} placeholder="Logística, Construcción..." /></div>
+                    <div><Label className="text-xs">Límite de Crédito ($)</Label><Input type="number" value={form.limiteCredito} onChange={(e) => setForm(f => ({ ...f, limiteCredito: e.target.value }))} placeholder="500000" /></div>
+                    <div className="md:col-span-2"><Label className="text-xs">Firma Digital</Label><Input value={form.firmaDigital} onChange={(e) => setForm(f => ({ ...f, firmaDigital: e.target.value }))} placeholder="Registro digital de aceptación" /></div>
+                    <div className="md:col-span-2"><Label className="text-xs">Notas</Label><Input value={form.notas} onChange={(e) => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Información adicional" /></div>
+                  </div>
+                </div>
+                {/* Datos Fiscales */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Datos Fiscales (AFIP)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><Label className="text-xs">Condición de IVA</Label>
+                      <Select value={form.condicionIva} onValueChange={(v) => setForm(f => ({ ...f, condicionIva: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{COND_IVA_OPTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label className="text-xs">Condición de IIBB</Label>
+                      <Select value={form.condicionIibb} onValueChange={(v) => setForm(f => ({ ...f, condicionIibb: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          {['Exento', 'Convenio Multilateral', 'Local', 'No Corresponde'].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label className="text-xs">N° Ingresos Brutos</Label><Input value={form.iibb} onChange={(e) => setForm(f => ({ ...f, iibb: e.target.value }))} placeholder="12345-67890-1" /></div>
+                    <div><Label className="text-xs">Categoría Monotributo</Label>
+                      <Select value={form.categoriaMonotributo} onValueChange={(v) => setForm(f => ({ ...f, categoriaMonotributo: v }))}>
+                        <SelectTrigger><SelectValue placeholder="No aplica" /></SelectTrigger>
+                        <SelectContent>
+                          {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((c) => <SelectItem key={c} value={c}>{`Categoría ${c}`}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2"><Label className="text-xs">Domicilio Fiscal</Label><Input value={form.domicilioFiscal} onChange={(e) => setForm(f => ({ ...f, domicilioFiscal: e.target.value }))} placeholder="Si difiere del domicilio comercial" /></div>
+                  </div>
+                </div>
               </div>
             )}
 

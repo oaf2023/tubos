@@ -132,6 +132,10 @@ export interface Cliente {
   empresa: string | null
   rubro: string | null
   condicionIva: string | null
+  iibb: string | null
+  condicionIibb: string | null
+  categoriaMonotributo: string | null
+  domicilioFiscal: string | null
   limiteCredito: number | null
   firmaDigital: string | null
   tipologia: string | null

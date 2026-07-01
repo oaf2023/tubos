@@ -602,6 +602,10 @@ model Cliente {
   empresa               String?        // Empresa a la que pertenece
   rubro                 String?        // Sector o actividad comercial
   condicionIva          String?        // Responsable Inscripto | Monotributista | Consumidor Final | Exento
+  iibb                  String?        // Número de Ingresos Brutos
+  condicionIibb         String?        // Exento | Convenio Multilateral | Local | No Corresponde
+  categoriaMonotributo  String?        // A | B | C | D | E | F | G | H | I | J | K
+  domicilioFiscal       String?        // Domicilio fiscal (si difiere del comercial)
   limiteCredito         Float?         // Límite de crédito en ARS
   // Campos existentes
   firmaDigital          String?        // Registro de aceptación de responsabilidad
