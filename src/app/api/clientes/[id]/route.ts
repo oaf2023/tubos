@@ -46,8 +46,25 @@ export async function PUT(
     if (body.nombre !== undefined) data.nombre = body.nombre.trim()
     if (body.apellido !== undefined) data.apellido = body.apellido || null
     if (body.email !== undefined) data.email = body.email || null
+    if (body.telefono !== undefined) data.telefono = body.telefono || null
     if (body.taxId !== undefined) data.taxId = body.taxId || null
     if (body.contacto !== undefined) data.contacto = body.contacto || null
+    if (body.telefonoSecundario !== undefined) data.telefonoSecundario = body.telefonoSecundario || null
+    if (body.fechaNacimiento !== undefined) data.fechaNacimiento = body.fechaNacimiento ? new Date(body.fechaNacimiento) : null
+    if (body.genero !== undefined) data.genero = body.genero || null
+    if (body.tipoDocumento !== undefined) data.tipoDocumento = body.tipoDocumento || null
+    if (body.numeroDocumento !== undefined) data.numeroDocumento = body.numeroDocumento || null
+    if (body.calle !== undefined) data.calle = body.calle || null
+    if (body.altura !== undefined) data.altura = body.altura || null
+    if (body.piso !== undefined) data.piso = body.piso || null
+    if (body.codigoPostal !== undefined) data.codigoPostal = body.codigoPostal || null
+    if (body.ciudad !== undefined) data.ciudad = body.ciudad || null
+    if (body.provincia !== undefined) data.provincia = body.provincia || null
+    if (body.pais !== undefined) data.pais = body.pais || 'Argentina'
+    if (body.empresa !== undefined) data.empresa = body.empresa || null
+    if (body.rubro !== undefined) data.rubro = body.rubro || null
+    if (body.condicionIva !== undefined) data.condicionIva = body.condicionIva || null
+    if (body.limiteCredito !== undefined) data.limiteCredito = body.limiteCredito != null ? parseFloat(body.limiteCredito) : null
     if (body.firmaDigital !== undefined) data.firmaDigital = body.firmaDigital || null
     if (body.tipologia !== undefined) data.tipologia = body.tipologia || null
     if (body.procesoSoldadura !== undefined) data.procesoSoldadura = body.procesoSoldadura || null
@@ -56,7 +73,7 @@ export async function PUT(
     if (body.modoEnvasado !== undefined) data.modoEnvasado = body.modoEnvasado || null
     if (body.gasesConsumo !== undefined) data.gasesConsumo = body.gasesConsumo || null
     if (body.serviciosEspecializados !== undefined) data.serviciosEspecializados = body.serviciosEspecializados || null
-    if (body.nivelesStockCritico !== undefined) data.nivelesStockCritico = body.nivelesStockCritico ? parseInt(body.nivelesStockCritico, 10) : null
+    if (body.nivelesStockCritico !== undefined) data.nivelesStockCritico = body.nivelesStockCritico != null ? parseInt(body.nivelesStockCritico, 10) : null
     if (body.contratoComodato !== undefined) data.contratoComodato = body.contratoComodato || null
     if (body.activosEnPosesion !== undefined) data.activosEnPosesion = body.activosEnPosesion || null
     if (body.fechaVencimientoContrato !== undefined) data.fechaVencimientoContrato = body.fechaVencimientoContrato ? new Date(body.fechaVencimientoContrato) : null
@@ -65,8 +82,8 @@ export async function PUT(
     if (body.penalizacionesExtravio !== undefined) data.penalizacionesExtravio = body.penalizacionesExtravio || null
     if (body.estadoCuenta !== undefined) data.estadoCuenta = body.estadoCuenta || null
     if (body.ubicaciones !== undefined) data.ubicaciones = body.ubicaciones || null
-    if (body.lat !== undefined) data.lat = body.lat ? parseFloat(body.lat) : null
-    if (body.lng !== undefined) data.lng = body.lng ? parseFloat(body.lng) : null
+    if (body.lat !== undefined) data.lat = body.lat != null ? parseFloat(body.lat) : null
+    if (body.lng !== undefined) data.lng = body.lng != null ? parseFloat(body.lng) : null
     if (body.notas !== undefined) data.notas = body.notas || null
     if (body.activo !== undefined) data.activo = Boolean(body.activo)
 

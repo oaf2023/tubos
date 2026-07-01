@@ -580,10 +580,30 @@ model FacturaItem {
 model Cliente {
   id                    String         @id @default(cuid())
   nombre                String         @unique // Razón social / Nombre de contacto
-  apellido              String?        // Apellido del contacto (formato "APELLIDO, Nombre")
+  apellido              String?        // Apellido del contacto
   email                 String?        // Correo electrónico
+  telefono              String?        // Teléfono principal
   taxId                 String?        // CUIT / Tax ID
   contacto              String?        // Persona de contacto / receptor autorizado
+  telefonoSecundario    String?        // Teléfono alternativo
+  fechaNacimiento       DateTime?      // Fecha de nacimiento del contacto
+  genero                String?        // Masculino / Femenino / Otro
+  tipoDocumento         String?        // DNI | CUIT | CUIL | Pasaporte
+  numeroDocumento       String?        // Número de documento
+  // Dirección estructurada
+  calle                 String?
+  altura                String?
+  piso                  String?
+  codigoPostal          String?
+  ciudad                String?
+  provincia             String?
+  pais                  String?        @default("Argentina")
+  // Datos comerciales
+  empresa               String?        // Empresa a la que pertenece
+  rubro                 String?        // Sector o actividad comercial
+  condicionIva          String?        // Responsable Inscripto | Monotributista | Consumidor Final | Exento
+  limiteCredito         Float?         // Límite de crédito en ARS
+  // Campos existentes
   firmaDigital          String?        // Registro de aceptación de responsabilidad
   tipologia             String?        // Construcción pesada, Farmacéutico, Taller, etc.
   procesoSoldadura      String?        // TIG, MIG/MAG, Oxicorte, Electrodo
@@ -600,7 +620,7 @@ model Cliente {
   cargosRecurrentes     String?        // Facturación automática
   penalizacionesExtravio String?       // Cargos por extravío
   estadoCuenta          EstadoCuentaCliente? // AL_DIA, PENDIENTE, MOROSO
-  ubicaciones           String?        // Direcciones / coordenadas
+  ubicaciones           String?        // Direcciones / coordenadas (legacy)
   lat                   Float?         // Ubicación principal latitud
   lng                   Float?         // Ubicación principal longitud
   notas                 String?
@@ -614,6 +634,8 @@ model Cliente {
 
   @@index([estadoCliente])
   @@index([apellido])
+  @@index([ciudad])
+  @@index([rubro])
 }
 
 model AlertConfig {

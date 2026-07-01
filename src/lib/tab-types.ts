@@ -117,6 +117,22 @@ export interface Cliente {
   email: string | null
   taxId: string | null
   contacto: string | null
+  telefonoSecundario: string | null
+  fechaNacimiento: string | null
+  genero: string | null
+  tipoDocumento: string | null
+  numeroDocumento: string | null
+  calle: string | null
+  altura: string | null
+  piso: string | null
+  codigoPostal: string | null
+  ciudad: string | null
+  provincia: string | null
+  pais: string | null
+  empresa: string | null
+  rubro: string | null
+  condicionIva: string | null
+  limiteCredito: number | null
   firmaDigital: string | null
   tipologia: string | null
   procesoSoldadura: string | null
@@ -133,7 +149,7 @@ export interface Cliente {
   cargosRecurrentes: string | null
   penalizacionesExtravio: string | null
   estadoCuenta: string | null
-  estadoCliente: string | null  // ACTIVO | SUSPENDIDO | INACTIVO
+  estadoCliente: string | null
   ubicaciones: string | null
   lat: number | null
   lng: number | null
