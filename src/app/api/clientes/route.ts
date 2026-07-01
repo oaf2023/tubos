@@ -121,6 +121,8 @@ export async function POST(request: NextRequest) {
       iibb: body.iibb || null,
       condicionIibb: body.condicionIibb || null,
       categoriaMonotributo: body.categoriaMonotributo || null,
+      monotributoActividad: body.monotributoActividad || null,
+      monotributoDesde: body.monotributoDesde ? new Date(body.monotributoDesde) : null,
       domicilioFiscal: body.domicilioFiscal || null,
       limiteCredito: body.limiteCredito != null ? parseFloat(body.limiteCredito) : null,
       firmaDigital: body.firmaDigital || null,

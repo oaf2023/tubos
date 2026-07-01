@@ -51,7 +51,12 @@ const ABECEDARIO = ['Todos', ...'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')]
 
 const ESTADO_CLIENTE_OPTS = ['ACTIVO', 'SUSPENDIDO', 'INACTIVO'] as const
 const TIPO_DOC_OPTS = ['DNI', 'CUIT', 'CUIL', 'Pasaporte'] as const
-const COND_IVA_OPTS = ['Responsable Inscripto', 'Monotributista', 'Consumidor Final', 'Exento'] as const
+const COND_IVA_OPTS = [
+  'Responsable Inscripto', 'Monotributista', 'Consumidor Final',
+  'Exento', 'Responsable No Inscripto', 'Sujeto No Categorizado',
+  'Pequeño Contribuyente Social', 'Gran Contribuyente',
+] as const
+const MONOTRIBUTO_ACTIVIDAD_OPTS = ['Servicios', 'Comercio', 'Industria'] as const
 
 // Color generator for avatar
 function getAvatarColors(apellido: string) {
@@ -142,7 +147,7 @@ export default function ClientesTab() {
     telefonoSecundario: '', fechaNacimiento: '', genero: 'Masculino',
     tipoDocumento: '', numeroDocumento: '',
     calle: '', altura: '', piso: '', codigoPostal: '', ciudad: '', provincia: '', pais: 'Argentina',
-    empresa: '', rubro: '', condicionIva: 'Consumidor Final', iibb: '', condicionIibb: '', categoriaMonotributo: '', domicilioFiscal: '', limiteCredito: '',
+    empresa: '', rubro: '', condicionIva: 'Consumidor Final', iibb: '', condicionIibb: '', categoriaMonotributo: '', monotributoActividad: '', monotributoDesde: '', domicilioFiscal: '', limiteCredito: '',
     firmaDigital: '', tipologia: '', procesoSoldadura: '', materialesBase: '',
     parametrosIngenieria: '', modoEnvasado: 'Cilindros', gasesConsumo: '',
     serviciosEspecializados: '', nivelesStockCritico: '', contratoComodato: '',
@@ -269,7 +274,7 @@ export default function ClientesTab() {
       telefonoSecundario: c.telefonoSecundario || '', fechaNacimiento: c.fechaNacimiento ? c.fechaNacimiento.split('T')[0] : '', genero: c.genero || 'Masculino',
       tipoDocumento: c.tipoDocumento || '', numeroDocumento: c.numeroDocumento || '',
       calle: c.calle || '', altura: c.altura || '', piso: c.piso || '', codigoPostal: c.codigoPostal || '', ciudad: c.ciudad || '', provincia: c.provincia || '', pais: c.pais || 'Argentina',
-      empresa: c.empresa || '', rubro: c.rubro || '', condicionIva: c.condicionIva || 'Consumidor Final', iibb: c.iibb || '', condicionIibb: c.condicionIibb || '', categoriaMonotributo: c.categoriaMonotributo || '', domicilioFiscal: c.domicilioFiscal || '', limiteCredito: c.limiteCredito != null ? String(c.limiteCredito) : '',
+      empresa: c.empresa || '', rubro: c.rubro || '', condicionIva: c.condicionIva || 'Consumidor Final', iibb: c.iibb || '', condicionIibb: c.condicionIibb || '', categoriaMonotributo: c.categoriaMonotributo || '', monotributoActividad: c.monotributoActividad || '', monotributoDesde: c.monotributoDesde ? c.monotributoDesde.split('T')[0] : '', domicilioFiscal: c.domicilioFiscal || '', limiteCredito: c.limiteCredito != null ? String(c.limiteCredito) : '',
       firmaDigital: c.firmaDigital || '', tipologia: c.tipologia || '', procesoSoldadura: c.procesoSoldadura || '',
       materialesBase: c.materialesBase || '', parametrosIngenieria: c.parametrosIngenieria || '', modoEnvasado: c.modoEnvasado || 'Cilindros',
       gasesConsumo: c.gasesConsumo || '', serviciosEspecializados: c.serviciosEspecializados || '',
@@ -561,9 +566,9 @@ export default function ClientesTab() {
                       <div className="bg-slate-50 rounded-2xl p-4 border space-y-2.5">
                         {c.empresa && <div className="flex items-center justify-between"><span className="text-[11px] font-semibold text-slate-500"><Briefcase className="w-3 h-3 inline mr-1" />Empresa</span><span className="text-xs font-semibold">{c.empresa}</span></div>}
                         {c.rubro && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Rubro</span><span className="text-xs font-semibold">{c.rubro}</span></div>}
-                        {c.condicionIva && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">IVA</span><span className="text-xs font-semibold">{c.condicionIva}</span></div>}
+                        {c.condicionIva && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Cond. IVA</span><span className="text-xs font-semibold">{c.condicionIva}</span></div>}
                         {c.iibb && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">IIBB</span><span className="text-xs font-semibold">{c.iibb}{c.condicionIibb ? ` (${c.condicionIibb})` : ''}</span></div>}
-                        {c.categoriaMonotributo && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Monotributo</span><span className="text-xs font-semibold">Categoría {c.categoriaMonotributo}</span></div>}
+                        {c.categoriaMonotributo && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Monotributo</span><span className="text-xs font-semibold">Cat. {c.categoriaMonotributo}{c.monotributoActividad ? ` · ${c.monotributoActividad}` : ''}{c.monotributoDesde ? ` · ${formatDate(c.monotributoDesde)}` : ''}</span></div>}
                         {c.domicilioFiscal && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Domicilio fiscal</span><span className="text-xs font-semibold">{c.domicilioFiscal}</span></div>}
                         {c.limiteCredito != null && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500"><Coins className="w-3 h-3 inline mr-1" />Límite crédito</span><span className="text-xs font-bold">${c.limiteCredito.toLocaleString('es-AR')}</span></div>}
                         {c.estadoCuenta && <div className="flex justify-between border-t pt-2"><span className="text-[11px] font-semibold text-slate-500">Estado cuenta</span>
@@ -770,9 +775,9 @@ export default function ClientesTab() {
                 </div>
                 {/* Datos Fiscales */}
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Datos Fiscales (AFIP)</h4>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Datos Fiscales (ARCA)</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><Label className="text-xs">Condición de IVA</Label>
+                    <div><Label className="text-xs">Condición frente al IVA</Label>
                       <Select value={form.condicionIva} onValueChange={(v) => setForm(f => ({ ...f, condicionIva: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>{COND_IVA_OPTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -791,10 +796,17 @@ export default function ClientesTab() {
                       <Select value={form.categoriaMonotributo} onValueChange={(v) => setForm(f => ({ ...f, categoriaMonotributo: v }))}>
                         <SelectTrigger><SelectValue placeholder="No aplica" /></SelectTrigger>
                         <SelectContent>
-                          {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((c) => <SelectItem key={c} value={c}>{`Categoría ${c}`}</SelectItem>)}
+                          {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((c) => <SelectItem key={c} value={c}>{`Cat. ${c}`}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
+                    <div><Label className="text-xs">Actividad Monotributo</Label>
+                      <Select value={form.monotributoActividad} onValueChange={(v) => setForm(f => ({ ...f, monotributoActividad: v }))}>
+                        <SelectTrigger><SelectValue placeholder="No aplica" /></SelectTrigger>
+                        <SelectContent>{MONOTRIBUTO_ACTIVIDAD_OPTS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label className="text-xs">Inscripción Monotributo</Label><Input type="date" value={form.monotributoDesde} onChange={(e) => setForm(f => ({ ...f, monotributoDesde: e.target.value }))} /></div>
                     <div className="md:col-span-2"><Label className="text-xs">Domicilio Fiscal</Label><Input value={form.domicilioFiscal} onChange={(e) => setForm(f => ({ ...f, domicilioFiscal: e.target.value }))} placeholder="Si difiere del domicilio comercial" /></div>
                   </div>
                 </div>

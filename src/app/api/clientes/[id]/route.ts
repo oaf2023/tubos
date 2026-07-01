@@ -67,6 +67,8 @@ export async function PUT(
     if (body.iibb !== undefined) data.iibb = body.iibb || null
     if (body.condicionIibb !== undefined) data.condicionIibb = body.condicionIibb || null
     if (body.categoriaMonotributo !== undefined) data.categoriaMonotributo = body.categoriaMonotributo || null
+    if (body.monotributoActividad !== undefined) data.monotributoActividad = body.monotributoActividad || null
+    if (body.monotributoDesde !== undefined) data.monotributoDesde = body.monotributoDesde ? new Date(body.monotributoDesde) : null
     if (body.domicilioFiscal !== undefined) data.domicilioFiscal = body.domicilioFiscal || null
     if (body.limiteCredito !== undefined) data.limiteCredito = body.limiteCredito != null ? parseFloat(body.limiteCredito) : null
     if (body.firmaDigital !== undefined) data.firmaDigital = body.firmaDigital || null

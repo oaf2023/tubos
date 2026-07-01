@@ -135,6 +135,8 @@ export interface Cliente {
   iibb: string | null
   condicionIibb: string | null
   categoriaMonotributo: string | null
+  monotributoActividad: string | null
+  monotributoDesde: string | null
   domicilioFiscal: string | null
   limiteCredito: number | null
   firmaDigital: string | null

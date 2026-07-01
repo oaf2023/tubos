@@ -601,10 +601,12 @@ model Cliente {
   // Datos comerciales
   empresa               String?        // Empresa a la que pertenece
   rubro                 String?        // Sector o actividad comercial
-  condicionIva          String?        // Responsable Inscripto | Monotributista | Consumidor Final | Exento
+  condicionIva          String?        // ARCA: Resp.Inscripto | Monotributista | Cons.Final | Exento | Resp.No Inscripto | Sujeto No Cat. | Peq.Cont.Social | Gran Contrib.
   iibb                  String?        // Número de Ingresos Brutos
   condicionIibb         String?        // Exento | Convenio Multilateral | Local | No Corresponde
   categoriaMonotributo  String?        // A | B | C | D | E | F | G | H | I | J | K
+  monotributoActividad  String?        // Servicios | Comercio | Industria
+  monotributoDesde      DateTime?      // Fecha de inscripción al Monotributo
   domicilioFiscal       String?        // Domicilio fiscal (si difiere del comercial)
   limiteCredito         Float?         // Límite de crédito en ARS
   // Campos existentes
