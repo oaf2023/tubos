@@ -30,7 +30,6 @@ import {
   ESTADO_COLORS, ESTADO_LABELS, daysUntil,
 } from '@/lib/tab-constants'
 import { geocodificarDireccion } from '@/lib/geocoding'
-import StaticMap from '@/lib/static-map'
 
 const ITEMS_PER_PAGE = 12
 const ABECEDARIO = ['Todos', ...'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')]
@@ -588,7 +587,11 @@ export default function ClientesTab() {
                     </div>
                     <div className="h-64 rounded-2xl border overflow-hidden bg-slate-100 flex flex-col">
                       {geo ? (
-                        <StaticMap lat={c.lat!} lng={c.lng!} zoom={14} className="w-full h-full" height={256} />
+                        <div className="w-full h-full relative">
+                          <iframe title="Mapa cliente" width="100%" height="100%" style={{ border: 0 }}
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${c.lng! - 0.008}%2C${c.lat! - 0.005}%2C${c.lng! + 0.008}%2C${c.lat! + 0.005}&layer=mapnik&marker=${c.lat}%2C${c.lng}`} />
+                          <div className="absolute bottom-2 left-2 bg-white/90 border px-2 py-1 rounded-lg flex items-center gap-1 text-[9px] font-bold shadow"><MapPin className="w-3 h-3 text-indigo-600" /> OpenStreetMap</div>
+                        </div>
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                           <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
@@ -721,7 +724,8 @@ export default function ClientesTab() {
                   </div>
                   {form.lat && form.lng && (
                     <div className="rounded-xl overflow-hidden border h-36 bg-slate-100">
-                      <StaticMap lat={parseFloat(form.lat)} lng={parseFloat(form.lng)} zoom={14} height={144} />
+                      <iframe title="Preview" width="100%" height="100%" style={{ border: 0 }}
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(form.lng) - 0.005}%2C${parseFloat(form.lat) - 0.003}%2C${parseFloat(form.lng) + 0.005}%2C${parseFloat(form.lat) + 0.003}&layer=mapnik&marker=${form.lat}%2C${form.lng}`} />
                     </div>
                   )}
                 </div>
