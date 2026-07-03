@@ -584,6 +584,7 @@ model Cliente {
   email                 String?        // Correo electrónico
   telefono              String?        // Teléfono principal
   taxId                 String?        // CUIT / Tax ID
+  codigoLegacy          Int?           // Código numérico en GR2 (PR_NUM)
   contacto              String?        // Persona de contacto / receptor autorizado
   telefonoSecundario    String?        // Teléfono alternativo
   fechaNacimiento       DateTime?      // Fecha de nacimiento del contacto
@@ -1501,21 +1502,23 @@ model ComprobanteItemHistorico {
 }
 
 model CuentaCorrienteMovimiento {
-  id             String   @id @default(cuid())
-  clienteId      String?
-  clienteNombre  String?
-  comprobante    String   // "Fact A 0003-00000001"
-  fecha          DateTime
-  fechaVto       DateTime?
-  cuota          String?  // "001/001"
-  debe           Decimal  @default(0)
-  haber          Decimal  @default(0)
-  saldo          Decimal  @default(0)
-  pagado         Decimal  @default(0)
-  operador       String?
-  createdAt      DateTime @default(now())
+  id                 String   @id @default(cuid())
+  clienteId          String?
+  clienteNombre      String?
+  codigoClienteLegacy Int?    // CTA_CLIE de GR2_510
+  comprobante        String   // "Fact A 0003-00000001"
+  fecha              DateTime
+  fechaVto           DateTime?
+  cuota              String?  // "001/001"
+  debe               Decimal  @default(0)
+  haber              Decimal  @default(0)
+  saldo              Decimal  @default(0)
+  pagado             Decimal  @default(0)
+  operador           String?
+  createdAt          DateTime @default(now())
 
   @@index([clienteId])
+  @@index([codigoClienteLegacy])
   @@index([fecha])
   @@index([comprobante])
 }
