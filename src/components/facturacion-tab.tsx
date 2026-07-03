@@ -10,7 +10,10 @@ import {
   Calendar,
   X,
   Save,
+  Clock,
 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ComprobantesHistoricos from '@/components/comprobantes-historicos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -502,7 +505,19 @@ export default function FacturacionTab() {
   }
 
   return (
-    <div>
+    <Tabs defaultValue="actuales" className="w-full">
+      <div className="flex items-center justify-between mb-4">
+        <TabsList>
+          <TabsTrigger value="actuales" className="flex items-center gap-1.5">
+            <Receipt className="w-3.5 h-3.5" /> Actuales
+          </TabsTrigger>
+          <TabsTrigger value="historicos" className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> Históricos
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="actuales">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex gap-2">
           <select
@@ -886,6 +901,11 @@ export default function FacturacionTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="historicos">
+        <ComprobantesHistoricos />
+      </TabsContent>
+    </Tabs>
   )
 }

@@ -122,6 +122,23 @@ export default function ClientesTab() {
   const [accesoForm, setAccesoForm] = useState({ usuario: '', password: '', activo: true })
   const [loadingAcceso, setLoadingAcceso] = useState(false)
 
+  // Cuenta Corriente dialog
+  const [viewCtaCteCliente, setViewCtaCteCliente] = useState<Cliente | null>(null)
+  const [ctaCteData, setCtaCteData] = useState<any[]>([])
+  const [ctaCteResumen, setCtaCteResumen] = useState<any>(null)
+  const [loadingCtaCte, setLoadingCtaCte] = useState(false)
+
+  async function loadCtaCte(clienteId: string) {
+    setLoadingCtaCte(true)
+    try {
+      const res = await fetch(`/api/cuenta-corriente?clienteId=${clienteId}&limit=200`)
+      const json = await res.json()
+      setCtaCteData(json.data || [])
+      setCtaCteResumen(json.resumen || null)
+    } catch { setCtaCteData([]); setCtaCteResumen(null) }
+    setLoadingCtaCte(false)
+  }
+
   // Form dialog
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -623,6 +640,7 @@ export default function ClientesTab() {
                       <Button variant="outline" size="sm" onClick={() => { setViewCylindersCliente(c); loadCylindersForCliente(c.id) }}><Package className="w-3.5 h-3.5 mr-1" /> Tubos</Button>
                       <Button variant="outline" size="sm" onClick={() => { setViewHistoryCliente(c); loadHistoryForCliente(c.id) }}><History className="w-3.5 h-3.5 mr-1" /> Historial</Button>
                       <Button variant="outline" size="sm" onClick={() => { setViewAccesoCliente(c); loadAcceso(c.id) }}><Key className="w-3.5 h-3.5 mr-1" /> Acceso</Button>
+                      <Button variant="outline" size="sm" onClick={() => { setViewCtaCteCliente(c); loadCtaCte(c.id) }}><DollarSign className="w-3.5 h-3.5 mr-1" /> Cta. Cte.</Button>
                     </div>
                     <Button size="sm" onClick={() => setDetailCliente(null)} className="bg-slate-800 hover:bg-slate-700 text-white">Cerrar</Button>
                   </div>
@@ -975,6 +993,88 @@ export default function ClientesTab() {
               </div>
               {accesoData && <p className="text-xs text-slate-400 text-center pt-2 border-t">Usuario: <strong>{accesoData.usuario}</strong> — {accesoData.activo ? 'Activo' : 'Inactivo'}</p>}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Cuenta Corriente */}
+      <Dialog open={!!viewCtaCteCliente} onOpenChange={(o) => { if (!o) setViewCtaCteCliente(null) }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-600" /> Cuenta Corriente — {viewCtaCteCliente?.nombre}</DialogTitle>
+            <DialogDescription>Movimientos históricos de cuenta corriente</DialogDescription>
+          </DialogHeader>
+          {loadingCtaCte ? (
+            <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+          ) : ctaCteData.length === 0 ? (
+            <div className="text-center py-8 text-slate-400"><DollarSign className="w-10 h-10 mx-auto mb-2 text-slate-200" />Sin movimientos de cuenta corriente</div>
+          ) : (
+            <>
+              {/* Resumen */}
+              {ctaCteResumen && (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
+                    <div className="text-xs text-emerald-600 font-medium">Saldo Actual</div>
+                    <div className="text-xl font-bold text-emerald-700">
+                      ${Number(ctaCteResumen.saldoActual).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-4 text-center border border-red-200">
+                    <div className="text-xs text-red-600 font-medium">Total Débito</div>
+                    <div className="text-xl font-bold text-red-700">
+                      ${Number(ctaCteResumen.totalDebe).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-200">
+                    <div className="text-xs text-blue-600 font-medium">Total Crédito</div>
+                    <div className="text-xl font-bold text-blue-700">
+                      ${Number(ctaCteResumen.totalHaber).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tabla */}
+              <div className="overflow-x-auto max-h-96 border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Vencimiento</TableHead>
+                      <TableHead>Comprobante</TableHead>
+                      <TableHead>Cuota</TableHead>
+                      <TableHead className="text-right">Débito</TableHead>
+                      <TableHead className="text-right">Crédito</TableHead>
+                      <TableHead className="text-right">Saldo</TableHead>
+                      <TableHead className="text-right">Pagado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ctaCteData.map((m: any) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="text-xs whitespace-nowrap">{new Date(m.fecha).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-xs text-slate-400">{m.fechaVto ? new Date(m.fechaVto).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell className="font-mono text-xs max-w-36 truncate" title={m.comprobante}>{m.comprobante}</TableCell>
+                        <TableCell className="text-xs text-slate-500">{m.cuota || '-'}</TableCell>
+                        <TableCell className="text-right font-mono text-xs text-red-600">
+                          {Number(m.debe) > 0 ? '$' + Number(m.debe).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-emerald-600">
+                          {Number(m.haber) > 0 ? '$' + Number(m.haber).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs font-medium">
+                          ${Number(m.saldo).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs">
+                          {Number(m.pagado) > 0 ? '$' + Number(m.pagado).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-xs text-slate-400 text-center mt-2">{ctaCteData.length} movimientos</p>
+            </>
           )}
         </DialogContent>
       </Dialog>
