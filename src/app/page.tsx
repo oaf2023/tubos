@@ -50,6 +50,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/toaster'
 import HeaderClock from '@/components/header-clock'
 import HeaderWeather from '@/components/header-weather'
+import HeaderConnection from '@/components/header-connection'
+import HeaderDeviceInfo from '@/components/header-device-info'
 import HeaderHelp from '@/components/header-help'
 import HeaderInstall from '@/components/header-install'
 
@@ -149,6 +151,8 @@ export default function Home() {
             <div className="flex items-center gap-1 sm:gap-2">
               <HeaderClock />
               <HeaderWeather />
+              <HeaderConnection />
+              <HeaderDeviceInfo user={user} />
               <HeaderHelp />
               <HeaderInstall />
               <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
@@ -372,6 +376,8 @@ function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
         <div className="flex items-center gap-1 sm:gap-2">
           <HeaderClock />
           <HeaderWeather />
+          <HeaderConnection />
+          <HeaderDeviceInfo user={user} />
           <HeaderHelp />
           <HeaderInstall />
           <Badge variant="outline" className="hidden md:flex border-orange-300 text-orange-700 bg-orange-50">
