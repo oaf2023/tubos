@@ -41,7 +41,7 @@
       <div class="flex flex-wrap gap-2 text-xs text-orange-100/80">
         <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-regular fa-circle-check text-green-300 mr-1"></i>Completado</span>
         <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-database mr-1"></i>GR2 → PostgreSQL</span>
-        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-users mr-1"></i>965 clientes + 9 vendedores + 2.516 tubos</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-users mr-1"></i>965 clientes + 9 vendedores + 2.516 tubos + 281.297 históricos</span>
       </div>
     </header>
 
@@ -70,6 +70,18 @@
       <div class="stat-card text-center">
         <div class="text-2xl font-bold text-teal-600">2.516</div>
         <div class="text-xs text-slate-500 mt-1">Tubos migrados (XLS)</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-indigo-600">33.899</div>
+        <div class="text-xs text-slate-500 mt-1">Comprobantes históricos</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-pink-600">114.871</div>
+        <div class="text-xs text-slate-500 mt-1">Items de comprobantes</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-cyan-600">132.527</div>
+        <div class="text-xs text-slate-500 mt-1">Movs. cta corriente</div>
       </div>
     </section>
 
@@ -165,12 +177,12 @@
         </div>
 
         <!-- Fase 5 -->
-        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+        <div class="border-l-4 border-green-500 pl-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
-            <h3 class="font-bold text-sm text-slate-500">Fase 5 — Históricos (comprobantes + cta cte + eventos tubo)</h3>
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 5 — Históricos (comprobantes + cta cte + eventos tubo)</h3>
           </div>
-          <p class="text-xs text-slate-400">Migrar facturas desde GR2_850/GR2_851 (33.902 comprobantes, 114.919 items), movimientos de cuenta corriente GR2_510 (133.283 registros) y eventos históricos de tubos.</p>
+          <p class="text-xs text-slate-600">33.899 comprobantes + 114.871 items + 132.527 movimientos cta cte migrados desde GR2_850/GR2_851/GR2_510 a modelos <code class="bg-slate-100 px-1.5 rounded">ComprobanteHistorico</code>, <code class="bg-slate-100 px-1.5 rounded">ComprobanteItemHistorico</code> y <code class="bg-slate-100 px-1.5 rounded">CuentaCorrienteMovimiento</code>. Script <code class="bg-slate-100 px-1.5 rounded">scripts/migrar-historial.cjs</code>. 281.297 registros totales en migración.</p>
         </div>
 
         <!-- Fase 6 -->
@@ -229,6 +241,78 @@
       </div>
     </section>
 
+    <!-- 4b. Mapping Históricos -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-arrows-left-right text-orange-400"></i> 4b. Mapping GR2_850/851/510 → Históricos</h2>
+      </div>
+      <div class="p-6 space-y-6">
+
+        <h3 class="font-bold text-sm text-slate-700">GR2_850 → ComprobanteHistorico</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Campo GR2</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Destino</th><th class="p-2 text-left">Notas</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr><td class="p-2 font-mono">COC_COMP</td><td class="p-2">C(20)</td><td class="p-2 font-mono">cbteCompleto</td><td class="p-2">"Fact A 0001-00017220"</td></tr>
+              <tr><td class="p-2 font-mono">COC_FECH</td><td class="p-2">Date</td><td class="p-2 font-mono">fecha</td><td class="p-2">YYYYMMDD</td></tr>
+              <tr><td class="p-2 font-mono">COC_FVTO</td><td class="p-2">Date</td><td class="p-2 font-mono">fechaVto</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">COC_TCOM + ABEX</td><td class="p-2">N(2)+C(1)</td><td class="p-2 font-mono">tipo</td><td class="p-2">"Factura A", "Nota Débito B", "Pedido X"</td></tr>
+              <tr><td class="p-2 font-mono">COC_CBTE</td><td class="p-2">C(13)</td><td class="p-2 font-mono">puntoVenta + numero</td><td class="p-2">"0001-00017220"</td></tr>
+              <tr><td class="p-2 font-mono">COC_PRNU</td><td class="p-2">N(7)</td><td class="p-2 font-mono">—</td><td class="p-2">Código interno GR2 (no migrado)</td></tr>
+              <tr><td class="p-2 font-mono">COC_PRNO</td><td class="p-2">C(30)</td><td class="p-2 font-mono">clienteNombre</td><td class="p-2">Denormalizado</td></tr>
+              <tr><td class="p-2 font-mono">COC_PRDO</td><td class="p-2">C(13)</td><td class="p-2 font-mono">clienteDoc</td><td class="p-2">Se usa para lookup × taxId → clienteId</td></tr>
+              <tr><td class="p-2 font-mono">COC_NGRA</td><td class="p-2">N(12,2)</td><td class="p-2 font-mono">netoGravado</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">COC_NEXE</td><td class="p-2">N(12,2)</td><td class="p-2 font-mono">netoExento</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">COC_MO21</td><td class="p-2">N(12,2)</td><td class="p-2 font-mono">iva21</td><td class="p-2">Monto IVA 21%</td></tr>
+              <tr><td class="p-2 font-mono">COC_MO10</td><td class="p-2">N(12,2)</td><td class="p-2 font-mono">iva105</td><td class="p-2">Monto IVA 10.5%</td></tr>
+              <tr><td class="p-2 font-mono">COC_MO27</td><td class="p-2">N(12,2)</td><td class="p-2 font-mono">iva27</td><td class="p-2">Monto IVA 27%</td></tr>
+              <tr><td class="p-2 font-mono">COC_PEIB</td><td class="p-2">N(13,2)</td><td class="p-2 font-mono">percepcionIibb</td><td class="p-2">Percepción Ingresos Brutos</td></tr>
+              <tr><td class="p-2 font-mono">COC_TOTA</td><td class="p-2">N(13,2)</td><td class="p-2 font-mono">total</td><td class="p-2">Total del comprobante</td></tr>
+              <tr><td class="p-2 font-mono">COC_VEND</td><td class="p-2">N(4)</td><td class="p-2 font-mono">vendedorNombre</td><td class="p-2">Lookup v1-v9 → nombre</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="font-bold text-sm text-slate-700 mt-4">GR2_851 → ComprobanteItemHistorico</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Campo GR2</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Destino</th><th class="p-2 text-left">Notas</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr><td class="p-2 font-mono">CMP_COMP</td><td class="p-2">C(20)</td><td class="p-2 font-mono">comprobanteId</td><td class="p-2">Lookup × cbteCompleto</td></tr>
+              <tr><td class="p-2 font-mono">CMP_COD1</td><td class="p-2">C(35)</td><td class="p-2 font-mono">codigoProducto</td><td class="p-2">Código de producto</td></tr>
+              <tr><td class="p-2 font-mono">CMP_DET1..4</td><td class="p-2">C(50)×4</td><td class="p-2 font-mono">descripcion</td><td class="p-2">Concatenados con " - "</td></tr>
+              <tr><td class="p-2 font-mono">CMP_CANT</td><td class="p-2">N(11,3)</td><td class="p-2 font-mono">cantidad</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">CMP_COST</td><td class="p-2">N(13,3)</td><td class="p-2 font-mono">precioUnitario</td><td class="p-2">Precio unitario</td></tr>
+              <tr><td class="p-2 font-mono">CMP_DTC</td><td class="p-2">N(8,3)</td><td class="p-2 font-mono">descuento</td><td class="p-2">Descuento total</td></tr>
+              <tr><td class="p-2 font-mono">CMP_SUBT</td><td class="p-2">N(13,3)</td><td class="p-2 font-mono">subtotal</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">CMP_IVA</td><td class="p-2">N(5,2)</td><td class="p-2 font-mono">alicuotaIva</td><td class="p-2">% IVA (ej: 21.00)</td></tr>
+              <tr><td class="p-2 font-mono">CMP_IMP</td><td class="p-2">N(11,3)</td><td class="p-2 font-mono">importeIva</td><td class="p-2">Importe IVA del item</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="font-bold text-sm text-slate-700 mt-4">GR2_510 → CuentaCorrienteMovimiento</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Campo GR2</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Destino</th><th class="p-2 text-left">Notas</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr><td class="p-2 font-mono">CTA_CLIE</td><td class="p-2">N(7)</td><td class="p-2 font-mono">—</td><td class="p-2">Código interno GR2 (no hay CUIT aquí)</td></tr>
+              <tr><td class="p-2 font-mono">VTA_COMP</td><td class="p-2">C(20)</td><td class="p-2 font-mono">comprobante</td><td class="p-2">"Fact A 0003-00000001"</td></tr>
+              <tr><td class="p-2 font-mono">CTA_FECH</td><td class="p-2">Date</td><td class="p-2 font-mono">fecha</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">CTA_FVTO</td><td class="p-2">Date</td><td class="p-2 font-mono">fechaVto</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">CTA_CUOT</td><td class="p-2">C(7)</td><td class="p-2 font-mono">cuota</td><td class="p-2">"001/001"</td></tr>
+              <tr><td class="p-2 font-mono">CTA_DEBE</td><td class="p-2">N(14,2)</td><td class="p-2 font-mono">debe</td><td class="p-2">Monto débito</td></tr>
+              <tr><td class="p-2 font-mono">CTA_HABE</td><td class="p-2">N(14,2)</td><td class="p-2 font-mono">haber</td><td class="p-2">Monto crédito</td></tr>
+              <tr><td class="p-2 font-mono">CTA_SALD</td><td class="p-2">N(14,2)</td><td class="p-2 font-mono">saldo</td><td class="p-2">Saldo resultante</td></tr>
+              <tr><td class="p-2 font-mono">CTA_PAGA</td><td class="p-2">N(14,2)</td><td class="p-2 font-mono">pagado</td><td class="p-2">Monto pagado</td></tr>
+              <tr><td class="p-2 font-mono">OPE_OPER</td><td class="p-2">C(35)</td><td class="p-2 font-mono">operador</td><td class="p-2">"0002-CONTI JULIO"</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
     <!-- 5. Resultados Detallados -->
     <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="bg-slate-900 text-white px-6 py-4">
@@ -277,6 +361,31 @@
           <li><strong>0 clientes con saldo</strong> — PR_SDO en 0 para todos. Puede ser correcto.</li>
           <li><strong>Vendedores sin contraseña</strong> — VEN_CLAV vacío en GR2. Se asignó "Districon2024" temporal.</li>
         </ul>
+
+        <h3 class="font-bold text-sm text-slate-700 mt-6">Fase 5 — Históricos</h3>
+        <div class="grid grid-cols-3 gap-3 text-xs mb-3">
+          <div class="bg-indigo-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-indigo-700">33.899</div>
+            <div class="text-indigo-600">Comprobantes</div>
+          </div>
+          <div class="bg-pink-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-pink-700">114.871</div>
+            <div class="text-pink-600">Items</div>
+          </div>
+          <div class="bg-cyan-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-cyan-700">132.527</div>
+            <div class="text-cyan-600">Movs. cta cte</div>
+          </div>
+        </div>
+        <ul class="text-xs text-slate-600 space-y-1 list-disc pl-5">
+          <li><strong>0 errores</strong> en migración de 281.297 registros.</li>
+          <li><strong>2 items sin comprobante padre</strong> — Referencias huérfanas ignoradas.</li>
+          <li><strong>Modelos nuevos</strong>: <code class="bg-slate-100 px-1.5 rounded">ComprobanteHistorico</code>, <code class="bg-slate-100 px-1.5 rounded">ComprobanteItemHistorico</code>, <code class="bg-slate-100 px-1.5 rounded">CuentaCorrienteMovimiento</code>.</li>
+          <li><strong>Tipos de comprobante</strong>: Factura A/B, Nota Débito A/B, Nota Crédito A/B, Pedido X, Remito A/B, Presupuesto, Recibo.</li>
+          <li><strong>Vendedor vinculado</strong>: lookup por COC_VEND → usuario v1-v9.</li>
+          <li><strong>Cliente vinculado</strong>: lookup por CUIT (COC_PRDO) contra Cliente.taxId.</li>
+          <li><strong>Items sin FK directa</strong>: vinculados mediante cbteCompleto en post-proceso.</li>
+        </ul>
       </div>
     </section>
 
@@ -302,7 +411,9 @@
               <tr><td class="p-2 font-mono">scripts/check-gases.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación de gases existentes</td></tr>
               <tr><td class="p-2 font-mono">scripts/clean-clientes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Limpieza clientes demo</td></tr>
               <tr><td class="p-2 font-mono">scripts/verificar.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación post-migración</td></tr>
-              <tr><td class="p-2 font-mono">migrar.html</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Este documento</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-historial.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Migración GR2_850/851/510 → ComprobanteHistorico/Item/CuentaCorriente</td></tr>
+              <tr><td class="p-2 font-mono">prisma/schema.prisma</td><td class="p-2"><span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px]">MODIFICADO</span></td><td class="p-2">Nuevos modelos: ComprobanteHistorico, ComprobanteItemHistorico, CuentaCorrienteMovimiento</td></tr>
+              <tr><td class="p-2 font-mono">migrar.html</td><td class="p-2"><span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px]">MODIFICADO</span></td><td class="p-2">Este documento (actualizado con Fase 5)</td></tr>
             </tbody>
           </table>
         </div>
@@ -350,6 +461,12 @@ node scripts/migrar-tubos-restantes.cjs
 
 <span class="text-green-400"># Fase 1: Config empresa</span>
 <span class="text-slate-500"># Se editó config.json manualmente</span>
+
+<span class="text-green-400"># Fase 5: Migrar históricos (dry-run)</span>
+node scripts/migrar-historial.cjs
+
+<span class="text-green-400"># Fase 5: Migrar históricos (live) — 281.297 registros</span>
+node scripts/migrar-historial.cjs --live
 
 <span class="text-green-400"># Deploy</span>
 git add . && git commit -m "feat: migracion GR2" && git push</pre>

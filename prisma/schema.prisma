@@ -1450,3 +1450,72 @@ model IdempotencyKey {
 
   @@index([expiresAt])
 }
+
+// ─── Phase 5: Historical migration models ───────────────────────────────
+
+model ComprobanteHistorico {
+  id              String                    @id @default(cuid())
+  fecha           DateTime
+  fechaVto        DateTime?
+  tipo            String                    // Fact A, Fact B, NCred A, NDeb A, Pedido X, Remi X, etc.
+  letra           String?                   // A, B, X, etc.
+  puntoVenta      String?
+  numero          String?
+  cbteCompleto    String                    // "Fact A 0001-00017220"
+  clienteId       String?
+  clienteNombre   String
+  clienteDoc      String?
+  clienteDocTipo  Int?
+  netoGravado     Decimal                   @default(0)
+  netoExento      Decimal                   @default(0)
+  iva21           Decimal                   @default(0)
+  iva105          Decimal                   @default(0)
+  iva27           Decimal                   @default(0)
+  percepcionIibb  Decimal                   @default(0)
+  total           Decimal                   @default(0)
+  vendedorNombre  String?
+  observaciones   String?
+  items           ComprobanteItemHistorico[]
+  createdAt       DateTime                  @default(now())
+
+  @@index([clienteId])
+  @@index([fecha])
+  @@index([cbteCompleto])
+}
+
+model ComprobanteItemHistorico {
+  id              String   @id @default(cuid())
+  comprobanteId   String
+  comprobante     ComprobanteHistorico @relation(fields: [comprobanteId], references: [id], onDelete: Cascade)
+  codigoProducto  String?
+  descripcion     String
+  cantidad        Decimal  @default(0)
+  precioUnitario  Decimal  @default(0)
+  descuento       Decimal  @default(0)
+  subtotal        Decimal  @default(0)
+  alicuotaIva     Decimal  @default(0)
+  importeIva      Decimal  @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([comprobanteId])
+}
+
+model CuentaCorrienteMovimiento {
+  id             String   @id @default(cuid())
+  clienteId      String?
+  clienteNombre  String?
+  comprobante    String   // "Fact A 0003-00000001"
+  fecha          DateTime
+  fechaVto       DateTime?
+  cuota          String?  // "001/001"
+  debe           Decimal  @default(0)
+  haber          Decimal  @default(0)
+  saldo          Decimal  @default(0)
+  pagado         Decimal  @default(0)
+  operador       String?
+  createdAt      DateTime @default(now())
+
+  @@index([clienteId])
+  @@index([fecha])
+  @@index([comprobante])
+}
