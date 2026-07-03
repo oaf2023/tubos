@@ -414,8 +414,8 @@ function GasPricingForm() {
 function ConfigEmpresaForm() {
   const { toast } = useToast()
   const [form, setForm] = useState({
-    company: { name: '', tagline: '', country: '', locale: '' },
-    base: { name: '', province: '', lat: '', lng: '', tipo: '', address: '', phone: '' },
+    company: { name: '', tagline: '', country: '', locale: '', cuit: '', email: '', web: '', actividad: '', rubro: '', fechaInicio: '' },
+    base: { name: '', province: '', lat: '', lng: '', tipo: '', address: '', phone: '', codigoPostal: '' },
     map: { defaultCenterLat: '', defaultCenterLng: '', defaultZoom: '' },
     meta: { title: '', description: '', keywords: '', author: '' },
   })
@@ -428,8 +428,8 @@ function ConfigEmpresaForm() {
         const res = await fetch('/api/config-empresa')
         const data = await res.json()
         setForm({
-          company: { name: data.company?.name || '', tagline: data.company?.tagline || '', country: data.company?.country || '', locale: data.company?.locale || '' },
-          base: { name: data.base?.name || '', province: data.base?.province || '', lat: String(data.base?.lat ?? ''), lng: String(data.base?.lng ?? ''), tipo: data.base?.tipo || '', address: data.base?.address || '', phone: data.base?.phone || '' },
+          company: { name: data.company?.name || '', tagline: data.company?.tagline || '', country: data.company?.country || '', locale: data.company?.locale || '', cuit: data.company?.cuit || '', email: data.company?.email || '', web: data.company?.web || '', actividad: data.company?.actividad || '', rubro: data.company?.rubro || '', fechaInicio: data.company?.fechaInicio || '' },
+          base: { name: data.base?.name || '', province: data.base?.province || '', lat: String(data.base?.lat ?? ''), lng: String(data.base?.lng ?? ''), tipo: data.base?.tipo || '', address: data.base?.address || '', phone: data.base?.phone || '', codigoPostal: data.base?.codigoPostal || '' },
           map: { defaultCenterLat: String(data.map?.defaultCenter?.[0] ?? ''), defaultCenterLng: String(data.map?.defaultCenter?.[1] ?? ''), defaultZoom: String(data.map?.defaultZoom ?? '') },
           meta: { title: data.meta?.title || '', description: data.meta?.description || '', keywords: Array.isArray(data.meta?.keywords) ? data.meta.keywords.join(', ') : (data.meta?.keywords || ''), author: data.meta?.author || '' },
         })
@@ -479,8 +479,14 @@ function ConfigEmpresaForm() {
           <div>
             <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Compañía</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>Nombre</Label><Input value={form.company.name} onChange={e => setForm(f => ({ ...f, company: { ...f.company, name: e.target.value } }))} /></div>
+              <div><Label>Razón Social</Label><Input value={form.company.name} onChange={e => setForm(f => ({ ...f, company: { ...f.company, name: e.target.value } }))} /></div>
+              <div><Label>CUIT</Label><Input value={form.company.cuit} onChange={e => setForm(f => ({ ...f, company: { ...f.company, cuit: e.target.value } }))} /></div>
+              <div><Label>Email</Label><Input type="email" value={form.company.email} onChange={e => setForm(f => ({ ...f, company: { ...f.company, email: e.target.value } }))} /></div>
+              <div><Label>Sitio Web</Label><Input value={form.company.web} onChange={e => setForm(f => ({ ...f, company: { ...f.company, web: e.target.value } }))} /></div>
               <div><Label>Tagline / Lema</Label><Input value={form.company.tagline} onChange={e => setForm(f => ({ ...f, company: { ...f.company, tagline: e.target.value } }))} /></div>
+              <div><Label>Rubro</Label><Input value={form.company.rubro} onChange={e => setForm(f => ({ ...f, company: { ...f.company, rubro: e.target.value } }))} /></div>
+              <div><Label>Actividad</Label><Input value={form.company.actividad} onChange={e => setForm(f => ({ ...f, company: { ...f.company, actividad: e.target.value } }))} /></div>
+              <div><Label>Fecha Inicio</Label><Input value={form.company.fechaInicio} onChange={e => setForm(f => ({ ...f, company: { ...f.company, fechaInicio: e.target.value } }))} /></div>
               <div><Label>País</Label><Input value={form.company.country} onChange={e => setForm(f => ({ ...f, company: { ...f.company, country: e.target.value } }))} /></div>
               <div><Label>Locale</Label><Input value={form.company.locale} onChange={e => setForm(f => ({ ...f, company: { ...f.company, locale: e.target.value } }))} /></div>
             </div>
@@ -495,6 +501,7 @@ function ConfigEmpresaForm() {
               <div><Label>Latitud</Label><Input type="number" step="any" value={form.base.lat} onChange={e => setForm(f => ({ ...f, base: { ...f.base, lat: e.target.value } }))} /></div>
               <div><Label>Longitud</Label><Input type="number" step="any" value={form.base.lng} onChange={e => setForm(f => ({ ...f, base: { ...f.base, lng: e.target.value } }))} /></div>
               <div><Label>Teléfono</Label><Input value={form.base.phone} onChange={e => setForm(f => ({ ...f, base: { ...f.base, phone: e.target.value } }))} /></div>
+              <div><Label>Código Postal</Label><Input value={form.base.codigoPostal} onChange={e => setForm(f => ({ ...f, base: { ...f.base, codigoPostal: e.target.value } }))} /></div>
               <div className="sm:col-span-3"><Label>Dirección</Label><Input value={form.base.address} onChange={e => setForm(f => ({ ...f, base: { ...f.base, address: e.target.value } }))} /></div>
             </div>
           </div>

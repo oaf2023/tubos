@@ -1,29 +1,33 @@
 {
   "company": {
-    "name": "Districon",
-    "tagline": "Ferreteria Industrial - Gases para soldadura",
+    "name": "Julio Conti S.R.L.",
+    "tagline": "Districon · Ferretería Industrial · Gases para soldadura",
     "country": "Argentina",
-    "locale": "es-AR"
+    "locale": "es-AR",
+    "cuit": "30-70921386-1",
+    "email": "ventasdistricon@hotmail.com",
+    "web": "www.districon.com.ar",
+    "actividad": "Venta al por menor de artículos de ferretería",
+    "rubro": "FERRETERIAS",
+    "fechaInicio": "2005-04-08"
   },
   "base": {
     "name": "San Nicolás de los Arroyos",
     "province": "Buenos Aires",
-    "lat": -33.361686,
-    "lng": -60.186233,
+    "lat": -33.361664,
+    "lng": -60.186145,
     "tipo": "BASE",
-    "address": "Av. Savio y Bogado",
-    "phone": "+54 336 446-0102"
+    "address": "Avda. Savio 1715",
+    "phone": "0336-4460102",
+    "codigoPostal": "2900"
   },
   "map": {
-    "defaultCenter": [
-      -33.3293,
-      -60.2244
-    ],
-    "defaultZoom": 6
+    "defaultCenter": [-33.361664, -60.186145],
+    "defaultZoom": 12
   },
   "meta": {
-    "title": "Control Digital ManejaDatos - Districon",
-    "description": "Sistema integral de control y geolocalización de tubos de gases para soldadura. Gestion, trazabilidad y logistica de activos industriales.",
+    "title": "Control Digital ManejaDatos — Julio Conti S.R.L.",
+    "description": "Sistema integral de control y geolocalización de tubos de gases para soldadura. Gestión, trazabilidad y logística de activos industriales.",
     "keywords": [
       "gases soldadura",
       "tubos gases",
@@ -31,22 +35,18 @@
       "acetileno",
       "oxígeno",
       "logística Argentina",
-      "San Nicolás de los Arroyos"
+      "San Nicolás de los Arroyos",
+      "Districon",
+      "Julio Conti SRL"
     ],
-    "author": ""
+    "author": "Julio Conti S.R.L."
   },
   "seed": {
     "totalCylinders": 80,
     "baseRatio": 0.7,
     "demoRoute": {
       "name": "Ruta Litoral Norte - Lunes",
-      "cities": [
-        "Rosario",
-        "Pergamino",
-        "Buenos Aires (CABA)",
-        "Campana",
-        "San Pedro"
-      ]
+      "cities": ["Rosario", "Pergamino", "Buenos Aires (CABA)", "Campana", "San Pedro"]
     }
   }
 }
