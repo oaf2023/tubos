@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migración GR2 → GasTrack AR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; font-size: 0.75rem; line-height: 1.5; }
+    .stat-card { @apply bg-white p-4 rounded-xl border border-slate-200 shadow-sm; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+  <div class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white rounded-3xl p-8 shadow-lg">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+          <i class="fa-solid fa-truck-fast text-3xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold">Migración GR2 → GasTrack AR</h1>
+          <p class="text-orange-100 text-sm">Julio Conti S.R.L. · Districon · 3 de julio de 2026</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs text-orange-100/80">
+        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-regular fa-circle-check text-green-300 mr-1"></i>Completado</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-database mr-1"></i>GR2 → PostgreSQL</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-users mr-1"></i>965 clientes + 9 vendedores</span>
+      </div>
+    </header>
+
+    <!-- Stats Dashboard -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-orange-600">965</div>
+        <div class="text-xs text-slate-500 mt-1">Clientes migrados</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-green-600">0</div>
+        <div class="text-xs text-slate-500 mt-1">Errores</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-blue-600">18</div>
+        <div class="text-xs text-slate-500 mt-1">Duplicados x CUIT</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-slate-700">95.6%</div>
+        <div class="text-xs text-slate-500 mt-1">Resp. Inscripto</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-purple-600">9</div>
+        <div class="text-xs text-slate-500 mt-1">Vendedores migrados</div>
+      </div>
+    </section>
+
+    <!-- 1. Origen -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-database text-orange-400"></i> 1. Sistema Origen — GR2 (Gestión Red 2)</h2>
+      </div>
+      <div class="p-6 space-y-4 text-sm">
+        <p class="text-slate-600">Base de datos del sistema GR2 de <strong>Julio Conti S.R.L.</strong>, empresa dedicada a la venta de ferretería industrial y gases para soldadura en San Nicolás de los Arroyos, Buenos Aires.</p>
+
+        <h3 class="font-bold text-slate-700 mt-4">Archivos DBF encontrados (C:\Para_actualizar\B1_020726_210059\grwjuliocontisrl\grw232\DATA\)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Tabla</th><th class="p-2 text-right">Regs</th><th class="p-2 text-left">Contenido</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="p-2 font-mono">GR2_200</td><td class="p-2 text-right font-bold">969</td><td class="p-2">Clientes/Proveedores (ORIGEN MIGRADO)</td></tr>
+              <tr><td class="p-2 font-mono">GR2_850</td><td class="p-2 text-right">33.902</td><td class="p-2">Comprobantes (Facturas)</td></tr>
+              <tr><td class="p-2 font-mono">GR2_851</td><td class="p-2 text-right">114.919</td><td class="p-2">Detalle items comprobantes</td></tr>
+              <tr><td class="p-2 font-mono">GR2_510</td><td class="p-2 text-right">133.283</td><td class="p-2">Cuenta corriente clientes</td></tr>
+              <tr><td class="p-2 font-mono">GR2_505</td><td class="p-2 text-right">326.475</td><td class="p-2">Movimientos de caja</td></tr>
+              <tr><td class="p-2 font-mono">GR2_600</td><td class="p-2 text-right">9</td><td class="p-2">Vendedores (MIGRADO)</td></tr>
+              <tr><td class="p-2 font-mono">GR2_000</td><td class="p-2 text-right">1</td><td class="p-2 p-2">Configuración empresa (MIGRADO)</td></tr>
+              <tr><td class="p-2 font-mono">Otras 80+</td><td class="p-2 text-right">—</td><td class="p-2">Catálogo, retenciones, cheques, caja, bancos, etc.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Destino -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-rocket text-orange-400"></i> 2. Sistema Destino — GasTrack AR</h2>
+      </div>
+      <div class="p-6 text-sm text-slate-600 space-y-3">
+        <p>Aplicación web construida con <strong>Next.js + TypeScript + Prisma + PostgreSQL</strong> (en Render).</p>
+        <p>Repositorio: <a href="https://github.com/oaf2023/tubos" class="text-orange-600 underline">github.com/oaf2023/tubos</a></p>
+        <p>Modelo de datos <code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono">Cliente</code> con 42+ campos: nombre, taxId, dirección, contacto, IVA, IIBB, geolocalización, estado de cuenta, etc.</p>
+      </div>
+    </section>
+
+    <!-- 3. Plan de Migración -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-map text-orange-400"></i> 3. Plan de Migración (6 Fases)</h2>
+      </div>
+      <div class="p-6 space-y-6">
+
+        <!-- Fase 0 -->
+        <div class="border-l-4 border-green-500 pl-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 0 — Auditoría y limpieza</h3>
+          </div>
+          <p class="text-xs text-slate-600">Análisis de estructura GR2, detección de duplicados, separación de datos. Se identificaron 969 registros en GR2_200, 18 pares duplicados por CUIT, 4 sin CUIT.</p>
+        </div>
+
+        <!-- Fase 1 -->
+        <div class="border-l-4 border-green-500 pl-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 1 — Configuración de empresa</h3>
+          </div>
+          <p class="text-xs text-slate-600">Datos de "JULIO CONTI S.R.L." cargados en <code class="bg-slate-100 px-1 px-1.5 rounded">config.json</code>. CUIT 30-70921386-1, domicilio Avda. Savio 1715, San Nicolás (CP 2900), tel 0336-4460102, email ventasdistricon@hotmail.com. Coordenadas geocodificadas con Nominatim OSM. Formulario de Configuración ampliado con CUIT, email, web, rubro, actividad, CP.</p>
+        </div>
+
+        <!-- Fase 2 -->
+        <div class="border-l-4 border-green-500 pl-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 2 — Migración de clientes</h3>
+          </div>
+          <p class="text-xs text-slate-600">965 clientes migrados de GR2_200.dbf → modelo <code class="bg-slate-100 px-1.5 rounded">Cliente</code> vía Prisma. Script <code class="bg-slate-100 px-1.5 rounded">scripts/migrar-clientes.cjs</code> con modo dry-run y live. Mapping completo de 37 campos GR2 a 30+ campos GasTrack AR.</p>
+        </div>
+
+        <!-- Fase 3 -->
+        <div class="border-l-4 border-green-500 pl-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 3 — Vendedores (GR2_600 → Usuario)</h3>
+          </div>
+          <p class="text-xs text-slate-600">9 vendedores migrados de GR2_600.dbf a <code class="bg-slate-100 px-1.5 rounded">Usuario</code> con rol vendedor y contraseña temporal "Districon2024". Usuarios: v1 a v9.</p>
+        </div>
+
+        <!-- Fase 4 -->
+        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
+            <h3 class="font-bold text-sm text-slate-500">Fase 4 — Catálogo de productos/gases</h3>
+          </div>
+          <p class="text-xs text-slate-400">Extraer productos desde GR2_851 (114K items), filtrar gases/soldadura, crear en modelo Gas. Se carga a mano en GasTrack AR.</p>
+        </div>
+
+        <!-- Fase 5 -->
+        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
+            <h3 class="font-bold text-sm text-slate-500">Fase 5 — Comprobantes históricos</h3>
+          </div>
+          <p class="text-xs text-slate-400">No incluido en el alcance actual. Se migraron solo clientes.</p>
+        </div>
+
+        <!-- Fase 6 -->
+        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
+            <h3 class="font-bold text-sm text-slate-500">Fase 6 — Pruebas y Go Live</h3>
+          </div>
+          <p class="text-xs text-slate-400">Validación por el usuario, capacitación, período de solapamiento.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. Mapping -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-arrows-left-right text-orange-400"></i> 4. Mapping GR2_200 → Cliente</h2>
+      </div>
+      <div class="p-6">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Campo GR2</th><th class="p-2 text-left">Valor Ejemplo</th><th class="p-2 text-left">Destino GasTrack AR</th><th class="p-2 text-left">Notas</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr><td class="p-2 font-mono">PR_NOM</td><td class="p-2">ALIAFOR S.A.</td><td class="p-2 font-mono">nombre</td><td class="p-2">Razón social</td></tr>
+              <tr><td class="p-2 font-mono">PR_DOC</td><td class="p-2">30627028101</td><td class="p-2 font-mono">taxId</td><td class="p-2">CUIT sin guiones</td></tr>
+              <tr><td class="p-2 font-mono">PR_TDO</td><td class="p-2">2</td><td class="p-2 font-mono">tipoDocumento</td><td class="p-2">1→DNI, 2→CUIT</td></tr>
+              <tr><td class="p-2 font-mono">PR_DIR</td><td class="p-2">AV. AMANCIO ALCORTA 1747</td><td class="p-2 font-mono">calle + altura</td><td class="p-2">Dividido por regex</td></tr>
+              <tr><td class="p-2 font-mono">PR_LOC</td><td class="p-2">BUENOS AIRES</td><td class="p-2 font-mono">ciudad</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">PR_PRO</td><td class="p-2">BUENOS AIRES</td><td class="p-2 font-mono">provincia</td><td class="p-2">Contiene códigos a veces</td></tr>
+              <tr><td class="p-2 font-mono">PR_CP</td><td class="p-2">1283</td><td class="p-2 font-mono">codigoPostal</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">PR_PAI</td><td class="p-2">ARGENTINA</td><td class="p-2 font-mono">pais</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">PR_TE1..5</td><td class="p-2">011-43062244</td><td class="p-2 font-mono">telefono</td><td class="p-2">Concatenados con /</td></tr>
+              <tr><td class="p-2 font-mono">PR_MAI</td><td class="p-2">carlos.colombo@aliafor.com</td><td class="p-2 font-mono">email</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">PR_CON</td><td class="p-2">CARLOS COLOMBO</td><td class="p-2 font-mono">contacto</td><td class="p-2"></td></tr>
+              <tr><td class="p-2 font-mono">PR_TIV</td><td class="p-2">2</td><td class="p-2 font-mono">condicionIva</td><td class="p-2">1→Cons.Final, 2→Resp.Inscripto, 3→Exento, 4→Monotributo, 5→No Inscripto</td></tr>
+              <tr><td class="p-2 font-mono">PR_CRE</td><td class="p-2">0.00</td><td class="p-2 font-mono">limiteCredito</td><td class="p-2">Float</td></tr>
+              <tr><td class="p-2 font-mono">PR_SDO</td><td class="p-2">0.00</td><td class="p-2 font-mono">estadoCuenta</td><td class="p-2">>0 → PENDIENTE</td></tr>
+              <tr><td class="p-2 font-mono">PR_FANT</td><td class="p-2">—</td><td class="p-2 font-mono">empresa</td><td class="p-2">Nombre de fantasía</td></tr>
+              <tr><td class="p-2 font-mono">PR_NIB</td><td class="p-2">—</td><td class="p-2 font-mono">iibb</td><td class="p-2">Ingresos Brutos</td></tr>
+              <tr><td class="p-2 font-mono">PR_OB1/2/3</td><td class="p-2">—</td><td class="p-2 font-mono">notas</td><td class="p-2">Concatenados con |</td></tr>
+              <tr><td class="p-2 font-mono">PR_ALT</td><td class="p-2">20150105</td><td class="p-2 font-mono">createdAt</td><td class="p-2">Fecha de alta</td></tr>
+              <tr><td class="p-2 font-mono">PR_TIPO</td><td class="p-2">1</td><td class="p-2">—</td><td class="p-2">Todos COMERCIALES</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Resultados Detallados -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-chart-bar text-orange-400"></i> 5. Resultados</h2>
+      </div>
+      <div class="p-6 space-y-6">
+
+        <h3 class="font-bold text-sm text-slate-700">Clientes por provincia</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="font-bold text-slate-800">592</span><br><span class="text-slate-500">Bs. As. / Capital</span></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="font-bold text-slate-800">221</span><br><span class="text-slate-500">Santa Fe</span></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="font-bold text-slate-800">49</span><br><span class="text-slate-500">Córdoba</span></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="font-bold text-slate-800">5</span><br><span class="text-slate-500">Otras / Sin datos</span></div>
+        </div>
+
+        <h3 class="font-bold text-sm text-slate-700">Clientes por condición IVA</h3>
+        <div class="space-y-2 text-xs">
+          <div><div class="flex justify-between mb-1"><span>IVA Responsable Inscripto</span><span class="font-bold">919</span></div><div class="bg-slate-200 h-2 rounded-full"><div class="bg-orange-500 h-2 rounded-full" style="width:95.2%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>Consumidor Final</span><span class="font-bold">26</span></div><div class="bg-slate-200 h-2 rounded-full"><div class="bg-blue-500 h-2 rounded-full" style="width:2.7%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>IVA Responsable No Inscripto</span><span class="font-bold">16</span></div><div class="bg-slate-200 h-2 rounded-full"><div class="bg-amber-500 h-2 rounded-full" style="width:1.7%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>Monotributista</span><span class="font-bold">3</span></div><div class="bg-slate-200 h-2 rounded-full"><div class="bg-green-500 h-2 rounded-full" style="width:0.3%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>IVA Exento</span><span class="font-bold">1</span></div><div class="bg-slate-200 h-2 rounded-full"><div class="bg-purple-500 h-2 rounded-full" style="width:0.1%"></div></div></div>
+        </div>
+
+        <h3 class="font-bold text-sm text-slate-700">Vendedores migrados</h3>
+        <table class="w-full text-xs border-collapse">
+          <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Usuario</th><th class="p-2 text-left">Nombre</th><th class="p-2 text-left">Comisión</th><th class="p-2 text-left">Contraseña</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="p-2 font-mono">v1</td><td class="p-2">DANIEL PASCUAL</td><td class="p-2">5%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v2</td><td class="p-2">GREGORIO DASCANIE</td><td class="p-2">5%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v3</td><td class="p-2">CONTI JULIO</td><td class="p-2">0%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v4</td><td class="p-2">WEGLIN GUSTAVO</td><td class="p-2">5%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v5</td><td class="p-2">MAMPEL SERGIO</td><td class="p-2">5%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v6</td><td class="p-2">GENERAL</td><td class="p-2">0%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v7</td><td class="p-2">BOOTH DANIEL</td><td class="p-2">0%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v8</td><td class="p-2">ZACCARI DIEGO</td><td class="p-2">5%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+            <tr><td class="p-2 font-mono">v9</td><td class="p-2">VDOR 1.</td><td class="p-2">0%</td><td class="p-2 text-amber-600">Districon2024</td></tr>
+          </tbody>
+        </table>
+
+        <h3 class="font-bold text-sm text-slate-700 mt-4">Incidencias</h3>
+        <ul class="text-xs text-slate-600 space-y-1 list-disc pl-5">
+          <li><strong>18 duplicados por CUIT</strong> — Se migró el primer registro de cada par. Revisar: INTERNACIONAL CARAN / CARAN SA, SEGURIDAD SRL, SAVIO REPUESTOS, etc.</li>
+          <li><strong>4 registros sin CUIT</strong> — Saltados automáticamente.</li>
+          <li><strong>Provincias con códigos prefijados</strong> — Ej: "1-BUENOS AIRES", "3-SANTA FE". Limpieza pendiente.</li>
+          <li><strong>0 clientes con saldo</strong> — PR_SDO en 0 para todos. Puede ser correcto.</li>
+          <li><strong>Vendedores sin contraseña</strong> — VEN_CLAV vacío en GR2. Se asignó "Districon2024" temporal.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. Archivos generados -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-file-code text-orange-400"></i> 6. Archivos generados/modificados</h2>
+      </div>
+      <div class="p-6">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-slate-100 text-slate-600"><th class="p-2 text-left">Archivo</th><th class="p-2 text-left">Acción</th><th class="p-2 text-left">Propósito</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="p-2 font-mono">config.json</td><td class="p-2"><span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px]">MODIFICADO</span></td><td class="p-2">Datos empresa Julio Conti SRL</td></tr>
+              <tr><td class="p-2 font-mono">src/components/configuracion-tab.tsx</td><td class="p-2"><span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px]">MODIFICADO</span></td><td class="p-2">Formulario empresa con CUIT, email, web, rubro, CP</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-clientes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Script migración clientes (dry-run + live)</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-restantes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Script para completar batch restante</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-vendedores.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Migración GR2_600 → Usuario (9 vendedores)</td></tr>
+              <tr><td class="p-2 font-mono">scripts/verificar-vendedores.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación post-migración de vendedores</td></tr>
+              <tr><td class="p-2 font-mono">scripts/explorar-600.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Análisis exploratorio GR2_600</td></tr>
+              <tr><td class="p-2 font-mono">scripts/clean-clientes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Limpieza clientes demo</td></tr>
+              <tr><td class="p-2 font-mono">scripts/verificar.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación post-migración</td></tr>
+              <tr><td class="p-2 font-mono">migrar.html</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Este documento</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Comandos utilizados -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-slate-900 text-white px-6 py-4">
+        <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-terminal text-orange-400"></i> 7. Comandos de migración</h2>
+      </div>
+      <div class="p-6">
+        <pre><span class="text-green-400"># Limpiar clientes demo</span>
+node scripts/clean-clientes.cjs
+
+<span class="text-green-400"># Dry-run (solo simulación)</span>
+node scripts/migrar-clientes.cjs
+
+<span class="text-green-400"># Migración real</span>
+node scripts/migrar-clientes.cjs --live
+
+<span class="text-green-400"># Completar batch restante (si timeout)</span>
+node scripts/migrar-restantes.cjs
+
+<span class="text-green-400"># Fase 3: Migrar vendedores (dry-run)</span>
+node scripts/migrar-vendedores.cjs
+
+<span class="text-green-400"># Fase 3: Migrar vendedores (live)</span>
+node scripts/migrar-vendedores.cjs --live
+
+<span class="text-green-400"># Verificar clientes</span>
+node scripts/verificar.cjs
+
+<span class="text-green-400"># Verificar vendedores</span>
+node scripts/verificar-vendedores.cjs
+
+<span class="text-green-400"># Fase 1: Config empresa</span>
+<span class="text-slate-500"># Se editó config.json manualmente</span>
+
+<span class="text-green-400"># Deploy</span>
+git add . && git commit -m "feat: migracion GR2" && git push</pre>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-400 py-6 border-t border-slate-200">
+      <p>GasTrack AR — Control Digital ManejaDatos · Districon · Julio Conti S.R.L.</p>
+      <p class="mt-1">Documento generado el 3 de julio de 2026</p>
+    </footer>
+
+  </div>
+
+</body>
+</html>
