@@ -41,7 +41,7 @@
       <div class="flex flex-wrap gap-2 text-xs text-orange-100/80">
         <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-regular fa-circle-check text-green-300 mr-1"></i>Completado</span>
         <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-database mr-1"></i>GR2 → PostgreSQL</span>
-        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-users mr-1"></i>965 clientes + 9 vendedores</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full"><i class="fa-solid fa-users mr-1"></i>965 clientes + 9 vendedores + 2.516 tubos</span>
       </div>
     </header>
 
@@ -66,6 +66,10 @@
       <div class="stat-card text-center">
         <div class="text-2xl font-bold text-purple-600">9</div>
         <div class="text-xs text-slate-500 mt-1">Vendedores migrados</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-2xl font-bold text-teal-600">2.516</div>
+        <div class="text-xs text-slate-500 mt-1">Tubos migrados (XLS)</div>
       </div>
     </section>
 
@@ -152,28 +156,37 @@
         </div>
 
         <!-- Fase 4 -->
-        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+        <div class="border-l-4 border-green-500 pl-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
-            <h3 class="font-bold text-sm text-slate-500">Fase 4 — Catálogo de productos/gases</h3>
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">COMPLETADO</span>
+            <h3 class="font-bold text-sm">Fase 4 — Tubos (XLS → Cylinder)</h3>
           </div>
-          <p class="text-xs text-slate-400">Extraer productos desde GR2_851 (114K items), filtrar gases/soldadura, crear en modelo Gas. Se carga a mano en GasTrack AR.</p>
+          <p class="text-xs text-slate-600">2.516 tubos migrados desde <code class="bg-slate-100 px-1.5 rounded">E:\tubos.xls</code> (HTML table export) al modelo <code class="bg-slate-100 px-1.5 rounded">Cylinder</code>. Script <code class="bg-slate-100 px-1.5 rounded">scripts/migrar-tubos.cjs</code> con dry-run y live. 8 gases nuevos creados (G30, G45, G10, G15, SF, THERMO, YALE, P10). Mapeo de estados (Vacío→VACIO, Lleno→LLENO, En recarga→EN_CARGA).</p>
         </div>
 
         <!-- Fase 5 -->
         <div class="border-l-4 border-slate-300 pl-4 opacity-60">
           <div class="flex items-center gap-2 mb-2">
             <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
-            <h3 class="font-bold text-sm text-slate-500">Fase 5 — Comprobantes históricos</h3>
+            <h3 class="font-bold text-sm text-slate-500">Fase 5 — Históricos (comprobantes + cta cte + eventos tubo)</h3>
           </div>
-          <p class="text-xs text-slate-400">No incluido en el alcance actual. Se migraron solo clientes.</p>
+          <p class="text-xs text-slate-400">Migrar facturas desde GR2_850/GR2_851 (33.902 comprobantes, 114.919 items), movimientos de cuenta corriente GR2_510 (133.283 registros) y eventos históricos de tubos.</p>
         </div>
 
         <!-- Fase 6 -->
         <div class="border-l-4 border-slate-300 pl-4 opacity-60">
           <div class="flex items-center gap-2 mb-2">
             <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
-            <h3 class="font-bold text-sm text-slate-500">Fase 6 — Pruebas y Go Live</h3>
+            <h3 class="font-bold text-sm text-slate-500">Fase 6 — Catálogo de productos/gases</h3>
+          </div>
+          <p class="text-xs text-slate-400">Extraer productos desde GR2_851 (114K items), filtrar gases/soldadura.</p>
+        </div>
+
+        <!-- Fase 7 -->
+        <div class="border-l-4 border-slate-300 pl-4 opacity-60">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">PENDIENTE</span>
+            <h3 class="font-bold text-sm text-slate-500">Fase 7 — Pruebas y Go Live</h3>
           </div>
           <p class="text-xs text-slate-400">Validación por el usuario, capacitación, período de solapamiento.</p>
         </div>
@@ -284,6 +297,9 @@
               <tr><td class="p-2 font-mono">scripts/migrar-vendedores.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Migración GR2_600 → Usuario (9 vendedores)</td></tr>
               <tr><td class="p-2 font-mono">scripts/verificar-vendedores.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación post-migración de vendedores</td></tr>
               <tr><td class="p-2 font-mono">scripts/explorar-600.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Análisis exploratorio GR2_600</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-tubos.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Migración XLS tubos → Cylinder (dry-run + live)</td></tr>
+              <tr><td class="p-2 font-mono">scripts/migrar-tubos-restantes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Continuación batch optimizada (createMany)</td></tr>
+              <tr><td class="p-2 font-mono">scripts/check-gases.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación de gases existentes</td></tr>
               <tr><td class="p-2 font-mono">scripts/clean-clientes.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Limpieza clientes demo</td></tr>
               <tr><td class="p-2 font-mono">scripts/verificar.cjs</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Verificación post-migración</td></tr>
               <tr><td class="p-2 font-mono">migrar.html</td><td class="p-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px]">NUEVO</span></td><td class="p-2">Este documento</td></tr>
@@ -322,6 +338,15 @@ node scripts/verificar.cjs
 
 <span class="text-green-400"># Verificar vendedores</span>
 node scripts/verificar-vendedores.cjs
+
+<span class="text-green-400"># Fase 4: Migrar tubos (dry-run)</span>
+node scripts/migrar-tubos.cjs
+
+<span class="text-green-400"># Fase 4: Migrar tubos (live)</span>
+node scripts/migrar-tubos.cjs --live
+
+<span class="text-green-400"># Fase 4: Continuar si timeout</span>
+node scripts/migrar-tubos-restantes.cjs
 
 <span class="text-green-400"># Fase 1: Config empresa</span>
 <span class="text-slate-500"># Se editó config.json manualmente</span>
