@@ -1,9 +1,9 @@
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-
 export async function exportPDF(elementId: string, filename: string) {
   const element = document.getElementById(elementId)
   if (!element) return
+
+  const html2canvas = (await import('html2canvas')).default
+  const jsPDF = (await import('jspdf')).default
 
   const canvas = await html2canvas(element, {
     scale: 2,

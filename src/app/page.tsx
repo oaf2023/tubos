@@ -282,7 +282,9 @@ export default function Home() {
           </TabsList>
 
           <TabsContent value="gerencia">
-            {user.nivelAcceso === 0 && user.rol === 'gerencia' && <GerenciaTab />}
+            <TabErrorBoundary name="Gerencia">
+              {user.nivelAcceso === 0 && user.rol === 'gerencia' && <GerenciaTab />}
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="dashboard">
             <DashboardTab />
