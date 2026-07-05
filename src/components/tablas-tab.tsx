@@ -75,7 +75,7 @@ export default function TablasTab() {
   const [alertForm, setAlertForm] = useState(emptyAlert)
 
   // Users form
-  const emptyUsuario = { nombre: '', usuario: '', password: '', password2: '', direccion: '', telefono: '', ciudad: '', provincia: '', lat: '', lng: '', email: '', nivelAcceso: '1', activo: true }
+  const emptyUsuario = { nombre: '', usuario: '', password: '', password2: '', direccion: '', telefono: '', ciudad: '', provincia: '', lat: '', lng: '', email: '', nivelAcceso: '1', rolId: '', activo: true }
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [userForm, setUserForm] = useState(emptyUsuario)
 
@@ -83,6 +83,7 @@ export default function TablasTab() {
   const [operacionesPedido, setOperacionesPedido] = useState<any[]>([])
   const emptyOp = { nombre: '', activo: true, orden: '0' }
   const [opForm, setOpForm] = useState(emptyOp)
+  const [roles, setRoles] = useState<any[]>([])
 
   async function loadAll() {
     setLoading(true)
@@ -106,6 +107,9 @@ export default function TablasTab() {
       setUsuarios(Array.isArray(uData) ? uData : [])
       setAlerts(Array.isArray(aData) ? aData : [])
       setOperacionesPedido(Array.isArray(oData) ? oData : [])
+
+      const rRes = await fetch('/api/roles')
+      if (rRes.ok) setRoles(await rRes.json())
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
@@ -193,6 +197,7 @@ export default function TablasTab() {
       nivelAcceso: userForm.nivelAcceso,
       activo: userForm.activo,
       password: userForm.password,
+      rolId: userForm.rolId && userForm.rolId !== '__none__' ? userForm.rolId : null,
     }
     if (!editId) {
       if (!userForm.password) {
@@ -243,6 +248,7 @@ export default function TablasTab() {
         lng: u.lng != null ? String(u.lng) : '',
         email: u.email || '',
         nivelAcceso: String(u.nivelAcceso || '1'),
+        rolId: u.rolId || '',
         activo: u.activo !== false,
       })
     } else {
@@ -468,6 +474,7 @@ export default function TablasTab() {
                       <TableHead>Ciudad</TableHead>
                       <TableHead>Provincia</TableHead>
                       <TableHead className="text-center">Nivel</TableHead>
+                      <TableHead className="text-center">Rol</TableHead>
                       <TableHead className="text-center">Activo</TableHead>
                       <TableHead className="text-center w-20">Acciones</TableHead>
                     </TableRow>
@@ -483,6 +490,11 @@ export default function TablasTab() {
                         <TableCell className="text-center">
                           <Badge variant={u.nivelAcceso >= 4 ? 'default' : 'outline'} className="text-[10px]">
                             {u.nivelAcceso}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px] bg-slate-50">
+                            {u.rol?.nombre || '—'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">{u.activo ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-[10px]">No</Badge>}</TableCell>
@@ -699,14 +711,22 @@ export default function TablasTab() {
                   <div><Label>Nivel de Acceso (1-5)</Label><Input type="number" min={1} max={5} value={userForm.nivelAcceso} onChange={e => setUserForm(f => ({ ...f, nivelAcceso: e.target.value }))} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Latitud</Label><Input type="number" step="any" value={userForm.lat} onChange={e => setUserForm(f => ({ ...f, lat: e.target.value }))} /></div>
-                  <div><Label>Longitud</Label><Input type="number" step="any" value={userForm.lng} onChange={e => setUserForm(f => ({ ...f, lng: e.target.value }))} /></div>
-                </div>
-                <div>
-                  <Label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={userForm.activo} onChange={e => setUserForm(f => ({ ...f, activo: e.target.checked }))} className="rounded" />
-                    Activo
-                  </Label>
+                  <div>
+                    <Label>Rol</Label>
+                    <Select value={userForm.rolId} onValueChange={v => setUserForm(f => ({ ...f, rolId: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Sin rol" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sin rol</SelectItem>
+                        {roles.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end pb-2">
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={userForm.activo} onChange={e => setUserForm(f => ({ ...f, activo: e.target.checked }))} className="rounded" />
+                      Activo
+                    </Label>
+                  </div>
                 </div>
               </>
             )}

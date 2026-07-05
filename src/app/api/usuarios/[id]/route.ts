@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { usuario, password, nombre, direccion, telefono, ciudad, provincia, lat, lng, email, nivelAcceso, activo } = body
+    const { usuario, password, nombre, direccion, telefono, ciudad, provincia, lat, lng, email, nivelAcceso, activo, rolId } = body
 
     const data: Record<string, unknown> = {}
 
@@ -30,6 +30,7 @@ export async function PUT(
     if (password) {
       data.password = await bcrypt.hash(password, 10)
     }
+    if (rolId !== undefined) data.rolId = rolId || null
 
     const updated = await db.usuario.update({ where: { id }, data })
     const { password: _, ...safeUser } = updated

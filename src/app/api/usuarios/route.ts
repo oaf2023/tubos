@@ -7,6 +7,7 @@ export async function GET() {
   try {
     const usuarios = await db.usuario.findMany({
       orderBy: { createdAt: 'desc' },
+      include: { rol: true },
     })
     const sinPass = usuarios.map(({ password, ...u }) => u)
     return NextResponse.json(sinPass)
@@ -20,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { usuario, password, nombre, direccion, telefono, ciudad, provincia, lat, lng, email, nivelAcceso, activo } = body
+    const { usuario, password, nombre, direccion, telefono, ciudad, provincia, lat, lng, email, nivelAcceso, activo, rolId } = body
 
     if (!usuario || !password || !nombre) {
       return NextResponse.json({ error: 'usuario, password y nombre requeridos' }, { status: 400 })
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
         email: email || null,
         nivelAcceso: nivelAcceso ? parseInt(nivelAcceso) : 1,
         activo: activo !== undefined ? Boolean(activo) : true,
+        rolId: rolId || null,
       },
     })
 
