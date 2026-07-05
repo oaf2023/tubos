@@ -105,6 +105,7 @@ const AnalisisTab = dynamic(() => import('@/components/analisis-tab'), { ssr: fa
 const TableroTab = dynamic(() => import('@/components/tablero-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ClientePedidoTab = dynamic(() => import('@/components/cliente-pedido-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const LecturaTab = dynamic(() => import('@/components/lectura-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const GerenciaTab = dynamic(() => import('@/components/gerencia-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 
 export default function Home() {
   const [user, setUser] = useState<any | null>(null)
@@ -204,6 +205,11 @@ export default function Home() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start">
+            {user.nivelAcceso === 0 && (
+              <TabsTrigger value="gerencia" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800 data-[state=active]:border-yellow-300 border border-transparent">
+                <BarChart3 className="w-4 h-4" /><span>Gerencia</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="dashboard" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Activity className="w-4 h-4" /><span>Dashboard</span>
             </TabsTrigger>
@@ -275,6 +281,9 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="gerencia">
+            {user.nivelAcceso === 0 && <GerenciaTab />}
+          </TabsContent>
           <TabsContent value="dashboard">
             <DashboardTab />
           </TabsContent>
