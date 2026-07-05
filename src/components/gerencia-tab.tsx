@@ -9,13 +9,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts'
 import { exportPDF } from '@/lib/export-pdf'
-import * as XLSX from 'xlsx'
+
 
 // ─── Mock Data ──────────────────────────────────────────
 
@@ -209,6 +209,7 @@ export default function GerenciaTab() {
   const handleExportExcel = async () => {
     setExporting(true)
     try {
+      const XLSX = await import('xlsx')
       const res = await fetch('/api/gerencia/kpis')
       if (!res.ok) return
       const data = await res.json()
@@ -248,27 +249,63 @@ export default function GerenciaTab() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin">
-          <TabsTrigger value="dashboard" className="flex items-center gap-1 py-2 px-3 text-xs sm:text-sm">
+      <div className="w-full">
+        <div className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin bg-muted rounded-lg">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'dashboard'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             <BarChart3 className="w-4 h-4" />Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="ml" className="flex items-center gap-1 py-2 px-3 text-xs sm:text-sm">
+          </button>
+          <button
+            onClick={() => setActiveTab('ml')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'ml'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             <ShoppingCart className="w-4 h-4" />Mercado Libre
-          </TabsTrigger>
-          <TabsTrigger value="mp" className="flex items-center gap-1 py-2 px-3 text-xs sm:text-sm">
+          </button>
+          <button
+            onClick={() => setActiveTab('mp')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'mp'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             <DollarSign className="w-4 h-4" />Mercado Pago
-          </TabsTrigger>
-          <TabsTrigger value="conciliacion" className="flex items-center gap-1 py-2 px-3 text-xs sm:text-sm">
+          </button>
+          <button
+            onClick={() => setActiveTab('conciliacion')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'conciliacion'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             <AlertTriangle className="w-4 h-4" />Conciliación
-          </TabsTrigger>
-          <TabsTrigger value="reportes" className="flex items-center gap-1 py-2 px-3 text-xs sm:text-sm">
+          </button>
+          <button
+            onClick={() => setActiveTab('reportes')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'reportes'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             <FileText className="w-4 h-4" />Reportes
-          </TabsTrigger>
-        </TabsList>
+          </button>
+        </div>
 
+        {activeTab === 'dashboard' && (<>
         {/* ─── Dashboard Ejecutivo ─── */}
-        <TabsContent value="dashboard" className="space-y-6">
+        <div className="space-y-6">
           {/* KPIs Comerciales */}
           <div>
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -357,10 +394,12 @@ export default function GerenciaTab() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+        </>)}
 
+        {activeTab === 'ml' && (<>
         {/* ─── Mercado Libre ─── */}
-        <TabsContent value="ml" className="space-y-6">
+        <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <Card>
               <CardHeader><CardTitle className="text-sm">Ventas por Período</CardTitle></CardHeader>
@@ -419,10 +458,12 @@ export default function GerenciaTab() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+        </>)}
 
+        {activeTab === 'mp' && (<>
         {/* ─── Mercado Pago ─── */}
-        <TabsContent value="mp" className="space-y-6">
+        <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard icon={<DollarSign className="w-5 h-5" />} label="Saldo Disponible" value={`$${fnum(k.dineroDisponible)}`} color="from-green-500 to-green-600" />
             <KpiCard icon={<Calendar className="w-5 h-5" />} label="Saldo Pendiente" value={`$${fnum(k.dineroPendiente)}`} color="from-yellow-500 to-yellow-600" />
@@ -444,10 +485,12 @@ export default function GerenciaTab() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+        </>)}
 
+        {activeTab === 'conciliacion' && (<>
         {/* ─── Conciliación ─── */}
-        <TabsContent value="conciliacion" className="space-y-6">
+        <div className="space-y-6">
           <Card>
             <CardHeader><CardTitle className="text-sm">Matriz de Conciliación</CardTitle></CardHeader>
             <CardContent>
@@ -487,10 +530,12 @@ export default function GerenciaTab() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+        </>)}
 
+        {activeTab === 'reportes' && (<>
         {/* ─── Reportes ─── */}
-        <TabsContent value="reportes" className="space-y-6">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Exportar Reportes</CardTitle>
@@ -532,8 +577,9 @@ export default function GerenciaTab() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+        </>)}
+      </div>
     </div>
   )
 }
