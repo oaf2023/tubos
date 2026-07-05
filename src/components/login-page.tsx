@@ -10,7 +10,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [tab, setTab] = useState<'usuario' | 'cliente'>('usuario')
+  const [tab, setTab] = useState<'usuario' | 'cliente' | 'gerencia'>('usuario')
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,7 +25,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true)
     setError('')
     try {
-      const endpoint = tab === 'usuario' ? '/api/auth/login' : '/api/auth/login-cliente'
+      const endpoint = tab === 'usuario' ? '/api/auth/login' : tab === 'gerencia' ? '/api/auth/login-gerencia' : '/api/auth/login-cliente'
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,13 +77,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             >
               Clientes
             </button>
+            <button
+              onClick={() => { setTab('gerencia'); setError('') }}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${tab === 'gerencia' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+            >
+              Gerencia
+            </button>
           </div>
 
           <h2 className="text-lg font-semibold text-white mb-1">
-            {tab === 'usuario' ? 'Acceso interno' : 'Acceso clientes'}
+            {tab === 'usuario' ? 'Acceso interno' : tab === 'gerencia' ? 'Acceso Gerencia' : 'Acceso clientes'}
           </h2>
           <p className="text-sm text-slate-400 mb-6">
-            {tab === 'usuario' ? 'Ingresá tus credenciales de empleado' : 'Ingresá con tu usuario de cliente'}
+            {tab === 'usuario' ? 'Ingresá tus credenciales de empleado' : tab === 'gerencia' ? 'Panel ejecutivo — solo personal autorizado' : 'Ingresá con tu usuario de cliente'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,7 +98,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <Input
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
-                placeholder={tab === 'usuario' ? 'tu usuario' : 'usuario cliente'}
+                placeholder={tab === 'usuario' ? 'tu usuario' : tab === 'gerencia' ? 'usuario gerencia' : 'usuario cliente'}
                 className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
               />
             </div>
@@ -132,9 +138,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </Button>
           </form>
 
-          {tab === 'cliente' && (
+          {tab !== 'usuario' && (
             <p className="text-center text-xs text-slate-500 mt-6">
-              ¿No tenés usuario? Solicitá tus credenciales en la empresa
+              {tab === 'cliente' ? '¿No tenés usuario? Solicitá tus credenciales en la empresa' : 'Acceso restringido a nivel gerencial'}
             </p>
           )}
           <p className="text-center text-xs text-slate-500 mt-2">

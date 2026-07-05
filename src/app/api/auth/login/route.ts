@@ -39,9 +39,10 @@ export async function POST(req: NextRequest) {
       id: user.id,
       nombre: user.nombre,
       usuario: user.usuario,
-      rolId: user.rolId,
+      rolId: user.rolId ?? '',
       rol: user.rol?.nombre ?? '',
       tipo: 'usuario',
+      nivelAcceso: user.nivelAcceso,
     })
     return response
   } catch (e) {

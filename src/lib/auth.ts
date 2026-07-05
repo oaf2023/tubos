@@ -14,7 +14,8 @@ export interface SessionUser {
   usuario: string
   rolId: string
   rol: string
-  tipo: 'usuario' | 'cliente'
+  tipo: 'usuario' | 'cliente' | 'gerencia'
+  nivelAcceso?: number
   clienteId?: string
 }
 
