@@ -140,7 +140,37 @@ function Semaphore({ alerta }: { alerta: string }) {
 
 export default function GerenciaTab() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [exporting, setExporting] = useState(false)
   const k = MOCK_KPIS
+
+  const handleRefresh = async () => {
+    try {
+      const res = await fetch('/api/gerencia/kpis')
+      if (res.ok) alert('Datos sincronizados correctamente')
+      else alert('Error al sincronizar datos')
+    } catch {
+      alert('Error de conexión')
+    }
+  }
+
+  const handleExport = async (tipo: string, formato: string) => {
+    setExporting(true)
+    try {
+      const res = await fetch(`/api/gerencia/reportes/exportar?formato=${formato}&tipo=${tipo}`)
+      if (formato === 'csv' && res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = `reporte-${tipo}.csv`; a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        const data = await res.json()
+        if (data.message) alert(data.message)
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -150,7 +180,7 @@ export default function GerenciaTab() {
           <h2 className="text-2xl font-bold">Gerencia</h2>
           <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50 text-xs ml-2">Modo demo</Badge>
         </div>
-        <Button variant="outline" size="sm" className="text-xs">
+        <Button variant="outline" size="sm" className="text-xs" onClick={handleRefresh}>
           <RefreshCw className="w-3.5 h-3.5 mr-1" />Sincronizar
         </Button>
       </div>
@@ -404,21 +434,21 @@ export default function GerenciaTab() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors">
+                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => handleExport('diario', 'csv')}>
                   <div className="flex items-center gap-3 mb-2">
                     <Download className="w-5 h-5 text-green-600" />
                     <span className="font-medium text-sm">Resumen Diario</span>
                   </div>
                   <p className="text-xs text-slate-500">Ventas, cobros y envíos del día</p>
                 </div>
-                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors">
+                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => handleExport('semanal', 'csv')}>
                   <div className="flex items-center gap-3 mb-2">
                     <Download className="w-5 h-5 text-blue-600" />
                     <span className="font-medium text-sm">Resumen Semanal</span>
                   </div>
                   <p className="text-xs text-slate-500">KPIs agregados de la semana</p>
                 </div>
-                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors">
+                <div className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => handleExport('mensual', 'csv')}>
                   <div className="flex items-center gap-3 mb-2">
                     <Download className="w-5 h-5 text-purple-600" />
                     <span className="font-medium text-sm">Resumen Mensual</span>
@@ -427,8 +457,12 @@ export default function GerenciaTab() {
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm"><FileText className="w-4 h-4 mr-1" />Exportar Excel</Button>
-                <Button variant="outline" size="sm"><FileText className="w-4 h-4 mr-1" />Exportar CSV</Button>
+                <Button variant="outline" size="sm" onClick={() => handleExport('completo', 'excel')} disabled={exporting}>
+                  <FileText className="w-4 h-4 mr-1" />{exporting ? 'Exportando...' : 'Exportar Excel'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleExport('completo', 'csv')} disabled={exporting}>
+                  <FileText className="w-4 h-4 mr-1" />{exporting ? 'Exportando...' : 'Exportar CSV'}
+                </Button>
               </div>
             </CardContent>
           </Card>
