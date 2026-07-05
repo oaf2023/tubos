@@ -44,7 +44,7 @@ import type { Gas, Location } from '@/lib/tab-types'
 
 const LocationPicker = dynamic(() => import('@/components/location-picker'), { ssr: false })
 
-const TABLAS_DISPONIBLES = [
+const TABLAS_BASE = [
   { key: 'gases', label: 'Gases', icon: 'FlaskConical' },
   { key: 'locations', label: 'Ubicaciones', icon: 'MapPin' },
   { key: 'usuarios', label: 'Usuarios', icon: 'Users' },
@@ -54,7 +54,20 @@ const TABLAS_DISPONIBLES = [
 
 export default function TablasTab() {
   const { toast } = useToast()
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [tablaActiva, setTablaActiva] = useState('gases')
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('opencode_user')
+      if (saved) setCurrentUser(JSON.parse(saved))
+    } catch { /* ignore */ }
+  }, [])
+
+  const nivelAcceso = currentUser?.nivelAcceso ?? 99
+  const puedeVerUsuarios = nivelAcceso === 0 || nivelAcceso === 5
+  const puedeAsignarGerencia = nivelAcceso === 0
+  const TABLAS_DISPONIBLES = TABLAS_BASE.filter(t => t.key !== 'usuarios' || puedeVerUsuarios)
   const [gases, setGases] = useState<Gas[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
@@ -457,7 +470,7 @@ export default function TablasTab() {
           )}
 
           {/* Usuarios */}
-          {tablaActiva === 'usuarios' && (
+          {tablaActiva === 'usuarios' && puedeVerUsuarios && (
             <div className="space-y-3">
               <div className="flex justify-end">
                 <Button onClick={() => openUsuario()} className="bg-orange-500 hover:bg-orange-600 gap-2">
@@ -717,7 +730,15 @@ export default function TablasTab() {
                       <SelectTrigger><SelectValue placeholder="Sin rol" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Sin rol</SelectItem>
-                        {roles.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
+                        {roles.map(r => (
+                          <SelectItem
+                            key={r.id}
+                            value={r.id}
+                            disabled={r.nombre === 'gerencia' && !puedeAsignarGerencia}
+                          >
+                            {r.nombre}{r.nombre === 'gerencia' && !puedeAsignarGerencia ? ' (solo nivel 0)' : ''}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

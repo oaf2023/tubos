@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 
+function getRequestingUser(request: NextRequest) {
+  const header = request.headers.get('x-user')
+  if (!header) return null
+  try { return JSON.parse(header) } catch { return null }
+}
+
+async function validarRolGerencia(request: NextRequest, rolId: string | null | undefined) {
+  if (!rolId) return null
+  const rol = await db.rol.findUnique({ where: { id: rolId } })
+  if (!rol || rol.nombre !== 'gerencia') return null
+  const user = getRequestingUser(request)
+  if (!user || user.nivelAcceso !== 0) {
+    return NextResponse.json({ error: 'Solo usuarios nivel 0 pueden asignar el rol gerencia' }, { status: 403 })
+  }
+  return null
+}
+
 // GET /api/usuarios
 export async function GET() {
   try {
@@ -26,6 +43,9 @@ export async function POST(request: NextRequest) {
     if (!usuario || !password || !nombre) {
       return NextResponse.json({ error: 'usuario, password y nombre requeridos' }, { status: 400 })
     }
+
+    const rolCheck = await validarRolGerencia(request, rolId)
+    if (rolCheck) return rolCheck
 
     const hashed = await bcrypt.hash(password, 10)
 
