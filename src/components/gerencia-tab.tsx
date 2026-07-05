@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   BarChart3, DollarSign, ShoppingCart, Package, Truck, MessageCircle,
   AlertTriangle, TrendingUp, FileText, Download, Calendar,
-  ArrowUpRight, ArrowDownRight, RefreshCw,
+  ArrowUpRight, ArrowDownRight, RefreshCw, Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +14,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts'
+import { exportPDF } from '@/lib/export-pdf'
+import * as XLSX from 'xlsx'
 
 // ─── Mock Data ──────────────────────────────────────────
 
@@ -141,10 +143,40 @@ function Semaphore({ alerta }: { alerta: string }) {
 export default function GerenciaTab() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [exporting, setExporting] = useState(false)
+  const [conciliacion, setConciliacion] = useState<typeof MOCK_CONCILIACION>([])
+  const [pagosSinOrden, setPagosSinOrden] = useState<{ idPago: number; monto: number; estado: string | null; alerta: string }[]>([])
+  const [isMockConc, setIsMockConc] = useState(true)
   const k = MOCK_KPIS
+
+  const fetchConciliacion = useCallback(async () => {
+    try {
+      const res = await fetch('/api/gerencia/conciliacion')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.rows?.length > 0) {
+        setConciliacion(data.rows.map((r: any, i: number) => ({
+          id: i + 1,
+          orderId: r.idOrden ? `MLA-${r.idOrden}` : null,
+          paymentId: r.idPago ? String(r.idPago) : null,
+          fecha: new Date(r.fecha).toLocaleDateString('es-AR'),
+          importeOrden: r.totalOrden,
+          importePago: r.montoPagado,
+          neto: r.montoPagado * 0.9,
+          comision: r.montoPagado * 0.1,
+          diferencia: r.diferencia,
+          alerta: r.alerta,
+        })))
+        setPagosSinOrden(data.pagosSinOrden || [])
+        setIsMockConc(data.isMock)
+      }
+    } catch { /* keep fallback */ }
+  }, [])
+
+  useEffect(() => { fetchConciliacion() }, [fetchConciliacion])
 
   const handleRefresh = async () => {
     try {
+      await fetchConciliacion()
       const res = await fetch('/api/gerencia/kpis')
       if (res.ok) alert('Datos sincronizados correctamente')
       else alert('Error al sincronizar datos')
@@ -152,6 +184,8 @@ export default function GerenciaTab() {
       alert('Error de conexión')
     }
   }
+
+  const displayConciliacion = conciliacion.length > 0 ? conciliacion : MOCK_CONCILIACION
 
   const handleExport = async (tipo: string, formato: string) => {
     setExporting(true)
@@ -172,17 +206,46 @@ export default function GerenciaTab() {
     }
   }
 
+  const handleExportExcel = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch('/api/gerencia/kpis')
+      if (!res.ok) return
+      const data = await res.json()
+      const kpis = data.kpis
+      const rows = [
+        { Indicador: 'Ventas Brutas', Valor: kpis.comerciales?.ventasTotal?.value || k.ventasBrutas },
+        { Indicador: 'Cobrado Total', Valor: kpis.comerciales?.cobradoTotal?.value || k.totalCobrado },
+        { Indicador: 'Órdenes Pagadas', Valor: kpis.comerciales?.ordenesPagadas?.value || k.cantidadOrdenes },
+        { Indicador: 'Saldo Disponible', Valor: kpis.financieros?.saldoDisponible?.value || k.dineroDisponible },
+        { Indicador: 'Comisiones', Valor: kpis.financieros?.comisiones?.value || k.totalComisiones },
+        { Indicador: 'Reembolsos', Valor: kpis.financieros?.reembolsos?.value || k.totalReembolsos },
+      ]
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'KPIs')
+      XLSX.writeFile(wb, `reporte-kpis-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6" id="gerencia-content">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-yellow-600" />
           <h2 className="text-2xl font-bold">Gerencia</h2>
-          <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50 text-xs ml-2">Modo demo</Badge>
+          {isMockConc && <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50 text-xs ml-2">Modo demo</Badge>}
         </div>
-        <Button variant="outline" size="sm" className="text-xs" onClick={handleRefresh}>
-          <RefreshCw className="w-3.5 h-3.5 mr-1" />Sincronizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="text-xs" onClick={() => exportPDF('gerencia-content', `reporte-gerencia-${new Date().toISOString().slice(0, 10)}`)}>
+            <Printer className="w-3.5 h-3.5 mr-1" />PDF
+          </Button>
+          <Button variant="outline" size="sm" className="text-xs" onClick={handleRefresh}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1" />Sincronizar
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -404,7 +467,7 @@ export default function GerenciaTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_CONCILIACION.map(row => (
+                    {displayConciliacion.map(row => (
                       <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50">
                         <td className="py-2 pr-3 font-mono">{row.orderId || '—'}</td>
                         <td className="py-2 pr-3 font-mono">{row.paymentId || '—'}</td>
@@ -457,11 +520,14 @@ export default function GerenciaTab() {
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleExport('completo', 'excel')} disabled={exporting}>
+                <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exporting}>
                   <FileText className="w-4 h-4 mr-1" />{exporting ? 'Exportando...' : 'Exportar Excel'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleExport('completo', 'csv')} disabled={exporting}>
                   <FileText className="w-4 h-4 mr-1" />{exporting ? 'Exportando...' : 'Exportar CSV'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportPDF('gerencia-content', `reporte-gerencia-${new Date().toISOString().slice(0, 10)}`)}>
+                  <Printer className="w-4 h-4 mr-1" />Imprimir PDF
                 </Button>
               </div>
             </CardContent>
