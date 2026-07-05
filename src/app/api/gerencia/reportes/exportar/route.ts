@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 
-export async function GET(request: Request) {
-  const session = await requireRole('gerencia')
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+export async function GET(request: NextRequest) {
+  const roleCheck = await requireRole('gerencia')(request)
+  if (roleCheck) return roleCheck
 
   const { searchParams } = new URL(request.url)
   const formato = searchParams.get('formato') || 'json'
@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   const data = {
     tipo,
     generado: new Date().toISOString(),
-    usuario: session.nombre,
     resumen: {
       ventasBrutas: 2845690.50,
       ventasNetas: 2618035.26,
@@ -37,16 +36,15 @@ export async function GET(request: Request) {
   }
 
   if (formato === 'excel') {
-    // Placeholder: en Fase 7 se implementará con xlsx library
     return NextResponse.json({ message: 'Exportación Excel disponible en Fase 7' })
   }
 
   return NextResponse.json(data)
 }
 
-export async function POST(request: Request) {
-  const session = await requireRole('gerencia')
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+export async function POST(request: NextRequest) {
+  const roleCheck = await requireRole('gerencia')(request)
+  if (roleCheck) return roleCheck
 
   const body = await request.json()
   const { formato, tipo } = body

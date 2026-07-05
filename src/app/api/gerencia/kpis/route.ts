@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import * as ml from '@/lib/mercadolibre'
 import * as mp from '@/lib/mercadopago'
 
-export async function GET() {
-  const session = await requireRole('gerencia')
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+export async function GET(request: NextRequest) {
+  const roleCheck = await requireRole('gerencia')(request)
+  if (roleCheck) return roleCheck
 
   const [orders, payments, movements, balance] = await Promise.all([
     ml.getOrders().catch(() => []),
@@ -27,7 +27,6 @@ export async function GET() {
   const ordenesEnviadas = ordersArr.filter(o => o.status === 'shipped').length
   const ordenesEntregadas = ordersArr.filter(o => o.status === 'delivered').length
   const ordenesCanceladas = ordersArr.filter(o => o.status === 'cancelled').length
-  const cantidadItemsPublicados = 0 // se podría obtener de getItems
   const cantidadItemsVendidos = ordersArr.reduce((s, o) => s + (o.order_items?.reduce((a: number, i: { quantity: number }) => a + (i.quantity || 0), 0) || 0), 0)
 
   const kpis = {

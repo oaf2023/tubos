@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import * as mp from '@/lib/mercadopago'
 
-export async function GET() {
-  const session = await requireRole('gerencia')
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+export async function GET(request: NextRequest) {
+  const roleCheck = await requireRole('gerencia')(request)
+  if (roleCheck) return roleCheck
   const [balance, releases] = await Promise.all([
     mp.getBalance().catch(() => null),
     mp.getReleaseReport().catch(() => null),

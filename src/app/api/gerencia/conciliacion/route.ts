@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import { db } from '@/lib/db'
 
@@ -15,9 +15,9 @@ interface ConciliacionRow {
   alerta: 'OK' | 'ORDEN_SIN_PAGO' | 'PAGO_SIN_ORDEN' | 'DIFERENCIA' | 'DINERO_RETENIDO'
 }
 
-export async function GET() {
-  const session = await requireRole('gerencia')
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+export async function GET(request: NextRequest) {
+  const roleCheck = await requireRole('gerencia')(request)
+  if (roleCheck) return roleCheck
 
   // Intentar obtener registros reales de ConciliacionOperacion
   let dbRows = await db.conciliacionOperacion.findMany({
