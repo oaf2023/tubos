@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Implementación — Módulo Gerencia</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent: #eab308;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--primary), #2d5a87);
+    color: #fff;
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+  .header p { opacity: 0.85; font-size: 1.05rem; }
+  .header .meta { margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
+  h2 {
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid var(--accent);
+    color: var(--primary);
+    font-size: 1.5rem;
+  }
+  h3 { margin: 1.5rem 0 0.75rem; color: var(--primary); font-size: 1.15rem; }
+  h4 { margin: 1rem 0 0.5rem; color: var(--text); font-size: 1rem; }
+  p { margin-bottom: 0.75rem; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.25rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .card-title { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 0.75rem; }
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.3rem;
+  }
+  .badge-green { background: #dcfce7; color: var(--green); }
+  .badge-amber { background: #fef3c7; color: var(--amber); }
+  .badge-red { background: #fef2f2; color: var(--red); }
+  .badge-blue { background: #dbeafe; color: #2563eb; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+  }
+  th { background: #f1f5f9; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    color: var(--red);
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    margin: 0.75rem 0;
+  }
+  .timeline { position: relative; padding-left: 2rem; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-item { position: relative; padding: 0.75rem 0; }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 1.1rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--card);
+  }
+  .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .tag-frontend { background: #dbeafe; color: #1d4ed8; }
+  .tag-backend { background: #f3e8ff; color: #7c3aed; }
+  .tag-db { background: #dcfce7; color: #15803d; }
+  .tag-auth { background: #fef3c7; color: #b45309; }
+  .tag-sec { background: #fef2f2; color: #b91c1c; }
+  .tag-export { background: #e0f2fe; color: #0369a1; }
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.5rem; }
+    .container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Módulo Gerencia</h1>
+  <p>Plan de implementación para integración Mercado Libre + Mercado Pago</p>
+  <div class="meta">Basado en: gerencia.md + proyecto_ejecutivo_apis_mercado_pago_mercado_libre.docx · 05/07/2026</div>
+</div>
+
+<div class="container">
+
+<!-- ================================ -->
+<h2>1. Arquitectura</h2>
+
+<div class="card">
+  <div class="card-title">Stack tecnológico</div>
+  <table>
+    <tr><th>Capa</th><th>Documento recomienda</th><th>Se implementa con</th></tr>
+    <tr><td>Backend</td><td>Python + FastAPI</td><td><strong>Next.js 16 API Routes</strong> (TypeScript)</td></tr>
+    <tr><td>Base de datos</td><td>SQLite / PostgreSQL</td><td><strong>PostgreSQL + Prisma ORM</strong> (existente)</td></tr>
+    <tr><td>Frontend</td><td>Streamlit / Flet</td><td><strong>React 19 + shadcn/ui + recharts</strong> (existente)</td></tr>
+    <tr><td>Auth</td><td>JWT</td><td><strong>JWT (jose) + bcrypt + httpOnly cookies</strong> (existente)</td></tr>
+    <tr><td>OAuth ML/MP</td><td>FastAPI OAuth</td><td><strong>TypeScript OAuth flow</strong> + tokens cifrados en BD</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">Variables de entorno (.env)</div>
+  <pre># JWT
+JWT_SECRET=...
+
+# Mercado Libre
+MERCADOLIBRE_CLIENT_ID=
+MERCADOLIBRE_CLIENT_SECRET=
+MERCADOLIBRE_REDIRECT_URI=https://tudominio/api/gerencia/ml/oauth-callback
+
+# Mercado Pago
+MERCADOPAGO_CLIENT_ID=
+MERCADOPAGO_CLIENT_SECRET=
+MERCADOPAGO_REDIRECT_URI=https://tudominio/api/gerencia/mp/oauth-callback</pre>
+</div>
+
+<!-- ================================ -->
+<h2>2. Modelo de datos</h2>
+
+<p>Se agregan 10 modelos nuevos al schema de Prisma:</p>
+
+<table>
+  <tr><th>Modelo</th><th>Origen</th><th>Propósito</th></tr>
+  <tr><td><code>SellerAccount</code></td><td>Propia</td><td>Cuenta ML autorizada, tokens OAuth cifrados</td></tr>
+  <tr><td><code>MlOrder</code></td><td>Mercado Libre</td><td>Órdenes de venta (base comercial)</td></tr>
+  <tr><td><code>MlOrderItem</code></td><td>Mercado Libre</td><td>Detalle de productos por orden</td></tr>
+  <tr><td><code>MlShipment</code></td><td>Mercado Libre</td><td>Envíos vinculados a órdenes/packs</td></tr>
+  <tr><td><code>MlClaimReturn</code></td><td>Mercado Libre</td><td>Reclamos, mediaciones y devoluciones</td></tr>
+  <tr><td><code>MlQuestion</code></td><td>Mercado Libre</td><td>Preguntas de compradores</td></tr>
+  <tr><td><code>MlItem</code></td><td>Mercado Libre</td><td>Publicaciones activas/pausadas</td></tr>
+  <tr><td><code>MpPayment</code></td><td>Mercado Pago</td><td>Pagos individuales y estado financiero</td></tr>
+  <tr><td><code>MpAccountMovement</code></td><td>Mercado Pago</td><td>Movimientos de cuenta para conciliación</td></tr>
+  <tr><td><code>MpReleaseReport</code></td><td>Mercado Pago</td><td>Reportes de dinero liberado</td></tr>
+  <tr><td><code>ConciliacionOperacion</code></td><td>Propia</td><td>Cruce orden ↔ pago con alertas</td></tr>
+  <tr><td><code>AuditoriaSincronizacion</code></td><td>Propia</td><td>Log de sincronización con APIs</td></tr>
+</table>
+
+<h3>Claves de cruce (conciliación)</h3>
+<ul>
+  <li><code>order_id</code> (ML) ↔ <code>payment_id</code> (MP) vía <code>external_reference</code></li>
+  <li><code>pack_id</code> (ML) agrupa múltiples órdenes en un envío</li>
+  <li><code>source_id</code> (MP) se vincula con <code>payment_id</code> o <code>external_reference</code></li>
+</ul>
+
+<!-- ================================ -->
+<h2>3. Login Gerencia</h2>
+
+<div class="card">
+  <p>Reutiliza el modelo <code>Usuario</code> existente, que ya tiene <code>nivelAcceso: Int</code> y FK a <code>Rol</code>.</p>
+  <table>
+    <tr><th>Requisito</th><th>Validación</th></tr>
+    <tr><td>Usuario existe</td><td><code>db.usuario.findUnique({ where: { usuario } })</code></td></tr>
+    <tr><td>Nivel correcto</td><td><code>user.nivelAcceso === 0</code></td></tr>
+    <tr><td>Rol gerencia</td><td><code>user.rol.nombre === 'gerencia'</code></td></tr>
+    <tr><td>Activo</td><td><code>user.activo === true</code></td></tr>
+    <tr><td>Password</td><td><code>bcrypt.compare(password, user.password)</code></td></tr>
+    <tr><td>Sesión</td><td>JWT + cookie httpOnly (24 h)</td></tr>
+  </table>
+</div>
+
+<ul>
+  <li><span class="tag tag-auth">Frontend</span> Tercer tab "Gerencia" en <code>login-page.tsx</code></li>
+  <li><span class="tag tag-backend">Backend</span> API <code>POST /api/auth/login-gerencia</code></li>
+  <li><span class="tag tag-backend">Backend</span> Extender <code>SessionUser</code> y type <code>Rol</code> en <code>auth.ts</code></li>
+</ul>
+
+<!-- ================================ -->
+<h2>4. Menú y navegación</h2>
+
+<p>En <code>src/app/page.tsx</code>:</p>
+<ul>
+  <li>Import dinámico de <code>GerenciaTab</code></li>
+  <li><code>TabsTrigger</code> visible solo si <code>user.nivelAcceso === 0</code></li>
+  <li><code>TabsContent</code> renderiza el componente</li>
+  <li>Protección en backend: todos los endpoints usan <code>requireRole('gerencia')</code></li>
+</ul>
+
+<!-- ================================ -->
+<h2>5. Pantallas (sub-tabs del módulo Gerencia)</h2>
+
+<div class="card">
+  <h3 style="margin-top:0">5.1 Dashboard Ejecutivo</h3>
+  <table>
+    <tr><th>KPI</th><th>Tipo</th><th>Fuente</th></tr>
+    <tr><td>Ventas brutas / netas</td><td><span class="badge badge-blue">Comercial</span></td><td>ML + MP</td></tr>
+    <tr><td>Cantidad de órdenes</td><td><span class="badge badge-blue">Comercial</span></td><td>ML</td></tr>
+    <tr><td>Ticket promedio</td><td><span class="badge badge-blue">Comercial</span></td><td>ML</td></tr>
+    <tr><td>Unidades vendidas</td><td><span class="badge badge-blue">Comercial</span></td><td>ML</td></tr>
+    <tr><td>Producto más vendido</td><td><span class="badge badge-blue">Comercial</span></td><td>ML</td></tr>
+    <tr><td>Total cobrado / neto recibido</td><td><span class="badge badge-amber">Financiero</span></td><td>MP</td></tr>
+    <tr><td>Comisiones / reembolsos / contracargos</td><td><span class="badge badge-amber">Financiero</span></td><td>MP</td></tr>
+    <tr><td>Dinero disponible / pendiente</td><td><span class="badge badge-amber">Financiero</span></td><td>MP</td></tr>
+    <tr><td>Envíos pendientes / entregados / demorados</td><td><span class="badge badge-green">Operativo</span></td><td>ML</td></tr>
+    <tr><td>Reclamos abiertos / devoluciones</td><td><span class="badge badge-green">Operativo</span></td><td>ML</td></tr>
+    <tr><td>Preguntas sin responder</td><td><span class="badge badge-green">Operativo</span></td><td>ML</td></tr>
+    <tr><td>Publicaciones activas</td><td><span class="badge badge-green">Operativo</span></td><td>ML</td></tr>
+    <tr><td>Productos con bajo stock</td><td><span class="badge badge-green">Operativo</span></td><td>ML</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">5.2 Mercado Libre</h3>
+  <ul>
+    <li>Ventas por período (gráfico barras/líneas)</li>
+    <li>Ventas por producto (ranking)</li>
+    <li>Órdenes por estado (donut)</li>
+    <li>Envíos por estado</li>
+    <li>Publicaciones activas / pausadas</li>
+    <li>Preguntas sin responder</li>
+    <li>Reclamos y devoluciones</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">5.3 Mercado Pago</h3>
+  <ul>
+    <li>Saldo disponible + pendiente de liberar</li>
+    <li>Movimientos del período (tabla filtrable)</li>
+    <li>Liquidaciones recibidas</li>
+    <li>Comisiones, reembolsos y contracargos</li>
+    <li>Evolución de caja (gráfico)</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">5.4 Conciliación</h3>
+  <p>Matriz de cruce orden ↔ pago ↔ movimiento. Alertas:</p>
+  <ul>
+    <li><span class="badge badge-red">ORDEN_SIN_PAGO</span> Orden sin pago asociado</li>
+    <li><span class="badge badge-red">PAGO_SIN_ORDEN</span> Pago sin orden correspondiente</li>
+    <li><span class="badge badge-amber">DIFERENCIA_IMPORTE</span> Monto orden ≠ monto pago</li>
+    <li><span class="badge badge-amber">DINERO_RETENIDO</span> Pago liberado parcialmente</li>
+    <li><span class="badge badge-amber">REEMBOLSO_NO_CONCILIADO</span> Reembolso sin orden de origen</li>
+    <li><span class="badge badge-red">CONTROCARGO_PENDIENTE</span> Disputa activa</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">5.5 Reportes Gerenciales</h3>
+  <ul>
+    <li>Filtros: fecha, producto, estado, canal</li>
+    <li>Exportar Excel (.xlsx)</li>
+    <li>Exportar CSV</li>
+    <li>Resumen diario / semanal / mensual</li>
+  </ul>
+</div>
+
+<!-- ================================ -->
+<h2>6. API endpoints</h2>
+
+<table>
+  <tr><th>Endpoint</th><th>Método</th><th>Protección</th></tr>
+  <tr><td><code>POST /api/auth/login-gerencia</code></td><td>POST</td><td>Público</td></tr>
+  <tr><td><code>GET /api/gerencia/kpis</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/ml/orders</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/ml/shipments</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/ml/items</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/ml/claims</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/ml/questions</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/mp/payments</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/mp/balance</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/mp/movements</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/conciliacion</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+  <tr><td><code>GET /api/gerencia/reportes/exportar</code></td><td>GET</td><td>requireRole('gerencia')</td></tr>
+</table>
+
+<!-- ================================ -->
+<h2>7. Roadmap de implementación</h2>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <strong>Fase 1 — Modelos BD</strong> <span class="badge badge-green">Ahora</span>
+    <p>Crear 10 modelos Prisma, seed de rol + usuario gerencia, <code>prisma db push</code>.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 2 — Login Gerencia</strong>
+    <p>API login-gerencia, extender auth.ts, tercer tab en login-page.tsx.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 3 — Menú y navegación</strong>
+    <p>Agregar TabsTrigger/TabsContent en page.tsx, import dinámico.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 4 — Dashboard Ejecutivo</strong>
+    <p>Componente GerenciaTab con sub-tabs, KPIs mock, tarjetas, gráficos recharts.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 5 — Conectores API</strong>
+    <p>src/lib/mercadolibre.ts, src/lib/mercadopago.ts, endpoints internos mock.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 6 — Conciliación</strong>
+    <p>Vista de cruce orden-pago-movimiento con alertas y semáforos.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 7 — Exportación</strong>
+    <p>Excel/CSV con xlsx, filtros por fecha/producto/estado/canal.</p>
+  </div>
+  <div class="timeline-item">
+    <strong>Fase 8 — Seguridad y auditoría</strong>
+    <p>requireRole en todos los endpoints, cifrado de tokens, AuditoriaSincronizacion.</p>
+  </div>
+</div>
+
+<!-- ================================ -->
+<h2>8. Archivos del proyecto</h2>
+
+<table>
+  <tr><th>Archivo</th><th>Acción</th><th>Fase</th></tr>
+  <tr><td><code>prisma/schema.prisma</code></td><td>Modificar: agregar 10 modelos</td><td>1</td></tr>
+  <tr><td><code>src/app/api/auth/login-gerencia/route.ts</code></td><td>Crear</td><td>2</td></tr>
+  <tr><td><code>src/lib/auth.ts</code></td><td>Modificar: SessionUser + Rol type</td><td>2</td></tr>
+  <tr><td><code>src/components/login-page.tsx</code></td><td>Modificar: agregar tab Gerencia</td><td>2</td></tr>
+  <tr><td><code>src/app/page.tsx</code></td><td>Modificar: import + TabsTrigger + TabsContent</td><td>3</td></tr>
+  <tr><td><code>src/components/gerencia-tab.tsx</code></td><td>Crear (~600-800 líneas)</td><td>4</td></tr>
+  <tr><td><code>src/lib/mercadolibre.ts</code></td><td>Crear (conectores + mock)</td><td>5</td></tr>
+  <tr><td><code>src/lib/mercadopago.ts</code></td><td>Crear (conectores + mock)</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/kpis/route.ts</code></td><td>Crear</td><td>4</td></tr>
+  <tr><td><code>src/app/api/gerencia/ml/orders/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/ml/shipments/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/ml/items/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/ml/claims/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/ml/questions/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/mp/payments/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/mp/balance/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/mp/movements/route.ts</code></td><td>Crear</td><td>5</td></tr>
+  <tr><td><code>src/app/api/gerencia/conciliacion/route.ts</code></td><td>Crear</td><td>6</td></tr>
+  <tr><td><code>src/app/api/gerencia/reportes/exportar/route.ts</code></td><td>Crear</td><td>7</td></tr>
+</table>
+
+<!-- ================================ -->
+<h2>9. Seguridad</h2>
+
+<ul>
+  <li><span class="tag tag-sec">Seguridad</span> Todos los endpoints de gerencia validan <code>requireRole('gerencia')</code> + <code>nivelAcceso === 0</code></li>
+  <li><span class="tag tag-sec">Seguridad</span> Tokens ML/MP almacenados cifrados en <code>SellerAccount</code></li>
+  <li><span class="tag tag-sec">Seguridad</span> Sin exponer tokens en frontend ni en logs</li>
+  <li><span class="tag tag-sec">Seguridad</span> Variables de entorno para todos los client_id/client_secret</li>
+  <li><span class="tag tag-sec">Seguridad</span> Auditoria de cada sincronización en <code>AuditoriaSincronizacion</code></li>
+  <li><span class="tag tag-sec">Seguridad</span> Control de HTTP 206 (datos parciales), 429 (rate limit), 401/403 (tokens)</li>
+</ul>
+
+<!-- ================================ -->
+<h2>10. Riesgos y controles</h2>
+
+<table>
+  <tr><th>Riesgo</th><th>Impacto</th><th>Control</th></tr>
+  <tr><td>Tokens ML/MP vencidos</td><td>Sin sincronización</td><td>Refresh controlado + alerta</td></tr>
+  <tr><td>Rate limits (HTTP 429)</td><td>Fallas en procesos masivos</td><td>Paginación, backoff exponencial, colas</td></tr>
+  <tr><td>Datos parciales en órdenes</td><td>Conciliación incompleta</td><td>Reconsulta puntual + HTTP 206</td></tr>
+  <tr><td>Cambios en APIs ML/MP</td><td>Rotura de conectores</td><td>Versionado de integración</td></tr>
+  <tr><td>Exposición de datos sensibles</td><td>Riesgo legal</td><td>Cifrado, logs sanitizados, mínimo acceso</td></tr>
+</table>
+
+<!-- ================================ -->
+<h2>11. KPIs obligatorios (checklist)</h2>
+
+<table>
+  <tr><th>Categoría</th><th>KPI</th><th>Estado</th></tr>
+  <tr><td rowspan="6">Comerciales</td><td>Total ventas brutas</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Total ventas netas</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Cantidad de órdenes</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Ticket promedio</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Unidades vendidas</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Producto más vendido</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td rowspan="5">Financieros</td><td>Total cobrado</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Total neto recibido</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Total comisiones</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Total reembolsado</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Dinero disponible / pendiente</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td rowspan="5">Operativos</td><td>Envíos pendientes / entregados</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Reclamos abiertos</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Preguntas sin responder</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Publicaciones activas</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+  <tr><td>Productos con bajo stock</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+</table>
+
+</div>
+</body>
+</html>

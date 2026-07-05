@@ -64,7 +64,7 @@ export function clearSessionCookie(response: NextResponse): void {
   })
 }
 
-type Rol = 'admin' | 'deposito' | 'reparto' | 'facturacion' | 'auditor'
+type Rol = 'admin' | 'deposito' | 'reparto' | 'facturacion' | 'auditor' | 'gerencia'
 
 export function requireRole(...roles: Rol[]) {
   return async (req: NextRequest): Promise<NextResponse | null> => {

@@ -1522,3 +1522,206 @@ model CuentaCorrienteMovimiento {
   @@index([fecha])
   @@index([comprobante])
 }
+
+// ============ GERENCIA / MERCADO LIBRE & MERCADO PAGO ============
+
+model SellerAccount {
+  id              String   @id @default(cuid())
+  sellerId        Int
+  siteId          String   // MLA
+  accessToken     String   // cifrado
+  refreshToken    String   // cifrado
+  tokenExpiresAt  DateTime
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders          MlOrder[]
+  items           MlItem[]
+
+  @@unique([sellerId, siteId])
+}
+
+model MlOrder {
+  id              String   @id @default(cuid())
+  orderId         BigInt   @unique
+  packId          BigInt?
+  sellerId        Int
+  sellerAccountId String
+  sellerAccount   SellerAccount @relation(fields: [sellerAccountId], references: [id])
+  status          String
+  totalAmount     Decimal
+  buyerNick       String?
+  dateCreated     DateTime
+  dateClosed      DateTime?
+  tags            String?  // JSON array
+  raw             Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           MlOrderItem[]
+  payment         MpPayment?
+  shipment        MlShipment?
+  claim           MlClaimReturn?
+
+  @@index([sellerAccountId])
+  @@index([dateCreated])
+  @@index([status])
+}
+
+model MlOrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     MlOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId    String
+  title     String?
+  quantity  Int
+  unitPrice Decimal
+  saleFee   Decimal?
+
+  @@index([orderId])
+}
+
+model MlShipment {
+  id          String   @id @default(cuid())
+  shipmentId  BigInt   @unique
+  orderId     BigInt?
+  packId      BigInt?
+  mlOrderId   String?  @unique
+  mlOrder     MlOrder? @relation(fields: [mlOrderId], references: [id])
+  status      String
+  substatus   String?
+  carrier     String?
+  tracking    String?
+  dateCreated DateTime
+  dateShipped DateTime?
+  dateDelivered DateTime?
+
+  @@index([status])
+}
+
+model MlClaimReturn {
+  id          String   @id @default(cuid())
+  claimId     BigInt   @unique
+  mlOrderId   String?  @unique
+  mlOrder     MlOrder? @relation(fields: [mlOrderId], references: [id])
+  type        String   // claim, return, mediation
+  status      String
+  reason      String?
+  amount      Decimal?
+  dateCreated DateTime
+  dateClosed  DateTime?
+
+  @@index([type])
+  @@index([status])
+}
+
+model MlQuestion {
+  id          String   @id @default(cuid())
+  questionId  BigInt   @unique
+  itemId      String
+  text        String
+  answer      String?
+  status      String   // ANSWERED, UNANSWERED, BANNED
+  dateCreated DateTime
+
+  @@index([status])
+}
+
+model MlItem {
+  id              String   @id @default(cuid())
+  itemId          String   @unique
+  sellerAccountId String
+  sellerAccount   SellerAccount @relation(fields: [sellerAccountId], references: [id])
+  title           String
+  price           Decimal
+  availableQty    Int
+  soldQty         Int
+  status          String   // active, paused, closed
+  dateCreated     DateTime
+  dateUpdated     DateTime
+
+  @@index([sellerAccountId])
+  @@index([status])
+}
+
+model MpPayment {
+  id            String   @id @default(cuid())
+  paymentId     BigInt   @unique
+  mlOrderId     String?  @unique
+  mlOrder       MlOrder? @relation(fields: [mlOrderId], references: [id])
+  status        String
+  amount        Decimal
+  fee           Decimal
+  netReceived   Decimal
+  externalRef   String?
+  dateCreated   DateTime
+  dateApproved  DateTime?
+  raw           Json?
+
+  @@index([mlOrderId])
+  @@index([status])
+}
+
+model MpAccountMovement {
+  id          String   @id @default(cuid())
+  sourceId    String
+  externalRef String?
+  type        String   // payment, release, fee, refund, chargeback, withdrawal
+  amount      Decimal
+  balance     Decimal?
+  date        DateTime
+  raw         Json?
+
+  @@index([sourceId])
+  @@index([date])
+  @@index([type])
+}
+
+model MpReleaseReport {
+  id          String   @id @default(cuid())
+  sourceId    String
+  externalRef String?
+  releaseDate DateTime
+  amount      Decimal
+  subtotal    Decimal?
+  status      String
+
+  @@index([sourceId])
+  @@index([releaseDate])
+}
+
+model ConciliacionOperacion {
+  id            String   @id @default(cuid())
+  mlOrderId     String?
+  mpPaymentId   String?
+  fecha         DateTime
+  importeOrden  Decimal
+  importePago   Decimal
+  importeNeto   Decimal?
+  comision      Decimal?
+  diferencia    Decimal
+  alerta        String?  // ORDEN_SIN_PAGO, PAGO_SIN_ORDEN, DIFERENCIA, DINERO_RETENIDO, etc.
+  status        String   // OK, ALERTA, CRITICO
+  createdAt     DateTime @default(now())
+
+  @@index([mlOrderId])
+  @@index([mpPaymentId])
+  @@index([alerta])
+  @@index([status])
+}
+
+model AuditoriaSincronizacion {
+  id              String   @id @default(cuid())
+  tipo            String   // ML_ORDERS, ML_SHIPMENTS, MP_PAYMENTS, MP_MOVEMENTS
+  fechaInicio     DateTime
+  fechaFin        DateTime?
+  estado          String   // OK, ERROR, PARCIAL
+  registrosNuevos Int      @default(0)
+  registrosError  Int      @default(0)
+  detalle         String?
+  createdAt       DateTime @default(now())
+
+  @@index([tipo])
+  @@index([fechaInicio])
+}
