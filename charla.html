@@ -332,8 +332,121 @@
 
 <hr>
 
+<!-- ============================================================ -->
+<!-- SESIÓN 2 — 5 de julio de 2026 -->
+<!-- ============================================================ -->
+
+<div class="day-group">
+<div class="day-label">5 de julio de 2026</div>
+
+<!-- MSG 11 -->
+<div class="msg user">
+  <div class="avatar">U</div>
+  <div class="bubble">
+    <strong>¿Qué hicimos hasta ahora?</strong>
+  </div>
+</div>
+
+<div class="msg assistant">
+  <div class="avatar">AI</div>
+  <div class="bubble">
+    Se mostró el resumen completo del proyecto: Módulo Gerencia con login, menú, dashboard ejecutivo y gestión de roles.<br>
+    <span class="tag">resumen</span> <span class="tag">12 modelos Prisma</span> <span class="tag">11 endpoints API</span>
+  </div>
+</div>
+
+<!-- MSG 12 -->
+<div class="msg user">
+  <div class="avatar">U</div>
+  <div class="bubble">
+    repara el problema
+  </div>
+</div>
+
+<div class="msg assistant">
+  <div class="avatar">AI</div>
+  <div class="bubble">
+    Se diagnosticó que el contenido de GerenciaTab se veía en blanco. Se identificaron dos causas probables:
+    <br><br>
+    <strong>1. Import estático de librerías pesadas:</strong>
+    <span class="file-ref">src/lib/export-pdf.ts</span> importaba <code>html2canvas</code> y <code>jspdf</code> al tope del módulo. 
+    Se movieron a <code>await import()</code> dinámico dentro de la función <code>exportPDF</code>.
+    <br><br>
+    <strong>2. Falta de TabErrorBoundary:</strong> 
+    Se envolvió <code>GerenciaTab</code> en <code>&lt;TabErrorBoundary name="Gerencia"&gt;</code> en <span class="file-ref">src/app/page.tsx</span>.
+    <br><br>
+    <span class="tag">fix</span> <span class="tag">commit 06ba52f</span>
+  </div>
+</div>
+
+<!-- MSG 13 -->
+<div class="msg user">
+  <div class="avatar">U</div>
+  <div class="bubble">
+    Realice muchas pruebas y nada veo sobre Mercado libre y Mercado Pago.
+  </div>
+</div>
+
+<div class="msg assistant">
+  <div class="avatar">AI</div>
+  <div class="bubble">
+    Se diagnosticó una nueva tanda de problemas:
+    <br><br>
+    <strong>1. <code>xlsx</code> import estático</strong> — librería pesada podía crashear el bundle. Se reemplazó por <code>await import('xlsx')</code> dinámico en <code>handleExportExcel</code>.
+    <br><br>
+    <strong>2. Tabs de Radix UI anidadas con el mismo <code>value="dashboard"</code></strong> — conflicto de RovingFocusGroup. Se reemplazó el inner <code>&lt;Tabs&gt;</code> por botones nativos + <code>{activeTab === 'ml' && (...)}</code>.
+    <br><br>
+    <span class="tag">fix</span> <span class="tag">commit 6ec8c26</span>
+  </div>
+</div>
+
+<!-- MSG 14 -->
+<div class="msg user">
+  <div class="avatar">U</div>
+  <div class="bubble">
+    No existe Gerencia, en ninguna prueba funciona.
+  </div>
+</div>
+
+<div class="msg assistant">
+  <div class="avatar">AI</div>
+  <div class="bubble">
+    <strong>¡Bug raíz encontrado!</strong>
+    <br><br>
+    En <span class="file-ref">src/app/page.tsx</span> la condición era:
+    <pre>user.rol === 'gerencia'   // ✖ SIEMPRE false</pre>
+    El API <code>/api/auth/login-gerencia</code> devuelve <code>rol</code> como objeto Prisma 
+    <code>{ id: 1, nombre: 'gerencia' }</code>, no como string. La comparación estricta 
+    con un string <code>'gerencia'</code> siempre fallaba, ocultando la pestaña Gerencia 
+    para <strong>todos los usuarios</strong> desde que se introdujo la restricción.
+    <br><br>
+    Fix:
+    <pre>user.rol?.nombre === 'gerencia'   // ✓ correcto</pre>
+    <span class="tag">fix</span> <span class="tag">commit 4e54f72</span>
+  </div>
+</div>
+
+<!-- MSG 15 -->
+<div class="msg user">
+  <div class="avatar">U</div>
+  <div class="bubble">
+    Ahora si, lo veo. agrega a C:\Users\Usuario\Downloads\tubos\charla.html toda esta conversación
+  </div>
+</div>
+
+<div class="msg assistant">
+  <div class="avatar">AI</div>
+  <div class="bubble">
+    Acá está. Conversación completa agregada. <span class="tag">✓</span>
+  </div>
+</div>
+
+</div><!-- /day-group 5 jul 2026 -->
+
+<hr>
+
 <div style="text-align:center; padding:20px 0 8px; font-size:.75rem; color:#94a3b8">
-  Control Digital — Charla completa · 26 jun 2026 · 10 mensajes
+  Control Digital — Charla completa · 26 jun + 5 jul 2026 · 15 mensajes
 </div>
 
 </div><!-- /container -->
