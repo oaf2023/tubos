@@ -28,6 +28,11 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# migration artifacts
+*.db
+AppDistricon/csv/
+manifiesto-ruta-*.txt
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)

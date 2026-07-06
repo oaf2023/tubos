@@ -43,6 +43,9 @@ import {
   Wallet,
   TrendingUp,
   Smartphone,
+  Layers,
+  Gauge,
+  FileBarChart,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -82,8 +85,11 @@ const LoginPage = dynamic(() => import('@/components/login-page'), {
 })
 
 const DashboardTab = dynamic(() => import('@/components/dashboard-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const DashboardGases = dynamic(() => import('@/components/dashboard-gases'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const DashboardArticulos = dynamic(() => import('@/components/dashboard-articulos'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const MapaTab = dynamic(() => import('@/components/mapa-tab'), { ssr: false, loading: () => <Skeleton className="h-[600px] rounded-xl" /> })
 const InventarioTab = dynamic(() => import('@/components/inventario-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const ArticulosTab = dynamic(() => import('@/components/articulos-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const RutasTab = dynamic(() => import('@/components/rutas-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const CatalogoTab = dynamic(() => import('@/components/catalogo-tab'), { ssr: false, loading: () => <Skeleton className="h-[400px] rounded-xl" /> })
 const ClientesTab = dynamic(() => import('@/components/clientes-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
@@ -213,11 +219,20 @@ export default function Home() {
             <TabsTrigger value="dashboard" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Activity className="w-4 h-4" /><span>Dashboard</span>
             </TabsTrigger>
+            <TabsTrigger value="dashboard-gases" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Gauge className="w-4 h-4" /><span>Dashboard Gases</span>
+            </TabsTrigger>
+            <TabsTrigger value="dashboard-articulos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <FileBarChart className="w-4 h-4" /><span>Dashboard Artículos</span>
+            </TabsTrigger>
             <TabsTrigger value="mapa" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <MapIcon className="w-4 h-4" /><span>Mapa</span>
             </TabsTrigger>
             <TabsTrigger value="inventario" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Package className="w-4 h-4" /><span>Inventario</span>
+              <Package className="w-4 h-4" /><span>Inventario Gases</span>
+            </TabsTrigger>
+            <TabsTrigger value="articulos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Layers className="w-4 h-4" /><span>Inventario Artículos</span>
             </TabsTrigger>
             <TabsTrigger value="rutas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <RouteIcon className="w-4 h-4" /><span>Rutas</span>
@@ -289,11 +304,20 @@ export default function Home() {
           <TabsContent value="dashboard">
             <DashboardTab />
           </TabsContent>
+          <TabsContent value="dashboard-gases">
+            <DashboardGases />
+          </TabsContent>
+          <TabsContent value="dashboard-articulos">
+            <DashboardArticulos />
+          </TabsContent>
           <TabsContent value="mapa">
             <MapaTab />
           </TabsContent>
           <TabsContent value="inventario">
             <InventarioTab />
+          </TabsContent>
+          <TabsContent value="articulos">
+            <ArticulosTab />
           </TabsContent>
           <TabsContent value="rutas">
             <RutasTab />

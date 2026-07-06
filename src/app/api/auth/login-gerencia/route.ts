@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.rol?.nombre !== 'gerencia') {
+      console.error(`[login-gerencia] Rol incorrecto. usuario="${usuario}" nivelAcceso=${user.nivelAcceso} rolId=${user.rolId} rolNombre="${user.rol?.nombre}"`)
       await logAudit({ accion: 'LOGIN', entidad: 'Usuario', entidadId: user.id, detalle: { usuario, tipo: 'gerencia', resultado: 'fallo: rol incorrecto' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
       return NextResponse.json({ error: 'Acceso denegado: rol incorrecto' }, { status: 403 })
     }

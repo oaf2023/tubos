@@ -185,6 +185,50 @@ export interface Stats {
   capacidadTotalLitros: number
 }
 
+export interface Articulo {
+  ART_CODI: number
+  ART_DET1: string
+  ART_COD1: string | null
+  ART_COD2: string | null
+  ART_COD3: string | null
+  ART_COD4: number | null
+  ART_COD5: string | null
+  ART_DET2: string | null
+  ART_DET3: string | null
+  ART_DET4: string | null
+  ART_DCOR: string | null
+  ART_PRE1: number | null
+  ART_PRE2: number | null
+  ART_PRE3: number | null
+  ART_PRE4: number | null
+  ART_UTI1: number | null
+  ART_UTI2: number | null
+  ART_UTI3: number | null
+  ART_UTI4: number | null
+  ART_COST: number | null
+  ART_COSR: number | null
+  ART_TIVA: number | null
+  ART_TIMP: number | null
+  ART_STIN: number | null
+  ART_SMIN: number | null
+  ART_SMAX: number | null
+  ART_UNID: string | null
+  ART_MARC: number | null
+  ART_RUBR: number | null
+  ART_SUBR: number | null
+  ART_DPTO: number | null
+  COM_COMP: string | null
+  ART_OBS: string | null
+  ART_LIST: number | null
+  ART_DTO1: number | null
+  ART_DTO2: number | null
+  ART_DTO3: number | null
+  ART_DTOG: number | null
+  ART_FLET: number | null
+  ART_OFER: number | null
+  ART_POFE: number | null
+}
+
 export interface MapMarker {
   id: string
   lat: number

@@ -19,6 +19,7 @@ def register_blueprints(app: Flask):
     from .stats import stats_bp
     from .gerencia import gerencia_bp
     from .upload import upload_bp
+    from .articulos import articulos_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(clientes_bp)
@@ -38,3 +39,4 @@ def register_blueprints(app: Flask):
     app.register_blueprint(stats_bp)
     app.register_blueprint(gerencia_bp)
     app.register_blueprint(upload_bp)
+    app.register_blueprint(articulos_bp)
