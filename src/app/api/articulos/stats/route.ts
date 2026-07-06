@@ -7,12 +7,9 @@ export async function GET() {
     const total = await db.articulo.count()
     const conStock = await db.articulo.count({ where: { ART_STIN: { gt: 0 } } })
 
-    const lowStock = await db.articulo.findMany({
-      where: { ART_SMIN: { gt: 0 }, AND: [{ ART_STIN: { lt: db.articulo.fields.ART_SMIN } }, { ART_STIN: { not: null } }] },
-      orderBy: { ART_STIN: 'asc' },
-      take: 20,
-      select: { ART_CODI: true, ART_DET1: true, ART_STIN: true, ART_SMIN: true, ART_UNID: true },
-    })
+    const lowStock = await db.$queryRawUnsafe<{ ART_CODI: number; ART_DET1: string; ART_STIN: number | null; ART_SMIN: number; ART_UNID: string | null }[]>(
+      `SELECT "ART_CODI", "ART_DET1", "ART_STIN", "ART_SMIN", "ART_UNID" FROM "Articulo" WHERE "ART_SMIN" > 0 AND "ART_STIN" IS NOT NULL AND "ART_STIN" < "ART_SMIN" ORDER BY "ART_STIN" ASC LIMIT 20`
+    )
 
     // Aggregations via raw query for speed
     const byMarca = await db.$queryRawUnsafe<{ codigo: number; cantidad: bigint }[]>(
@@ -45,7 +42,7 @@ export async function GET() {
       conStock,
       sinStock: total - conStock,
       totalValor: totalValor._sum.ART_PRE1 || 0,
-      lowStock: lowStock.map(r => ({ ...r, ART_STIN: Number(r.ART_STIN), ART_SMIN: Number(r.ART_SMIN) })),
+      lowStock: lowStock.map(r => ({ ART_CODI: Number(r.ART_CODI), ART_DET1: r.ART_DET1, ART_STIN: r.ART_STIN != null ? Number(r.ART_STIN) : 0, ART_SMIN: Number(r.ART_SMIN), ART_UNID: r.ART_UNID })),
       byMarca: byMarca.map(r => ({ codigo: Number(r.codigo), cantidad: Number(r.cantidad) })),
       byRubro: byRubro.map(r => ({ codigo: Number(r.codigo), cantidad: Number(r.cantidad) })),
       bySubrubro: bySubrubro.map(r => ({ codigo: Number(r.codigo), cantidad: Number(r.cantidad) })),
