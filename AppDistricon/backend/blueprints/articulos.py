@@ -14,8 +14,8 @@ ALLOWED_FILTERS = [
 ]
 
 COLUMNS = [
-    'ART_CODI', 'ART_DET1', 'ART_COD1', 'ART_COD2', 'ART_COD3',
-    'ART_COD4', 'ART_COD5', 'ART_DET2', 'ART_DET3', 'ART_DET4',
+    'ART_COD1', 'ART_COD2', 'ART_COD3', 'ART_COD4', 'ART_COD5',
+    'ART_CODI', 'ART_DET1', 'ART_DET2', 'ART_DET3', 'ART_DET4',
     'ART_DCOR', 'ART_PRE1', 'ART_PRE2', 'ART_PRE3', 'ART_PRE4',
     'ART_UTI1', 'ART_UTI2', 'ART_UTI3', 'ART_UTI4', 'ART_COST',
     'ART_COSR', 'ART_TIVA', 'ART_TIMP', 'ART_DTCA', 'ART_DEP1',
@@ -38,9 +38,23 @@ COLUMNS = [
 
 COL_SET = {c.lower() for c in COLUMNS}
 
+_COL_NAMES_CACHE: list[str] | None = None
+
+def _get_col_names() -> list[str]:
+    global _COL_NAMES_CACHE
+    if _COL_NAMES_CACHE is not None:
+        return _COL_NAMES_CACHE
+    try:
+        r = db.session.execute(text(f"SELECT * FROM [{TABLE}] LIMIT 1"))
+        _COL_NAMES_CACHE = list(r.keys())
+    except Exception:
+        _COL_NAMES_CACHE = COLUMNS
+    return _COL_NAMES_CACHE
+
 
 def row_to_dict(row):
-    return {col: row[i] for i, col in enumerate(COLUMNS)}
+    cols = _get_col_names()
+    return {col: row[i] for i, col in enumerate(cols)}
 
 
 @articulos_bp.route('/api/articulos', methods=['GET'])
@@ -248,11 +262,12 @@ def articulos_stats():
 @articulos_bp.route('/api/articulos/export/csv', methods=['GET'])
 @login_required
 def export_articulos_csv():
+    cols = _get_col_names()
     rows = db.session.execute(text(f"SELECT * FROM [{TABLE}] ORDER BY ART_CODI")).fetchall()
-    lines = [','.join(COLUMNS)]
+    lines = [','.join(cols)]
     for r in rows:
         vals = []
-        for i, c in enumerate(COLUMNS):
+        for i in range(len(cols)):
             v = r[i]
             if v is None:
                 vals.append('')
