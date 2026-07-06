@@ -308,7 +308,9 @@ export default function Home() {
             <DashboardGases />
           </TabsContent>
           <TabsContent value="dashboard-articulos">
-            <DashboardArticulos />
+            <TabErrorBoundary name="DashboardArticulos">
+              <DashboardArticulos />
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="mapa">
             <MapaTab />
