@@ -13,23 +13,23 @@ export async function GET() {
 
     // Aggregations via raw query for speed
     const byMarca = await db.$queryRawUnsafe<{ codigo: number; cantidad: bigint }[]>(
-      `SELECT "ART_MARC" as codigo, COUNT(*) as cnt FROM "Articulo" WHERE "ART_MARC" IS NOT NULL GROUP BY "ART_MARC" ORDER BY cnt DESC LIMIT 15`
+      `SELECT "ART_MARC" as codigo, COUNT(*) as cantidad FROM "Articulo" WHERE "ART_MARC" IS NOT NULL GROUP BY "ART_MARC" ORDER BY cantidad DESC LIMIT 15`
     )
     const byRubro = await db.$queryRawUnsafe<{ codigo: number; cantidad: bigint }[]>(
-      `SELECT "ART_RUBR" as codigo, COUNT(*) as cnt FROM "Articulo" WHERE "ART_RUBR" IS NOT NULL GROUP BY "ART_RUBR" ORDER BY cnt DESC LIMIT 15`
+      `SELECT "ART_RUBR" as codigo, COUNT(*) as cantidad FROM "Articulo" WHERE "ART_RUBR" IS NOT NULL GROUP BY "ART_RUBR" ORDER BY cantidad DESC LIMIT 15`
     )
     const bySubrubro = await db.$queryRawUnsafe<{ codigo: number; cantidad: bigint }[]>(
-      `SELECT "ART_SUBR" as codigo, COUNT(*) as cnt FROM "Articulo" WHERE "ART_SUBR" IS NOT NULL GROUP BY "ART_SUBR" ORDER BY cnt DESC LIMIT 15`
+      `SELECT "ART_SUBR" as codigo, COUNT(*) as cantidad FROM "Articulo" WHERE "ART_SUBR" IS NOT NULL GROUP BY "ART_SUBR" ORDER BY cantidad DESC LIMIT 15`
     )
     const byDpto = await db.$queryRawUnsafe<{ codigo: number; cantidad: bigint }[]>(
-      `SELECT "ART_DPTO" as codigo, COUNT(*) as cnt FROM "Articulo" WHERE "ART_DPTO" IS NOT NULL GROUP BY "ART_DPTO" ORDER BY cnt DESC LIMIT 15`
+      `SELECT "ART_DPTO" as codigo, COUNT(*) as cantidad FROM "Articulo" WHERE "ART_DPTO" IS NOT NULL GROUP BY "ART_DPTO" ORDER BY cantidad DESC LIMIT 15`
     )
     const byUnidad = await db.$queryRawUnsafe<{ unidad: string; cantidad: bigint }[]>(
-      `SELECT "ART_UNID" as unidad, COUNT(*) as cnt FROM "Articulo" WHERE "ART_UNID" IS NOT NULL AND "ART_UNID" != '' GROUP BY "ART_UNID" ORDER BY cnt DESC`
+      `SELECT "ART_UNID" as unidad, COUNT(*) as cantidad FROM "Articulo" WHERE "ART_UNID" IS NOT NULL AND "ART_UNID" != '' GROUP BY "ART_UNID" ORDER BY cantidad DESC`
     )
 
     const precioRanges = await db.$queryRawUnsafe<{ rango: string; cantidad: bigint }[]>(
-      `SELECT CASE WHEN "ART_PRE1" IS NULL OR "ART_PRE1" = 0 THEN 'Sin precio' WHEN "ART_PRE1" < 100 THEN '0-100' WHEN "ART_PRE1" < 500 THEN '100-500' WHEN "ART_PRE1" < 2000 THEN '500-2K' WHEN "ART_PRE1" < 10000 THEN '2K-10K' ELSE '10K+' END as rango, COUNT(*) as cnt FROM "Articulo" GROUP BY rango ORDER BY rango`
+      `SELECT CASE WHEN "ART_PRE1" IS NULL OR "ART_PRE1" = 0 THEN 'Sin precio' WHEN "ART_PRE1" < 100 THEN '0-100' WHEN "ART_PRE1" < 500 THEN '100-500' WHEN "ART_PRE1" < 2000 THEN '500-2K' WHEN "ART_PRE1" < 10000 THEN '2K-10K' ELSE '10K+' END as rango, COUNT(*) as cantidad FROM "Articulo" GROUP BY rango ORDER BY rango`
     )
 
     const totalValor = await db.articulo.aggregate({

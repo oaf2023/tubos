@@ -40,7 +40,7 @@ export async function GET() {
         inicioSeisMeses
       ),
       db.$queryRawUnsafe<{ provincia: string; cantidad: bigint }[]>(
-        `SELECT "provincia", COUNT(*) as cnt FROM "Cliente" WHERE "provincia" IS NOT NULL AND "provincia" != '' GROUP BY "provincia" ORDER BY cnt DESC LIMIT 10`
+        `SELECT "provincia", COUNT(*) as cantidad FROM "Cliente" WHERE "provincia" IS NOT NULL AND "provincia" != '' GROUP BY "provincia" ORDER BY cantidad DESC LIMIT 10`
       ),
       db.alerta.findMany({ orderBy: { fecha: 'desc' }, take: 5 }),
     ])
