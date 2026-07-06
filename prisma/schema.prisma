@@ -106,6 +106,39 @@ enum EstadoFactura {
   BORRADOR
 }
 
+enum TipoDocumentoComercial {
+  FACTURA
+  NOTA_CREDITO
+  NOTA_DEBITO
+  PRESUPUESTO
+  REMITO
+  ORDEN_INTERNA
+}
+
+enum EstadoDocumentoComercial {
+  BORRADOR
+  PENDIENTE
+  EMITIDO
+  PAGADO
+  VENCIDO
+  ANULADO
+}
+
+enum OrigenDocumentoComercial {
+  MANUAL
+  REMITO
+  PEDIDO
+  ARTICULO
+  GAS
+  MERCADOLIBRE
+  MERCADOPAGO
+}
+
+enum MonedaDocumento {
+  ARS
+  USD
+}
+
 enum TipoItemFactura {
   ALQUILER
   GAS
@@ -575,6 +608,170 @@ model FacturaItem {
   precioUnitario  Decimal @default(0)
   subtotal        Decimal @default(0)
   createdAt       DateTime @default(now())
+}
+
+model ConfiguracionFiscal {
+  id                          String   @id @default("default")
+  razonSocial                 String   @default("JULIO CONTI S.R.L.")
+  nombreComercial             String   @default("DISTRICON")
+  cuit                        String   @default("30-70921386-1")
+  domicilioComercial          String   @default("Avda. Savio 1715-2900-San Nicolas-Buenos Aires")
+  telefono                    String   @default("0336-4460102")
+  email                       String   @default("ventasdistricon@hotmail.com")
+  web                         String   @default("www.districon.com.ar")
+  condicionIva                String   @default("Resp.Inscripto")
+  ingresosBrutos              String   @default("30-70921386-1")
+  fechaInicioActividades      String   @default("08/04/2005")
+  monedaDefault               MonedaDocumento @default(ARS)
+  tipoCambioSugerido          Decimal  @default(1)
+  permitirUsd                 Boolean  @default(true)
+  ivaDefaultArticulos         Decimal  @default(21)
+  ivaDefaultGases             Decimal  @default(21)
+  ivaDefaultServicios         Decimal  @default(21)
+  permitirCaeManual           Boolean  @default(true)
+  requerirCaeParaFiscal       Boolean  @default(false)
+  mostrarArcaSiCaeVacio       Boolean  @default(false)
+  modoArca                    String   @default("MANUAL")
+  retencionDocumentalAnios    Int      @default(10)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model DocumentoNumerador {
+  id                String   @id @default(cuid())
+  tipoDocumento     TipoDocumentoComercial
+  letra             String
+  codigoComprobante String   @default("00")
+  abreviatura       String
+  puntoVenta        String
+  ultimoNumero      Int      @default(0)
+  fiscal            Boolean  @default(false)
+  sinValidezFiscal  Boolean  @default(true)
+  copias            String   @default("ORIGINAL,DUPLICADO")
+  activo            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tipoDocumento, letra, puntoVenta])
+  @@index([tipoDocumento])
+}
+
+model DocumentoComercial {
+  id                       String   @id @default(cuid())
+  tipoDocumento            TipoDocumentoComercial
+  letra                    String
+  codigoComprobante        String   @default("00")
+  abreviatura              String
+  puntoVenta               String
+  numero                   Int
+  numeroFormateado         String
+  fecha                    DateTime @default(now())
+  fechaVencimiento         DateTime?
+  periodoDesde             DateTime?
+  periodoHasta             DateTime?
+  estado                   EstadoDocumentoComercial @default(BORRADOR)
+  fiscal                   Boolean  @default(false)
+  sinValidezFiscal         Boolean  @default(true)
+
+  clienteId                String?
+  clienteCodigo            String?
+  clienteNombre            String
+  clienteDocumentoTipo     String?
+  clienteDocumentoNumero   String?
+  clienteCondicionIva      String?
+  clienteDomicilio         String?
+  clienteLocalidad         String?
+  clienteProvincia         String?
+  clientePais              String?  @default("ARGENTINA")
+  clienteTelefono          String?
+
+  moneda                   MonedaDocumento @default(ARS)
+  tipoCambio               Decimal @default(1)
+  listaPrecio              String?  @default("1")
+  operador                 String?
+  condicionVenta           String?  @default("Cuenta Corriente")
+
+  origen                   OrigenDocumentoComercial @default(MANUAL)
+  origenId                 String?
+  remitoIds                String?  @default("")
+  pedidoIds                String?  @default("")
+
+  mlOrderId                String?
+  mlSaleNumber             String?
+  mlShipmentId             String?
+  mlTrackingCode           String?
+  mlBuyerName              String?
+  mlBuyerDocument          String?
+  mlBuyerAddress           String?
+
+  mpPaymentId              String?
+  mpPaymentMethod          String?
+  mpPaymentStatus          String?
+  mpPaidAmount             Decimal?
+
+  cae                      String?
+  caeVencimiento           DateTime?
+  codigoAutorizacion       String?
+  qrPayload                String?
+
+  netoGravado              Decimal @default(0)
+  iva21                    Decimal @default(0)
+  iva105                   Decimal @default(0)
+  iva27                    Decimal @default(0)
+  iva5                     Decimal @default(0)
+  iva25                    Decimal @default(0)
+  iva0                     Decimal @default(0)
+  netoExento               Decimal @default(0)
+  netoNoGravado            Decimal @default(0)
+  percepciones             Decimal @default(0)
+  otrosTributos            Decimal @default(0)
+  total                    Decimal @default(0)
+  totalPesos               Decimal @default(0)
+
+  observaciones            String?
+  items                    DocumentoComercialItem[]
+  tributos                 DocumentoComercialTributo[]
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([tipoDocumento])
+  @@index([estado])
+  @@index([fecha])
+  @@index([clienteId])
+}
+
+model DocumentoComercialItem {
+  id                    String   @id @default(cuid())
+  documentoId           String
+  documento             DocumentoComercial @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  codigo                String?
+  detalle               String
+  cantidad              Decimal @default(1)
+  unidad                String?  @default("unidades")
+  precioUnitario        Decimal @default(0)
+  bonificacionPorcentaje Decimal @default(0)
+  alicuotaIva           Decimal @default(21)
+  importeIva            Decimal @default(0)
+  subtotal              Decimal @default(0)
+  subtotalConIva        Decimal @default(0)
+  articuloId            Int?
+  gasId                 String?
+  cylinderId            String?
+  remitoItemId          String?
+  pedidoItemId          String?
+  mlOrderItemId         String?
+  createdAt             DateTime @default(now())
+}
+
+model DocumentoComercialTributo {
+  id          String   @id @default(cuid())
+  documentoId String
+  documento   DocumentoComercial @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  descripcion String
+  detalle     String?
+  alicuota    Decimal @default(0)
+  importe     Decimal @default(0)
+  createdAt   DateTime @default(now())
 }
 
 model Cliente {

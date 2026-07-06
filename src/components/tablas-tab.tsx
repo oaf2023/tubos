@@ -43,6 +43,7 @@ import { SgaBadge } from '@/lib/tab-constants'
 import type { Gas, Location } from '@/lib/tab-types'
 
 const LocationPicker = dynamic(() => import('@/components/location-picker'), { ssr: false })
+const ConfiguracionComprobantes = dynamic(() => import('@/components/configuracion-comprobantes'), { ssr: false, loading: () => <Skeleton className="h-64 rounded-xl" /> })
 
 const TABLAS_BASE = [
   { key: 'gases', label: 'Gases', icon: 'FlaskConical' },
@@ -50,6 +51,7 @@ const TABLAS_BASE = [
   { key: 'usuarios', label: 'Usuarios', icon: 'Users' },
   { key: 'alertconfig', label: 'Alertas', icon: 'Bell' },
   { key: 'operaciones-pedido', label: 'Operaciones Pedido', icon: 'ShoppingCart' },
+  { key: 'comprobantes-config', label: 'Comprobantes', icon: 'FileText' },
 ] as const
 
 export default function TablasTab() {
@@ -67,7 +69,8 @@ export default function TablasTab() {
   const nivelAcceso = currentUser?.nivelAcceso ?? 99
   const puedeVerUsuarios = nivelAcceso === 0 || nivelAcceso === 5
   const puedeAsignarGerencia = nivelAcceso === 0
-  const TABLAS_DISPONIBLES = TABLAS_BASE.filter(t => t.key !== 'usuarios' || puedeVerUsuarios)
+  const puedeConfigComprobantes = nivelAcceso === 0 && currentUser?.rol?.nombre === 'gerencia'
+  const TABLAS_DISPONIBLES = TABLAS_BASE.filter(t => (t.key !== 'usuarios' || puedeVerUsuarios) && (t.key !== 'comprobantes-config' || puedeConfigComprobantes))
   const [gases, setGases] = useState<Gas[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
@@ -623,6 +626,10 @@ export default function TablasTab() {
                 </Table>
               </div>
             </div>
+          )}
+
+          {tablaActiva === 'comprobantes-config' && puedeConfigComprobantes && (
+            <ConfiguracionComprobantes />
           )}
         </>
       )}

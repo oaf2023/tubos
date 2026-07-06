@@ -97,6 +97,7 @@ const LaboratorioTab = dynamic(() => import('@/components/laboratorio-tab'), { s
 const ConfiguracionTab = dynamic(() => import('@/components/configuracion-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const PedidosTab = dynamic(() => import('@/components/pedidos-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const FacturacionTab = dynamic(() => import('@/components/facturacion-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
+const ComprobantesTab = dynamic(() => import('@/components/comprobantes-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const RemitosTab = dynamic(() => import('@/components/remitos-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const MantenimientoTab = dynamic(() => import('@/components/mantenimiento-tab'), { ssr: false, loading: () => <Skeleton className="h-[400px] rounded-xl" /> })
 const TablasTab = dynamic(() => import('@/components/tablas-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
@@ -255,6 +256,9 @@ export default function Home() {
             <TabsTrigger value="facturacion" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Receipt className="w-4 h-4" /><span>Facturación</span>
             </TabsTrigger>
+            <TabsTrigger value="comprobantes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <FileText className="w-4 h-4" /><span>Comprobantes</span>
+            </TabsTrigger>
             <TabsTrigger value="remitos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <ClipboardList className="w-4 h-4" /><span>Entrega/Remitos</span>
             </TabsTrigger>
@@ -341,6 +345,11 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="facturacion">
             <FacturacionTab />
+          </TabsContent>
+          <TabsContent value="comprobantes">
+            <TabErrorBoundary name="Comprobantes">
+              <ComprobantesTab />
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="remitos">
             <RemitosTab />
