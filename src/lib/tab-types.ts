@@ -174,15 +174,23 @@ export interface AlertaPorGas {
 }
 
 export interface Stats {
-  total: number
-  porEstado: { estado: string; cantidad: number }[]
-  porGas: { gas: Gas; cantidad: number; capacidadTotal: number }[]
-  porCapacidad: { capacidad: number; cantidad: number }[]
-  porUbicacion: { ubicacion: string; provincia: string; cantidad: number }[]
-  enAlertaVencimiento: Cylinder[]
-  alertasPorGas: AlertaPorGas[]
-  totalAlertas: number
-  capacidadTotalLitros: number
+  clientesActivos: number
+  clientesMorosos: number
+  pedidosPendientes: number
+  pedidosHoy: number
+  facturasPendientes: number
+  totalPendienteARS: number
+  rutasActivasHoy: number
+  conductoresEnLinea: number
+  vehiculosDisponibles: number
+  alertasSinResolver: number
+  alertasCriticas: number
+  totalCylinders: number
+  cylindersPHVencidos: number
+  pedidosPorEstado: { estado: string; cantidad: number }[]
+  facturacionMensual: { mes: string; total: number }[]
+  clientesPorProvincia: { provincia: string; cantidad: number }[]
+  alertasRecientes: { id: string; tipo: string; mensaje: string; nivel: string; fecha: string; resuelta: boolean }[]
 }
 
 export interface Articulo {
