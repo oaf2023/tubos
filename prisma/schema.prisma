@@ -1711,6 +1711,46 @@ model ConciliacionOperacion {
   @@index([status])
 }
 
+model Articulo {
+  ART_CODI  Int      @id
+  ART_DET1  String
+  ART_COD1  String?
+  ART_COD2  String?
+  ART_COD3  String?
+  ART_PRE1  Float?
+  ART_PRE2  Float?
+  ART_PRE3  Float?
+  ART_PRE4  Float?
+  ART_COST  Float?
+  ART_TIVA  Int?
+  ART_STIN  Float?
+  ART_SMIN  Float?
+  ART_SMAX  Float?
+  ART_UNID  String?
+  ART_MARC  Int?
+  ART_RUBR  Int?
+  ART_SUBR  Int?
+  ART_DPTO  Int?
+  ART_DTO1  Float?
+  ART_DTO2  Float?
+  ART_DTO3  Float?
+  ART_DTOG  Float?
+  ART_LIST  Int?
+  ART_OFER  Int?
+  ART_POFE  Float?
+  ART_FLET  Float?
+  ART_OBS   String?
+  ART_DET2  String?
+  ART_DET3  String?
+  ART_DET4  String?
+  datos     Json     @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Articulo")
+}
+
 model AuditoriaSincronizacion {
   id              String   @id @default(cuid())
   tipo            String   // ML_ORDERS, ML_SHIPMENTS, MP_PAYMENTS, MP_MOVEMENTS
