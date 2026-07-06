@@ -1,0 +1,9 @@
+{
+  "name": "appdistricon-frontend",
+  "private": true,
+  "description": "Frontend static export builder for AppDistricon",
+  "scripts": {
+    "build": "pwsh -ExecutionPolicy Bypass -File build.ps1",
+    "build:cmd": "powershell -ExecutionPolicy Bypass -File build.ps1"
+  }
+}
