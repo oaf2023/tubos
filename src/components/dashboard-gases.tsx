@@ -37,7 +37,7 @@ export default function DashboardGases() {
   const load = useCallback(async () => {
     try {
       const [statsRes, cylRes, gasRes, cliRes] = await Promise.all([
-        fetch('/api/stats'),
+        fetch('/api/stats/gases'),
         fetch('/api/cylinders'),
         fetch('/api/gases'),
         fetch('/api/clientes?activo=true'),
