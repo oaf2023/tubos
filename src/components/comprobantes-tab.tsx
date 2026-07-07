@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 
-type Item = { codigo?: string; detalle: string; cantidad: number; unidad?: string; precioUnitario: number; bonificacionPorcentaje?: number; alicuotaIva: number; subtotal?: number; articuloId?: number; gasId?: string }
+type Item = { codigo?: string; detalle: string; cantidad: number; unidad?: string; precioUnitario: number; bonificacionPorcentaje?: number; alicuotaIva: number; subtotal?: number; articuloId?: number; gasId?: string; pedidoItemId?: string }
 type Doc = any
 
 const TIPO_OPTIONS = [
@@ -36,84 +36,91 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
   const fiscal = !!doc.fiscal
   const esRemito = doc.tipoDocumento === 'REMITO'
   const showTotales = !esRemito
-  const titulo = doc.tipoDocumento === 'NOTA_CREDITO' ? 'NOTA DE CREDITO' : doc.tipoDocumento === 'ORDEN_INTERNA' ? 'COMPROBANTE INTERNO' : doc.tipoDocumento
+  const tituloBase = doc.tipoDocumento === 'NOTA_CREDITO' ? 'NOTA DE CRÉDITO' : doc.tipoDocumento === 'ORDEN_INTERNA' ? 'COMPROBANTE INTERNO' : doc.tipoDocumento
+  const titulo = `${tituloBase || 'COMPROBANTE'} ${doc.letra || ''}`.trim()
+  const fecha = new Date(`${String(doc.fecha || today()).slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR')
+  const numero = doc.numeroFormateado && doc.numeroFormateado !== 'Vista previa' ? doc.numeroFormateado : 'Nº a asignar al guardar'
+  const items = doc.items || []
   return (
-    <div className="bg-white text-black border border-black w-full max-w-[820px] mx-auto text-[11px] leading-tight font-sans print:shadow-none">
-      <div className="text-center font-bold text-sm border-b border-black">({copia})</div>
-      <div className="grid grid-cols-[1fr_70px_1fr] border-b border-black min-h-32">
-        <div className="p-4 border-r border-black">
-          <div className="text-3xl font-black tracking-tight">{config?.nombreComercial || 'DISTRICON'}</div>
-          <div className="font-bold text-sm mb-3">FERRETERIA INDUSTRIAL</div>
-          <div className="font-semibold">{config?.razonSocial || 'JULIO CONTI S.R.L.'}</div>
-          <div>{config?.domicilioComercial}</div>
-          <div>{config?.telefono}</div>
-          <div className="italic">{config?.email} - {config?.web}</div>
+    <div className="mx-auto w-full max-w-[820px] overflow-hidden border-2 border-slate-900 bg-white font-sans text-[10px] leading-[1.3] text-slate-950 shadow-sm print:max-w-none print:shadow-none">
+      <div className="border-b-2 border-slate-900 bg-slate-100 py-1.5 text-center text-xs font-black tracking-[0.18em]">{copia}</div>
+      <div className="grid min-h-40 grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] border-b-2 border-slate-900">
+        <div className="border-r border-slate-900 p-4">
+          <div className="break-words text-[clamp(20px,3vw,30px)] font-black leading-none tracking-tight">{config?.nombreComercial || 'DISTRICON'}</div>
+          <div className="mb-4 mt-1 text-xs font-bold tracking-wide">FERRETERÍA INDUSTRIAL</div>
+          <div className="font-bold">{config?.razonSocial || 'JULIO CONTI S.R.L.'}</div>
+          <div>{config?.domicilioComercial || 'Domicilio comercial no configurado'}</div>
+          {config?.telefono && <div>Tel. {config.telefono}</div>}
+          <div className="mt-1 break-all italic">{[config?.email, config?.web].filter(Boolean).join(' · ')}</div>
         </div>
-        <div className="border-r border-black flex flex-col items-center justify-start pt-2">
-          <div className="border border-black w-12 h-14 flex flex-col items-center justify-center">
-            <div className="text-3xl font-light">{doc.letra}</div>
-            <div className="text-[9px]">Cod.{doc.codigoComprobante}</div>
+        <div className="flex justify-center border-r border-slate-900 pt-3">
+          <div className="flex h-16 w-14 flex-col items-center justify-center border-[3px] double border-slate-950 bg-white">
+            <div className="text-3xl font-black leading-none">{doc.letra}</div>
+            <div className="mt-1 text-[8px] font-bold">CÓD. {doc.codigoComprobante}</div>
           </div>
         </div>
-        <div className="p-3">
-          <div className="text-2xl font-black">{titulo}</div>
-          <div className="text-lg font-bold">{doc.numeroFormateado || `${doc.abreviatura} ${doc.letra}`}</div>
-          <div className="text-xl font-black mt-2">Fecha: {new Date(doc.fecha || Date.now()).toLocaleDateString('es-AR')}</div>
-          <div className="mt-3">Cuit:{config?.cuit} - {config?.condicionIva}</div>
-          <div>Ing.Brutos: {config?.ingresosBrutos}</div>
-          <div>Inicio Actividades: {config?.fechaInicioActividades}</div>
-          <div className="italic">{fiscal ? `(FACTURA ELECTRONICA CAE: ${doc.cae || 'MANUAL/PENDIENTE'})` : '(COMPROBANTE SIN VALIDEZ FISCAL)'}</div>
+        <div className="p-4">
+          <div className="text-[clamp(17px,2.5vw,25px)] font-black leading-none">{titulo}</div>
+          <div className="mt-2 text-sm font-bold">{numero}</div>
+          <div className="mt-3 flex items-baseline gap-2"><span className="font-bold uppercase text-slate-500">Fecha</span><span className="text-base font-black">{fecha}</span></div>
+          <div className="mt-3 space-y-0.5">
+            <div><b>CUIT Nº:</b> {config?.cuit || '—'}</div>
+            <div><b>Ingresos Brutos:</b> {config?.ingresosBrutos || '—'}</div>
+            <div><b>Inicio de actividades:</b> {config?.fechaInicioActividades || '—'}</div>
+            <div><b>Condición IVA:</b> {config?.condicionIva || '—'}</div>
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 border-b border-black min-h-20">
-        <div className="p-3 border-r border-black">
-          <div>{doc.clienteCodigo ? `${doc.clienteCodigo}-` : ''}{doc.clienteNombre}</div>
-          <div>{doc.clienteDomicilio || 'SIN DOMICILIO'}</div>
-          <div>{doc.clienteLocalidad || ''} {doc.clienteProvincia || ''} {doc.clientePais || 'ARGENTINA'}</div>
-          <div>{doc.clienteTelefono || ''}</div>
-          <div>{doc.clienteCondicionIva || 'Consumidor Final'} - {doc.clienteDocumentoTipo || 'C.U.I.T.'}: {doc.clienteDocumentoNumero || ''} IB:</div>
+      <div className="grid min-h-24 grid-cols-2 border-b-2 border-slate-900">
+        <div className="border-r border-slate-900 p-3">
+          <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">Cliente</div>
+          <div className="text-xs font-black">{doc.clienteCodigo ? `${doc.clienteCodigo} · ` : ''}{doc.clienteNombre || 'Seleccioná un cliente'}</div>
+          <div>{doc.clienteDomicilio || 'Sin domicilio informado'}</div>
+          <div>{[doc.clienteLocalidad, doc.clienteProvincia, doc.clientePais || 'Argentina'].filter(Boolean).join(' · ')}</div>
+          <div className="mt-1"><b>{doc.clienteDocumentoTipo || 'CUIT'}:</b> {doc.clienteDocumentoNumero || '—'} · <b>IVA:</b> {doc.clienteCondicionIva || 'Consumidor Final'}</div>
         </div>
         <div className="p-3">
-          <div>Moneda: {doc.moneda === 'USD' ? 'U$S (Dólares)' : '$ (Pesos)'}</div>
-          <div>Lista: {doc.listaPrecio || '1'}</div>
-          {fiscal && <><div>Conceptos Emitidos: 1:Producto</div><div>Fecha Vencimiento: {doc.fechaVencimiento ? new Date(doc.fechaVencimiento).toLocaleDateString('es-AR') : '-'}</div></>}
-          <div className="text-right mt-6">Op: {doc.operador || '0003-conti julio'}</div>
+          <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">Condiciones comerciales</div>
+          <div><b>Moneda:</b> {doc.moneda === 'USD' ? 'U$S (Dólares)' : '$ (Pesos argentinos)'}</div>
+          <div><b>Condición de venta:</b> {doc.condicionVenta || 'Cuenta Corriente'}</div>
+          <div><b>Lista de precios:</b> {doc.listaPrecio || '1'}</div>
+          {fiscal && <div><b>Concepto:</b> Productos</div>}
+          <div className="mt-2 text-right text-[9px] text-slate-600">Operador: {doc.operador || 'conti julio'}</div>
         </div>
       </div>
-      <table className="w-full border-collapse text-[10px]">
+      <table className="w-full table-fixed border-collapse text-[9px]">
         <thead>
-          <tr className="bg-slate-200 border-b border-black">
-            <th className="border-r border-black text-left w-28">CODIGO</th><th className="border-r border-black text-left">DETALLE</th><th className="border-r border-black text-right w-16">CANTIDAD</th>
-            {!esRemito && <><th className="border-r border-black text-right w-20">PRECIO</th><th className="border-r border-black text-right w-12">IVA</th><th className="border-r border-black text-right w-12">IMP</th><th className="text-right w-24">SUBTOTAL</th></>}
+          <tr className="border-b-2 border-slate-900 bg-slate-200">
+            <th className="w-[14%] border-r border-slate-900 px-1.5 py-1.5 text-left">CÓDIGO</th><th className="border-r border-slate-900 px-1.5 text-left">DETALLE</th><th className="w-[12%] border-r border-slate-900 px-1.5 text-right">CANT.</th>
+            {!esRemito && <><th className="w-[14%] border-r border-slate-900 px-1.5 text-right">PRECIO UNIT.</th><th className="w-[8%] border-r border-slate-900 px-1.5 text-right">IVA</th><th className="w-[15%] px-1.5 text-right">SUBTOTAL</th></>}
           </tr>
         </thead>
         <tbody>
-          {(doc.items || []).map((it: any, i: number) => (
-            <tr key={i} className="border-b border-black/50">
-              <td className="border-r border-black px-1">{it.codigo}</td><td className="border-r border-black px-1 font-bold">{it.detalle}</td><td className="border-r border-black px-1 text-right">{fmt3(it.cantidad)}</td>
-              {!esRemito && <><td className="border-r border-black px-1 text-right">{fmt(it.precioUnitario)}</td><td className="border-r border-black px-1 text-right">{Number(it.alicuotaIva || 0).toFixed(2)}%</td><td className="border-r border-black px-1 text-right"></td><td className="px-1 text-right font-bold">{fmt(it.subtotal)}</td></>}
+          {items.map((it: any, i: number) => (
+            <tr key={i} className="border-b border-slate-300 align-top">
+              <td className="border-r border-slate-400 px-1.5 py-2 break-words">{it.codigo}</td><td className="border-r border-slate-400 px-1.5 py-2 font-semibold break-words">{it.detalle}</td><td className="border-r border-slate-400 px-1.5 py-2 text-right">{fmt3(it.cantidad)}</td>
+              {!esRemito && <><td className="border-r border-slate-400 px-1.5 py-2 text-right">{fmt(it.precioUnitario)}</td><td className="border-r border-slate-400 px-1.5 py-2 text-right">{Number(it.alicuotaIva || 0).toLocaleString('es-AR')}%</td><td className="px-1.5 py-2 text-right font-bold">{fmt(it.subtotal)}</td></>}
             </tr>
           ))}
-          <tr><td className="border-r border-black h-[360px]" /><td className="border-r border-black" /><td className="border-r border-black" />{!esRemito && <><td className="border-r border-black" /><td className="border-r border-black" /><td className="border-r border-black" /><td /></>}</tr>
+          {!items.length && <tr><td colSpan={esRemito ? 3 : 6} className="h-28 py-10 text-center italic text-slate-400">Los ítems agregados aparecerán aquí</td></tr>}
+          <tr className="h-28"><td className="border-r border-slate-300" /><td className="border-r border-slate-300" /><td className="border-r border-slate-300" />{!esRemito && <><td className="border-r border-slate-300" /><td className="border-r border-slate-300" /><td /></>}</tr>
         </tbody>
       </table>
-      {showTotales && <div className="grid grid-cols-[1fr_180px] border-t border-black">
-        <div>
-          <div className="grid grid-cols-9 text-[10px] border-b border-black text-center">
-            <span>Neto Grav.</span><span>Iva:21.00%</span><span>Neto Otro</span><span>Iva:10.50%</span><span>Iva Otro</span><span>No Categ.</span><span>Neto Exento</span><span>N.NoGrav.</span><span>Percep.</span>
-            <span>{fmt(doc.netoGravado)}</span><span>{fmt(doc.iva21)}</span><span>0,00</span><span>{fmt(doc.iva105)}</span><span>0,00</span><span>0,00</span><span>{fmt(doc.netoExento)}</span><span>{fmt(doc.netoNoGravado)}</span><span>{fmt(doc.percepciones)}</span>
-          </div>
-          <div className="p-2 border-b border-black">Pagado: {doc.mpPaymentMethod || doc.condicionVenta || ''}</div>
+      {showTotales && <div className="grid grid-cols-[1fr_210px] border-t-2 border-slate-900">
+        <div className="grid grid-cols-2 content-start gap-x-4 gap-y-1 p-3 text-right">
+          <span className="text-slate-500">Neto gravado</span><b className="font-mono">$ {fmt(doc.netoGravado)}</b>
+          {!!Number(doc.iva21) && <><span className="text-slate-500">IVA 21%</span><b className="font-mono">$ {fmt(doc.iva21)}</b></>}
+          {!!Number(doc.iva105) && <><span className="text-slate-500">IVA 10,5%</span><b className="font-mono">$ {fmt(doc.iva105)}</b></>}
+          {!!Number(doc.percepciones) && <><span className="text-slate-500">Percepciones</span><b className="font-mono">$ {fmt(doc.percepciones)}</b></>}
         </div>
-        <div className="border-l border-black p-2 text-right">
-          <div className="text-xs">TOTAL {doc.moneda === 'USD' ? 'U$S (Dólares)' : '$ (Pesos)'}</div>
-          <div className="text-3xl font-black">{fmt(doc.total)}</div>
+        <div className="border-l-2 border-slate-900 bg-slate-100 p-3 text-right">
+          <div className="text-[9px] font-bold uppercase tracking-wider">Total {doc.moneda === 'USD' ? 'U$S' : 'ARS'}</div>
+          <div className="mt-1 text-2xl font-black">$ {fmt(doc.total)}</div>
         </div>
       </div>}
-      <div className="border-t border-black min-h-16 p-2 whitespace-pre-wrap">Observaciones:
-{doc.observaciones || ''}</div>
-      <div className="border-t border-black min-h-20 flex items-center gap-6 p-3">
-        {fiscal ? <><div className="w-20 h-20 border border-black grid place-items-center text-[9px]">QR ARCA</div><div className="font-bold">ARCA<br /><span className="text-[10px]">Comprobante Autorizado</span></div><div className="flex-1 h-8 border-y border-black bg-[repeating-linear-gradient(90deg,#000_0,#000_2px,#fff_2px,#fff_5px)]" /><div className="font-bold text-right">CAE: {doc.cae || '-'}<br />Vto CAE: {doc.caeVencimiento ? new Date(doc.caeVencimiento).toLocaleDateString('es-AR') : '-'}</div></> : <div className="mx-auto w-80 h-8 bg-[repeating-linear-gradient(90deg,#000_0,#000_2px,#fff_2px,#fff_5px)]" />}
+      <div className="min-h-14 border-t border-slate-900 p-3 whitespace-pre-wrap"><b>Observaciones</b><br />{doc.observaciones || '—'}</div>
+      <div className="flex min-h-24 items-center gap-4 border-t-2 border-slate-900 p-3">
+        {fiscal ? <><div className="grid h-16 w-16 shrink-0 place-items-center border-2 border-slate-900 text-center text-[8px] font-bold">QR<br />ARCA</div><div><div className="text-lg font-black tracking-tight">ARCA</div><div className="font-bold uppercase">Comprobante autorizado</div></div><div className="flex-1" /><div className="text-right font-bold">CAE Nº {doc.cae || 'Pendiente'}<br />Vto. CAE: {doc.caeVencimiento ? new Date(doc.caeVencimiento).toLocaleDateString('es-AR') : '—'}</div></> : <div className="mx-auto border-2 border-slate-900 px-8 py-2 font-black tracking-widest">SIN VALIDEZ FISCAL</div>}
       </div>
     </div>
   )
@@ -203,7 +210,7 @@ export default function ComprobantesTab() {
     </div>
     {loading ? <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14" />)}</div> : <div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Número</TableHead><TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Origen</TableHead><TableHead>Moneda</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader><TableBody>{docs.map(d => <TableRow key={d.id}><TableCell><Badge variant="outline">{d.tipoDocumento} {d.letra}</Badge></TableCell><TableCell className="font-mono text-xs">{d.numeroFormateado}</TableCell><TableCell>{new Date(d.fecha).toLocaleDateString('es-AR')}</TableCell><TableCell>{d.clienteNombre}</TableCell><TableCell>{d.origen}</TableCell><TableCell>{d.moneda}</TableCell><TableCell className="text-right font-mono">{fmt(d.total)}</TableCell><TableCell><Badge>{d.estado}</Badge></TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => setPreview(d)}><Eye className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="text-red-500" onClick={async () => { if(confirm('¿Eliminar comprobante?')) { await fetch(`/api/comprobantes/${d.id}`, { method: 'DELETE' }); load() } }}><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>)}</TableBody></Table></div>}
 
-    <Dialog open={dialog} onOpenChange={setDialog}><DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto"><DialogHeader><DialogTitle>Nuevo Comprobante</DialogTitle></DialogHeader><div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><strong>Cómo usar esta pantalla:</strong> cargá los datos en la columna izquierda. La hoja de la derecha es solo una vista previa visual del comprobante; el número definitivo y los totales fiscales se asignan al presionar <strong>Guardar</strong>.</div><div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] gap-5"><div className="space-y-4"><div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">1. Datos principales</div><div className="text-xs text-slate-500">Elegí tipo, fecha, moneda, cliente y condición de venta.</div></div>
+    <Dialog open={dialog} onOpenChange={setDialog}><DialogContent className="!w-[96vw] !max-w-[1400px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle>Nuevo Comprobante</DialogTitle></DialogHeader><div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><strong>Cómo usar esta pantalla:</strong> cargá los datos en la columna izquierda. La hoja de la derecha es solo una vista previa visual del comprobante; el número definitivo y los totales fiscales se asignan al presionar <strong>Guardar</strong>.</div><div className="grid grid-cols-1 2xl:grid-cols-[minmax(480px,0.8fr)_minmax(620px,1.2fr)] gap-5"><div className="min-w-0 space-y-4"><div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">1. Datos principales</div><div className="text-xs text-slate-500">Elegí tipo, fecha, moneda, cliente y condición de venta.</div></div>
       <div className="grid grid-cols-3 gap-3"><div><Label>Tipo</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.tipo} onChange={e => setForm((f: any) => ({ ...f, tipo: e.target.value }))}>{TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div><div><Label>Fecha</Label><Input type="date" value={form.fecha} onChange={e => setForm((f: any) => ({ ...f, fecha: e.target.value }))} /></div><div><Label>Estado</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.estado} onChange={e => setForm((f: any) => ({ ...f, estado: e.target.value }))}><option>BORRADOR</option><option>PENDIENTE</option><option>EMITIDO</option><option>PAGADO</option></select></div></div>
       <div className="grid grid-cols-3 gap-3"><div><Label>Moneda</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.moneda} onChange={e => setForm((f: any) => ({ ...f, moneda: e.target.value }))}><option value="ARS">ARS</option><option value="USD">USD</option></select></div><div><Label>Tipo cambio</Label><Input type="number" step="0.01" value={form.tipoCambio} onChange={e => setForm((f: any) => ({ ...f, tipoCambio: parseFloat(e.target.value) || 1 }))} /></div><div><Label>Condición venta</Label><Input value={form.condicionVenta} onChange={e => setForm((f: any) => ({ ...f, condicionVenta: e.target.value }))} /></div></div>
       <div><Label>Cliente</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.clienteId} onChange={e => setCliente(e.target.value)}><option value="">Seleccionar...</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
@@ -214,7 +221,7 @@ export default function ComprobantesTab() {
       {form.clienteId && <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm">Importar desde remitos/pedidos</div><div className="grid grid-cols-2 gap-2 max-h-36 overflow-auto">{remitos.slice(0,8).map(r => <Button key={r.id} variant="outline" size="sm" onClick={() => setForm((f: any) => ({ ...f, origen: 'REMITO', remitoIds: [...(f.remitoIds || []), r.id], observaciones: `${f.observaciones || ''}\nRemito ${r.numero}` }))}>Remito #{r.numero}</Button>)}{pedidos.slice(0,8).map(p => <Button key={p.id} variant="outline" size="sm" onClick={() => { (p.items || []).forEach((it: any) => addItem({ codigo: '', detalle: it.concepto || 'Ítem pedido', cantidad: 1, unidad: 'unidades', precioUnitario: Number(it.monto || 0), alicuotaIva: 21, pedidoItemId: it.id })); setForm((f: any) => ({ ...f, origen: 'PEDIDO', pedidoIds: [...(f.pedidoIds || []), p.id] })) }}>Pedido #{p.id.slice(-6)}</Button>)}</div></div>}
       <div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">3. Observaciones y datos externos</div><div className="text-xs text-slate-500">Acá van datos de Mercado Libre, Mercado Pago, envío, comprador o referencias internas.</div></div><div><Label>Observaciones / ML / MP</Label><Textarea rows={5} value={form.observaciones} onChange={e => setForm((f: any) => ({ ...f, observaciones: e.target.value }))} placeholder="Venta #, datos de envío, comprador, Mercado Pago, etc." /></div>
       <div className="rounded-lg border overflow-hidden"><Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Detalle</TableHead><TableHead>Cant.</TableHead><TableHead>Precio</TableHead><TableHead>IVA</TableHead><TableHead /></TableRow></TableHeader><TableBody>{form.items.map((it: Item, i: number) => <TableRow key={i}><TableCell>{it.codigo}</TableCell><TableCell className="text-xs">{it.detalle}</TableCell><TableCell><Input className="w-16 h-7" type="number" value={it.cantidad} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, cantidad: parseFloat(e.target.value) || 1 } : x) }))} /></TableCell><TableCell><Input className="w-24 h-7" type="number" value={it.precioUnitario} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, precioUnitario: parseFloat(e.target.value) || 0 } : x) }))} /></TableCell><TableCell><Input className="w-16 h-7" type="number" value={it.alicuotaIva} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, alicuotaIva: parseFloat(e.target.value) || 0 } : x) }))} /></TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(i)}><Trash2 className="w-4 h-4 text-red-500" /></Button></TableCell></TableRow>)}</TableBody></Table></div>
-    </div><div className="space-y-3"><div className="sticky top-0 z-10 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="font-semibold">Vista previa del comprobante</div><div className="text-xs">Esta hoja muestra cómo se verá impreso. No se guarda hasta presionar Guardar. El número real sale del numerador configurado en Tablas.</div></div><div className="rounded-lg border bg-white p-3 shadow-sm"><DocumentoPreview doc={draftPreview} config={config} /></div></div></div><DialogFooter><Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button><Button onClick={save}><Save className="w-4 h-4 mr-1" />Guardar comprobante</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={!!preview} onOpenChange={o => { if(!o) setPreview(null) }}><DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" />Vista previa</DialogTitle></DialogHeader>{preview && <DocumentoPreview doc={preview} config={config} />}</DialogContent></Dialog>
+    </div><div className="min-w-0 space-y-3 2xl:sticky 2xl:top-0 2xl:self-start"><div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="font-semibold">Vista previa del comprobante</div><div className="text-xs">Esta hoja muestra cómo se verá impreso. No se guarda hasta presionar Guardar. El número real sale del numerador configurado en Tablas.</div></div><div className="overflow-x-auto rounded-lg border bg-slate-100 p-3 shadow-sm"><div className="min-w-[620px]"><DocumentoPreview doc={draftPreview} config={config} /></div></div></div></div><DialogFooter><Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button><Button onClick={save}><Save className="w-4 h-4 mr-1" />Guardar comprobante</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={!!preview} onOpenChange={o => { if(!o) setPreview(null) }}><DialogContent className="!w-[96vw] !max-w-[1000px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" />Vista previa</DialogTitle></DialogHeader>{preview && <div className="overflow-x-auto"><div className="min-w-[620px]"><DocumentoPreview doc={preview} config={config} /></div></div>}</DialogContent></Dialog>
   </div>
 }
