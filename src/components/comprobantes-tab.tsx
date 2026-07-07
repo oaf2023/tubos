@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import QRCode from 'qrcode'
 
 type Item = { codigo?: string; detalle: string; cantidad: number; unidad?: string; precioUnitario: number; bonificacionPorcentaje?: number; alicuotaIva: number; subtotal?: number; articuloId?: number; gasId?: string; pedidoItemId?: string }
 type Doc = any
@@ -32,6 +33,45 @@ const fmt = (v: any) => Number(v || 0).toLocaleString('es-AR', { minimumFraction
 const fmt3 = (v: any) => Number(v || 0).toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 const today = () => new Date().toISOString().slice(0, 10)
 
+function formatCUIT(cuit: string) {
+  if (!cuit) return '—'
+  const limpio = cuit.replace(/\D/g, '')
+  if (limpio.length === 11) return `${limpio.slice(0, 2)}-${limpio.slice(2, 10)}-${limpio.slice(10)}`
+  return cuit
+}
+
+function buildArcaQrPayload(doc: any, config: any) {
+  const cuit = (config?.cuit || '').replace(/\D/g, '')
+  const tipoMap: Record<string, string> = { FACTURA_A: '1', FACTURA_B: '6', NOTA_CREDITO_A: '3', PRESUPUESTO_X: '0', REMITO_X: '0', ORDEN_INTERNA_X: '0' }
+  const key = `${doc.tipoDocumento}_${doc.letra}`
+  const payload = {
+    ver: 1,
+    fecha: String(doc.fecha || '').slice(0, 10),
+    cuit: Number(cuit) || 0,
+    ptoVta: Number(doc.puntoVenta) || 0,
+    tipoCmp: Number(tipoMap[key] || '0'),
+    nroCmp: Number(doc.numero) || 0,
+    importe: Number(doc.total || 0),
+    moneda: doc.moneda === 'USD' ? 'DOL' : 'PES',
+    ctz: Number(doc.tipoCambio || 1),
+    tipoDocRec: doc.clienteDocumentoTipo === 'CUIT' || doc.clienteDocumentoTipo === 'C.U.I.T.' ? 80 : doc.clienteDocumentoTipo === 'DNI' || doc.clienteDocumentoTipo === 'D.N.I.' ? 96 : 99,
+    nroDocRec: Number((doc.clienteDocumentoNumero || '').replace(/\D/g, '')) || 0,
+    tipoCodAut: 'E',
+    codAut: Number((doc.cae || '').replace(/\D/g, '')) || 0,
+  }
+  try { return JSON.stringify(payload) } catch { return '' }
+}
+
+function ArcaQRCode({ doc, config }: { doc: any; config: any }) {
+  const [dataUri, setDataUri] = useState<string | null>(null)
+  useEffect(() => {
+    const payload = doc.qrPayload || buildArcaQrPayload(doc, config)
+    if (!payload) return
+    QRCode.toDataURL(payload, { width: 90, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } }).then(setDataUri).catch(() => setDataUri(null))
+  }, [doc, config])
+  return dataUri ? <img src={dataUri} alt="QR ARCA" className="h-[90px] w-[90px] shrink-0 border-2 border-slate-900" /> : <div className="grid h-[90px] w-[90px] shrink-0 place-items-center border-2 border-slate-900 text-center text-[8px] font-bold">QR<br />ARCA</div>
+}
+
 function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; config: any; copia?: string }) {
   const fiscal = !!doc.fiscal
   const esRemito = doc.tipoDocumento === 'REMITO'
@@ -39,11 +79,15 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
   const tituloBase = doc.tipoDocumento === 'NOTA_CREDITO' ? 'NOTA DE CRÉDITO' : doc.tipoDocumento === 'ORDEN_INTERNA' ? 'COMPROBANTE INTERNO' : doc.tipoDocumento
   const titulo = `${tituloBase || 'COMPROBANTE'} ${doc.letra || ''}`.trim()
   const fecha = new Date(`${String(doc.fecha || today()).slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR')
+  const tieneNumero = doc.puntoVenta && doc.numero !== undefined && doc.numero !== null
   const numero = doc.numeroFormateado && doc.numeroFormateado !== 'Vista previa' ? doc.numeroFormateado : 'Nº a asignar al guardar'
   const items = doc.items || []
   return (
     <div className="mx-auto w-full max-w-[820px] overflow-hidden border-2 border-slate-900 bg-white font-sans text-[10px] leading-[1.3] text-slate-950 shadow-sm print:max-w-none print:shadow-none">
-      <div className="border-b-2 border-slate-900 bg-slate-100 py-1.5 text-center text-xs font-black tracking-[0.18em]">{copia}</div>
+      <div className="relative overflow-hidden border-b-2 border-slate-900 bg-yellow-400 py-2 text-center text-xs font-black tracking-[0.18em] text-slate-900">
+        <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.12) 10px, rgba(0,0,0,0.12) 20px)' }} />
+        <span className="relative z-10">{copia}</span>
+      </div>
       <div className="grid min-h-40 grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] border-b-2 border-slate-900">
         <div className="border-r border-slate-900 p-4">
           <div className="break-words text-[clamp(20px,3vw,30px)] font-black leading-none tracking-tight">{config?.nombreComercial || 'DISTRICON'}</div>
@@ -61,10 +105,13 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
         </div>
         <div className="p-4">
           <div className="text-[clamp(17px,2.5vw,25px)] font-black leading-none">{titulo}</div>
-          <div className="mt-2 text-sm font-bold">{numero}</div>
+          {tieneNumero ? <>
+            <div className="mt-2 text-sm font-bold">Punto de Venta: {doc.puntoVenta}</div>
+            <div className="text-sm font-bold">Nº {String(doc.numero).padStart(8, '0')}</div>
+          </> : <div className="mt-2 text-sm font-bold">{numero}</div>}
           <div className="mt-3 flex items-baseline gap-2"><span className="font-bold uppercase text-slate-500">Fecha</span><span className="text-base font-black">{fecha}</span></div>
           <div className="mt-3 space-y-0.5">
-            <div><b>CUIT Nº:</b> {config?.cuit || '—'}</div>
+            <div><b>CUIT Nº:</b> {formatCUIT(config?.cuit)}</div>
             <div><b>Ingresos Brutos:</b> {config?.ingresosBrutos || '—'}</div>
             <div><b>Inicio de actividades:</b> {config?.fechaInicioActividades || '—'}</div>
             <div><b>Condición IVA:</b> {config?.condicionIva || '—'}</div>
@@ -118,10 +165,36 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
           <div className="mt-1 text-2xl font-black">$ {fmt(doc.total)}</div>
         </div>
       </div>}
-      <div className="min-h-14 border-t border-slate-900 p-3 whitespace-pre-wrap"><b>Observaciones</b><br />{doc.observaciones || '—'}</div>
-      <div className="flex min-h-24 items-center gap-4 border-t-2 border-slate-900 p-3">
-        {fiscal ? <><div className="grid h-16 w-16 shrink-0 place-items-center border-2 border-slate-900 text-center text-[8px] font-bold">QR<br />ARCA</div><div><div className="text-lg font-black tracking-tight">ARCA</div><div className="font-bold uppercase">Comprobante autorizado</div></div><div className="flex-1" /><div className="text-right font-bold">CAE Nº {doc.cae || 'Pendiente'}<br />Vto. CAE: {doc.caeVencimiento ? new Date(doc.caeVencimiento).toLocaleDateString('es-AR') : '—'}</div></> : <div className="mx-auto border-2 border-slate-900 px-8 py-2 font-black tracking-widest">SIN VALIDEZ FISCAL</div>}
-      </div>
+      <div className="min-h-14 border-t-2 border-slate-900 p-3 whitespace-pre-wrap text-[9px]"><b className="text-[10px]">Observaciones</b><br />{doc.observaciones || '—'}</div>
+      {fiscal ? <div className="border-t-2 border-slate-900">
+        <div className="flex items-start gap-4 p-3">
+          <ArcaQRCode doc={doc} config={config} />
+          <div className="min-w-0">
+            <div className="text-lg font-black tracking-tight text-slate-900">ARCA</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Comprobante Autorizado</div>
+            <div className="mt-1.5 text-[9px] leading-relaxed text-slate-700">
+              La representación gráfica de este comprobante fue generada por el sistema de facturación del contribuyente y cumple con los requisitos de la RG 4291 y RG 4892.
+            </div>
+          </div>
+          <div className="ml-auto shrink-0 text-right">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">CAE</div>
+            <div className="mt-0.5 font-mono text-sm font-black text-slate-900 tracking-wider">{doc.cae || 'Pendiente'}</div>
+            <div className="mt-1.5 text-[9px] text-slate-600">Venc. CAE: <b className="text-slate-900">{doc.caeVencimiento ? new Date(doc.caeVencimiento).toLocaleDateString('es-AR') : '—'}</b></div>
+          </div>
+        </div>
+        <div className="relative overflow-hidden border-t-2 border-slate-900 bg-yellow-400 py-1.5 text-center text-[9px] font-black tracking-[0.18em] text-slate-900">
+          <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(0,0,0,0.12) 10px, rgba(0,0,0,0.12) 20px)' }} />
+          <span className="relative z-10">ORIGINAL</span>
+        </div>
+      </div> : <div className="border-t-2 border-slate-900">
+        <div className="mx-auto px-8 py-6 text-center">
+          <div className="border-2 border-slate-900 px-8 py-2 font-black tracking-widest text-slate-500 inline-block">SIN VALIDEZ FISCAL</div>
+        </div>
+        <div className="relative overflow-hidden border-t-2 border-slate-900 bg-yellow-400 py-1.5 text-center text-[9px] font-black tracking-[0.18em] text-slate-900">
+          <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(0,0,0,0.12) 10px, rgba(0,0,0,0.12) 20px)' }} />
+          <span className="relative z-10">ORIGINAL</span>
+        </div>
+      </div>}
     </div>
   )
 }

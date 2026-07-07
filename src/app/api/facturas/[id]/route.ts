@@ -21,18 +21,37 @@ export async function PUT(req: NextRequest, { params }: any) {
       estado, fechaVencimiento, fechaDesde, fechaHasta, tipoPeriodo,
       observaciones, subtotal, descuento, impuestos, total,
       saldoAnterior, notasCredito, pagosAplicados, totalGeneral, items,
+      remitoIds, clienteId,
     } = body
 
+    // Obtener factura actual para saber remitos previos
+    const existing = await db.factura.findUnique({ where: { id }, select: { remitoIds: true } })
+
+    // Desmarcar remitos anteriores
+    if (existing?.remitoIds) {
+      const prevIds = existing.remitoIds.split(',').filter(Boolean)
+      if (prevIds.length > 0) {
+        await db.remito.updateMany({
+          where: { id: { in: prevIds } },
+          data: { facturaId: null },
+        })
+      }
+    }
+
     await db.facturaItem.deleteMany({ where: { facturaId: id } })
+
+    const newRemitoIds = remitoIds || []
 
     const factura = await db.factura.update({
       where: { id },
       data: {
         estado: estado ?? undefined,
+        clienteId: clienteId ?? undefined,
         fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : undefined,
         fechaDesde: fechaDesde ? new Date(fechaDesde) : undefined,
         fechaHasta: fechaHasta ? new Date(fechaHasta) : undefined,
         tipoPeriodo: tipoPeriodo ?? undefined,
+        remitoIds: newRemitoIds.join(',') || '',
         subtotal: subtotal ?? undefined,
         descuento: descuento ?? undefined,
         impuestos: impuestos ?? undefined,
@@ -58,6 +77,15 @@ export async function PUT(req: NextRequest, { params }: any) {
       },
       include: { items: true },
     })
+
+    // Marcar nuevos remitos como facturados
+    if (newRemitoIds.length > 0) {
+      await db.remito.updateMany({
+        where: { id: { in: newRemitoIds } },
+        data: { facturaId: id },
+      })
+    }
+
     return NextResponse.json(factura)
   } catch (e) {
     console.error('PUT /api/facturas/[id]', e)
@@ -68,6 +96,17 @@ export async function PUT(req: NextRequest, { params }: any) {
 export async function DELETE(req: NextRequest, { params }: any) {
   try {
     const { id } = params
+    // Desmarcar remitos asociados antes de eliminar
+    const factura = await db.factura.findUnique({ where: { id }, select: { remitoIds: true } })
+    if (factura?.remitoIds) {
+      const remitoIds = factura.remitoIds.split(',').filter(Boolean)
+      if (remitoIds.length > 0) {
+        await db.remito.updateMany({
+          where: { id: { in: remitoIds } },
+          data: { facturaId: null },
+        })
+      }
+    }
     await db.factura.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (e) {

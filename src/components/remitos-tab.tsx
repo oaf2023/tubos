@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,6 +50,7 @@ interface Remito {
   estado: string
   tecnico?: string
   observaciones?: string
+  facturaId?: string | null
   items: RemitoItemData[]
 }
 
@@ -64,6 +65,12 @@ export default function RemitosTab() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [filtroEstado, setFiltroEstado] = useState('all')
+
+  // Factura desde remito
+  const [facturaDialog, setFacturaDialog] = useState(false)
+  const [facturarRemito, setFacturarRemito] = useState<Remito | null>(null)
+  const [facturando, setFacturando] = useState(false)
+  const [facturaPrecios, setFacturaPrecios] = useState<Record<string, number>>({})
 
   const [clienteId, setClienteId] = useState('')
   const [tipo, setTipo] = useState('ENTREGA')
@@ -160,6 +167,7 @@ export default function RemitosTab() {
                 <TableHead>Fecha</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Factura</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -176,8 +184,30 @@ export default function RemitosTab() {
                   <TableCell>
                     <Badge variant={r.estado === 'COMPLETADO' ? 'default' : r.estado === 'PARCIAL' ? 'secondary' : 'outline'}>{r.estado}</Badge>
                   </TableCell>
+                  <TableCell>
+                    {r.facturaId ? (
+                      <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200">
+                        Facturado
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{r.items?.length || 0}</TableCell>
                   <TableCell className="text-right">
+                    {!r.facturaId && (
+                      <Button variant="outline" size="sm" className="mr-1 h-7 text-xs text-orange-600 border-orange-300" onClick={() => {
+                        setFacturarRemito(r)
+                        const precios: Record<string, number> = {}
+                        r.items.forEach((it) => {
+                          if (it.precioUnitario) precios[it.id || it.gasCodigo] = Number(it.precioUnitario)
+                        })
+                        setFacturaPrecios(precios)
+                        setFacturaDialog(true)
+                      }}>
+                        <Receipt className="w-3 h-3 mr-1" /> Facturar
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><Edit3 className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => eliminar(r.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                   </TableCell>
@@ -264,6 +294,120 @@ export default function RemitosTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
             <Button onClick={guardar}>{editingId ? 'Actualizar' : 'Crear Remito'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo Facturar desde Remito */}
+      <Dialog open={facturaDialog} onOpenChange={(o) => { if (!o) { setFacturaDialog(false); setFacturarRemito(null) } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-orange-500" />
+              Facturar Remito #{facturarRemito?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          {facturarRemito && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                <span className="text-slate-500">Cliente:</span>{' '}
+                <span className="font-medium">{facturarRemito.cliente}</span>
+                <span className="ml-4 text-slate-500">Fecha:</span>{' '}
+                <span className="font-medium">{new Date(facturarRemito.fecha).toLocaleDateString()}</span>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-xs text-slate-500">Gas</th>
+                      <th className="text-left px-3 py-2 text-xs text-slate-500">Operación</th>
+                      <th className="text-center px-3 py-2 text-xs text-slate-500">Cant</th>
+                      <th className="text-right px-3 py-2 text-xs text-slate-500">Precio Unit.</th>
+                      <th className="text-right px-3 py-2 text-xs text-slate-500">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {facturarRemito.items.map((it, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="px-3 py-2 font-mono text-xs">{it.gasCodigo}</td>
+                        <td className="px-3 py-2 text-xs">{it.tipoOperacion}</td>
+                        <td className="px-3 py-2 text-center text-xs">{it.cantidad}</td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            className="w-24 text-xs text-right border rounded px-1.5 py-0.5"
+                            value={facturaPrecios[it.id || it.gasCodigo] ?? 0}
+                            onChange={(e) => {
+                              setFacturaPrecios((prev) => ({
+                                ...prev,
+                                [it.id || it.gasCodigo]: parseFloat(e.target.value) || 0,
+                              }))
+                            }}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-xs">
+                          ${((facturaPrecios[it.id || it.gasCodigo] ?? 0) * it.cantidad).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-right text-sm font-bold">
+                Total: ${facturarRemito.items.reduce((s, it) => s + ((facturaPrecios[it.id || it.gasCodigo] ?? 0) * it.cantidad), 0).toLocaleString()}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setFacturaDialog(false); setFacturarRemito(null) }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!facturarRemito) return
+                setFacturando(true)
+                try {
+                  const items = facturarRemito.items.map((it) => ({
+                    concepto: `${it.tipoOperacion === 'VENTA' ? 'Venta' : 'Alquiler'} ${it.gasCodigo}${it.numeroSerie ? ` - ${it.numeroSerie}` : ''}`,
+                    tipo: it.tipoOperacion === 'VENTA' ? 'GAS' : 'ALQUILER',
+                    remitoItemId: it.id,
+                    cylinderId: it.cylinderId || null,
+                    numeroSerie: it.numeroSerie || null,
+                    cantidad: it.cantidad,
+                    precioUnitario: facturaPrecios[it.id || it.gasCodigo] ?? 0,
+                    subtotal: (facturaPrecios[it.id || it.gasCodigo] ?? 0) * it.cantidad,
+                  }))
+                  const total = items.reduce((s, it) => s + it.subtotal, 0)
+                  const res = await fetch('/api/facturas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      clienteId: facturarRemito.clienteId,
+                      cliente: facturarRemito.cliente,
+                      remitoIds: [facturarRemito.id],
+                      items,
+                      subtotal: total,
+                      total,
+                      totalGeneral: total,
+                      estado: 'PENDIENTE',
+                    }),
+                  })
+                  if (!res.ok) throw new Error()
+                  toast({ title: 'Factura creada', description: `Remito #${facturarRemito.numero} facturado correctamente` })
+                  setFacturaDialog(false)
+                  setFacturarRemito(null)
+                  load()
+                } catch {
+                  toast({ title: 'Error', description: 'No se pudo crear la factura', variant: 'destructive' })
+                }
+                setFacturando(false)
+              }}
+              disabled={facturando}
+            >
+              <Save className="w-4 h-4 mr-1" /> {facturando ? 'Creando...' : 'Crear Factura'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

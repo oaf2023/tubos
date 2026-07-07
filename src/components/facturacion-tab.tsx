@@ -82,6 +82,7 @@ interface RemitoItemData {
 interface Remito {
   id: string; numero: number; clienteId: string; cliente: string; fecha: string
   tipo: string; estado: string; tecnico?: string; observaciones?: string
+  facturaId?: string | null
   items: RemitoItemData[]
 }
 
@@ -699,6 +700,76 @@ export default function FacturacionTab() {
                 <span className="text-xs text-slate-400">
                   {remitosEnPeriodo.length} remito(s) en el período para este cliente
                 </span>
+              </div>
+            )}
+
+            {clienteId && (
+              <div>
+                <details className="bg-slate-50 rounded-lg p-3 border">
+                  <summary className="text-sm font-semibold text-slate-700 cursor-pointer flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5" /> Seleccionar remitos manualmente
+                    <span className="text-xs text-slate-400 font-normal ml-1">
+                      ({remitosCliente.filter((r) => !r.facturaId).length} pendientes)
+                    </span>
+                  </summary>
+                  <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                    {remitosCliente.filter((r) => !r.facturaId).length === 0 ? (
+                      <p className="text-xs text-slate-400 py-2">No hay remitos pendientes de facturación</p>
+                    ) : (
+                      remitosCliente
+                        .filter((r) => !r.facturaId)
+                        .map((r) => {
+                          const checked = selectedRemitoIds.includes(r.id)
+                          return (
+                            <label
+                              key={r.id}
+                              className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-white transition-colors ${checked ? 'bg-white border border-orange-200' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="accent-orange-500"
+                                checked={checked}
+                                onChange={() => {
+                                  if (checked) {
+                                    setSelectedRemitoIds((prev) => prev.filter((id) => id !== r.id))
+                                    // Remove items from this remito
+                                    const remitoItemIds = new Set(r.items.map((ri) => ri.id))
+                                    setFacturaItems((prev) => prev.filter((fi) => !fi.remitoItemId || !remitoItemIds.has(fi.remitoItemId)))
+                                  } else {
+                                    setSelectedRemitoIds((prev) => [...prev, r.id])
+                                    // Add items from this remito
+                                    const newItems = r.items.map((ri) => {
+                                      const gasInfo = gasPriceOf(ri.gasCodigo)
+                                      const pu = ri.tipoOperacion === 'ALQUILER' || ri.tipoOperacion === 'CAMBIO'
+                                        ? gasInfo.diario
+                                        : ri.tipoOperacion === 'VENTA'
+                                          ? gasInfo.venta
+                                          : 0
+                                      return {
+                                        concepto: `${ri.tipoOperacion === 'VENTA' ? 'Venta' : 'Alquiler'} ${ri.gasCodigo}${ri.numeroSerie ? ` - ${ri.numeroSerie}` : ''}`,
+                                        tipo: ri.tipoOperacion === 'VENTA' ? 'GAS' : 'ALQUILER',
+                                        remitoItemId: ri.id,
+                                        cylinderId: ri.cylinderId || undefined,
+                                        numeroSerie: ri.numeroSerie || undefined,
+                                        cantidad: ri.cantidad,
+                                        precioUnitario: pu,
+                                        subtotal: pu * ri.cantidad,
+                                      }
+                                    })
+                                    setFacturaItems((prev) => [...prev, ...newItems])
+                                  }
+                                }}
+                              />
+                              <span className="font-medium">#{r.numero}</span>
+                              <span className="text-slate-400">{new Date(r.fecha).toLocaleDateString()}</span>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0">{r.tipo}</Badge>
+                              <span className="text-slate-400">{r.items.length} ítem(s)</span>
+                            </label>
+                          )
+                        })
+                    )}
+                  </div>
+                </details>
               </div>
             )}
 

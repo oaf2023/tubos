@@ -18,27 +18,19 @@ export async function POST(req: NextRequest) {
     const desde = new Date(fechaDesde)
     const hasta = new Date(fechaHasta)
 
-    const [gases, remitos, facturasExistentes] = await Promise.all([
+    const whereRemito: Record<string, unknown> = { clienteId }
+    if (!incluirFacturados) {
+      whereRemito.facturaId = null
+    }
+
+    const [gases, remitos] = await Promise.all([
       db.gas.findMany(),
       db.remito.findMany({
-        where: { clienteId },
+        where: whereRemito,
         include: { items: true },
         orderBy: { fecha: 'asc' },
       }),
-      incluirFacturados ? [] : db.factura.findMany({
-        where: { clienteId, estado: { notIn: ['ANULADA', 'BORRADOR'] } },
-        select: { remitoIds: true },
-      }),
     ])
-
-    const remitosFacturados = new Set<string>()
-    if (!incluirFacturados) {
-      for (const f of facturasExistentes) {
-        for (const id of f.remitoIds.split(',').filter(Boolean)) {
-          remitosFacturados.add(id)
-        }
-      }
-    }
 
     const gasPrecios: Record<string, { diario: number; mensual: number; venta: number; codigo: string; nombre: string }> = {}
     for (const g of gases) {
@@ -55,7 +47,6 @@ export async function POST(req: NextRequest) {
     let subtotal = 0
 
     for (const remito of remitos) {
-      if (remitosFacturados.has(remito.id)) continue
 
       for (const ri of remito.items) {
         const gp = gasPrecios[ri.gasId] || gasPrecios[Object.keys(gasPrecios).find(k => gasPrecios[k].codigo === ri.gasCodigo) || '']

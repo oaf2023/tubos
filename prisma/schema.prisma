@@ -537,6 +537,8 @@ model Remito {
   estado        EstadoRemito     @default(PENDIENTE) // PENDIENTE, COMPLETADO, PARCIAL
   tecnico       String?
   observaciones String?
+  facturaId     String?      // Factura que facturó este remito
+  factura       Factura?     @relation("FacturaRemitos", fields: [facturaId], references: [id])
   items         RemitoItem[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -544,6 +546,7 @@ model Remito {
   @@index([clienteId])
   @@index([estado])
   @@index([fecha])
+  @@index([facturaId])
 }
 
 model RemitoItem {
@@ -586,6 +589,7 @@ model Factura {
   estado           EstadoFactura  @default(PENDIENTE) // PENDIENTE, PAGADA, VENCIDA, ANULADA, BORRADOR
   observaciones    String?
   items            FacturaItem[]
+  remitos          Remito[]       @relation("FacturaRemitos")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

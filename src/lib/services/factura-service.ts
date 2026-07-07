@@ -39,8 +39,9 @@ export async function createFactura(input: CreateFacturaInput) {
 
     const items = input.items || []
     const totalItems = items.reduce((s, it) => s + (it.subtotal || 0), 0)
+    const remitoIds = input.remitoIds || []
 
-    return tx.factura.create({
+    const factura = await tx.factura.create({
       data: {
         numero,
         clienteId: input.clienteId,
@@ -49,7 +50,7 @@ export async function createFactura(input: CreateFacturaInput) {
         fechaDesde: input.fechaDesde ? new Date(input.fechaDesde) : null,
         fechaHasta: input.fechaHasta ? new Date(input.fechaHasta) : null,
         tipoPeriodo: input.tipoPeriodo || null,
-        remitoIds: (input.remitoIds || []).join(','),
+        remitoIds: remitoIds.join(','),
         subtotal: input.subtotal ?? totalItems,
         descuento: input.descuento ?? 0,
         impuestos: input.impuestos ?? 0,
@@ -79,5 +80,15 @@ export async function createFactura(input: CreateFacturaInput) {
       },
       include: { items: true },
     })
+
+    // Marcar remitos como facturados
+    if (remitoIds.length > 0) {
+      await tx.remito.updateMany({
+        where: { id: { in: remitoIds } },
+        data: { facturaId: factura.id },
+      })
+    }
+
+    return factura
   })
 }

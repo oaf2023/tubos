@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Search, Package, GitBranch, Edit3, Trash2, Plus, RefreshCw, X, Save } from 'lucide-react'
+import { Search, Package, GitBranch, Edit3, Trash2, Plus, RefreshCw, X, Save, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { Cylinder, Gas, Location } from '@/lib/tab-types'
+import ScannerInput from '@/components/scanner-input'
 import { SgaBadge, ESTADO_COLORS, ESTADO_LABELS, formatDate, daysUntil, NODE_COLORS } from '@/lib/tab-constants'
 import { ESTADOS, CAPACIDADES_LITROS } from '@/lib/catalogo'
 
@@ -303,14 +304,27 @@ export default function InventarioTab() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[180px]">
+            <div className="flex-1 min-w-[220px]">
               <Label className="text-xs flex items-center gap-1">
-                <Search className="w-3 h-3" /> Número de serie
+                <ScanLine className="w-3 h-3" /> Escanear / Buscar
               </Label>
-              <Input
-                placeholder="Ej: SN-2024-0001"
-                value={filtroSerie}
-                onChange={(e) => setFiltroSerie(e.target.value)}
+              <ScannerInput
+                placeholder="Escanear código, QR o escribir serie..."
+                onScan={async (valor) => {
+                  setFiltroSerie(valor)
+                  try {
+                    const res = await fetch(`/api/cylinders/search?q=${encodeURIComponent(valor)}`)
+                    if (res.ok) {
+                      const cylinder = await res.json()
+                      openEdit(cylinder)
+                      toast({ title: 'Tubo encontrado', description: `${cylinder.numeroSerie} - ${cylinder.gas?.nombre || ''}` })
+                    } else {
+                      toast({ title: 'No encontrado', description: `No se encontró tubo con: ${valor}`, variant: 'destructive' })
+                    }
+                  } catch {
+                    toast({ title: 'Error', description: 'Error al buscar el tubo', variant: 'destructive' })
+                  }
+                }}
               />
             </div>
             <div className="min-w-[160px]">

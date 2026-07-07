@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario Interactivo — Control Digital</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Configuration to match branding -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome for robust UI icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Custom premium scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER BANNER -->
+  <header class="bg-gradient-to-r from-primary-600 to-red-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-white text-primary-600 p-2 rounded-lg shadow-inner">
+          <i class="fa-solid fa-gauge-high text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight">CONTROL DIGITAL</h1>
+          <p class="text-xs text-orange-100 font-medium">Manual de Usuario Interactivo • ManejaDatos</p>
+        </div>
+      </div>
+      
+      <!-- Interactive Role Switcher in Header -->
+      <div class="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+        <span class="text-xs font-semibold mr-2 text-orange-100">Ver como Rol:</span>
+        <select id="global-role-select" onchange="switchRole(this.value)" class="bg-slate-900/60 text-white text-xs rounded-full px-2.5 py-1 font-bold outline-none border-none cursor-pointer focus:ring-1 focus:ring-primary-400">
+          <option value="admin">Administrador (Completo)</option>
+          <option value="deposito">Operador Depósito</option>
+          <option value="reparto">Chofer Reparto</option>
+          <option value="facturacion">Facturación / Adm.</option>
+          <option value="auditor">Auditor (Lectura)</option>
+          <option value="cliente">Cliente (Portal Autónomo)</option>
+        </select>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <button onclick="window.print()" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 border border-white/10">
+          <i class="fa-solid fa-print"></i>
+          <span class="hidden sm:inline">Imprimir PDF</span>
+        </button>
+        <button onclick="simulatePWAInstall()" class="bg-orange-500 hover:bg-orange-400 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-md">
+          <i class="fa-solid fa-download"></i>
+          <span>Instalar PWA</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- INFO HUB TOP ALERTS -->
+  <div class="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-green-950 text-green-400 font-bold border border-green-800/50">ONLINE</span>
+        <p>Base Operativa: <strong class="text-white">San Nicolás de los Arroyos, Buenos Aires</strong></p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span>Normativa: <strong class="text-slate-100">ISO 18119 / NTC 5719</strong></span>
+        <span class="hidden md:inline">|</span>
+        <span>Base de Datos: <strong class="text-slate-100">PostgreSQL (Persistente)</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full flex flex-col lg:flex-row gap-8">
+    
+    <!-- LEFT NAVIGATION & QUICK UTILITIES -->
+    <aside class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
+      
+      <!-- Interactive Search Box -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <h3 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+          <i class="fa-solid fa-magnifying-glass text-primary-500"></i>
+          Buscar en el Manual
+        </h3>
+        <div class="relative">
+          <input type="text" id="manual-search" placeholder="Ej: RFID, Vencimiento, Balanza..." oninput="filterManualContents(this.value)" class="w-full text-sm pl-9 pr-4 py-2 bg-slate-100 focus:bg-white border border-slate-200 focus:border-primary-500 rounded-xl outline-none transition duration-150">
+          <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+        </div>
+      </div>
+
+      <!-- Table of Contents -->
+      <nav class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-grow">
+        <h2 class="text-sm font-extrabold text-slate-800 tracking-wider uppercase mb-3 pb-3 border-b border-slate-100 flex items-center justify-between">
+          <span>Contenidos</span>
+          <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="toc-count">26 Temas</span>
+        </h2>
+        
+        <ul class="space-y-1 overflow-y-auto max-h-[500px] pr-1" id="nav-list">
+          <li><a href="#intro" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-book w-5 text-slate-400 text-center"></i><span>1. Introducción</span></a></li>
+          <li><a href="#login" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-right-to-bracket w-5 text-slate-400 text-center"></i><span>2. Inicio de Sesión y Roles</span></a></li>
+          <li><a href="#dashboard" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-chart-line w-5 text-slate-400 text-center"></i><span>3. Dashboard</span></a></li>
+          <li><a href="#mapa" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-map-location-dot w-5 text-slate-400 text-center"></i><span>4. Mapa</span></a></li>
+          <li><a href="#inventario" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-boxes-stacked w-5 text-slate-400 text-center"></i><span>5. Inventario de Tubos</span></a></li>
+          <li><a href="#rutas" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-route w-5 text-slate-400 text-center"></i><span>6. Rutas y Logística</span></a></li>
+          <li><a href="#catalogo" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-flask w-5 text-slate-400 text-center"></i><span>7. Catálogo de Gases</span></a></li>
+          <li><a href="#clientes" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-users w-5 text-slate-400 text-center"></i><span>8. Clientes</span></a></li>
+          <li><a href="#laboratorio" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-microscope w-5 text-slate-400 text-center"></i><span>9. Laboratorio e Inspección</span></a></li>
+          <li><a href="#configuracion" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-gears w-5 text-slate-400 text-center"></i><span>10. Configuración</span></a></li>
+          <li><a href="#pedidos" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-cart-shopping w-5 text-slate-400 text-center"></i><span>11. Pedidos</span></a></li>
+          <li><a href="#facturacion" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-file-invoice-dollar w-5 text-slate-400 text-center"></i><span>12. Facturación</span></a></li>
+          <li><a href="#remitos" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-truck-ramp-box w-5 text-slate-400 text-center"></i><span>13. Entrega / Remitos</span></a></li>
+          <li><a href="#mantenimiento" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-wrench w-5 text-slate-400 text-center"></i><span>14. Mantenimiento</span></a></li>
+          <li><a href="#tablas" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-table w-5 text-slate-400 text-center"></i><span>15. Tablas Maestras</span></a></li>
+          <li><a href="#reportes" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-file-pdf w-5 text-slate-400 text-center"></i><span>16. Reportes</span></a></li>
+          <li><a href="#observaciones" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-camera-retro w-5 text-slate-400 text-center"></i><span>17. Observaciones Multimedia</span></a></li>
+          <li><a href="#vehiculos" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-truck w-5 text-slate-400 text-center"></i><span>18. Flota de Vehículos</span></a></li>
+          <li><a href="#logistica" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-pallet w-5 text-slate-400 text-center"></i><span>19. Logística y Cargas</span></a></li>
+          <li><a href="#deposito" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-warehouse w-5 text-slate-400 text-center"></i><span>20. Depósito y RFID</span></a></li>
+          <li><a href="#cabina" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-desktop w-5 text-slate-400 text-center"></i><span>21. Cabina Inteligente IoT</span></a></li>
+          <li><a href="#finanzas" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-sack-dollar w-5 text-slate-400 text-center"></i><span>22. Finanzas</span></a></li>
+          <li><a href="#analisis" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-chart-pie w-5 text-slate-400 text-center"></i><span>23. Análisis Estadístico</span></a></li>
+          <li><a href="#tablero" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-crown w-5 text-slate-400 text-center"></i><span>24. Tablero Gerencial</span></a></li>
+          <li><a href="#cliente-portal" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-door-open w-5 text-slate-400 text-center"></i><span>25. Portal de Clientes</span></a></li>
+          <li><a href="#faq" class="nav-item flex items-center space-x-2 p-2 text-sm text-slate-600 rounded-lg hover:bg-orange-50 hover:text-primary-600 transition font-medium"><i class="fa-solid fa-circle-question w-5 text-slate-400 text-center"></i><span>26. FAQ</span></a></li>
+        </ul>
+      </nav>
+
+      <!-- System Quick Stats Visual Box -->
+      <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-md border border-slate-800">
+        <h4 class="text-xs font-bold text-orange-400 tracking-wider uppercase mb-3">Estado de Conectividad IoT</h4>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Lectores RFID (Activos)</span>
+            <span class="text-xs font-bold text-green-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>7 de 7</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Balanza IoT Cabina 1</span>
+            <span class="text-xs font-bold text-green-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Conectado</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Servidor PostgreSQL</span>
+            <span class="text-xs font-bold text-green-400">99.98% SLA</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN COMPREHENSIVE DOCUMENTATION & INTERACTIVE PLAYGROUNDS -->
+    <main class="flex-grow flex flex-col gap-10">
+
+      <!-- ROLE BANNER WARNING (DYNAMICS) -->
+      <div id="role-alert-banner" class="bg-orange-50 border border-primary-200 p-4 rounded-2xl flex items-start space-x-3 shadow-sm">
+        <div class="bg-primary-100 text-primary-600 p-2.5 rounded-xl">
+          <i class="fa-solid fa-user-shield text-lg"></i>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-primary-800">Usted está visualizando el manual en modo: <span id="current-role-title">Administrador</span></h4>
+          <p class="text-xs text-primary-700 mt-0.5">Todos los menús, simuladores y secciones se encuentran totalmente desbloqueados. Modifique el selector superior si desea simular la perspectiva operativa de otro empleado o cliente.</p>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE SIMULATOR: CYLINDER LIFECYCLE (INFOGRAPHY) -->
+      <section class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 pb-4 mb-6">
+          <div>
+            <span class="text-xs font-extrabold text-primary-600 tracking-wider uppercase bg-orange-50 px-2.5 py-1 rounded-full">Recurso Interactivo</span>
+            <h2 class="text-xl font-extrabold text-slate-800 mt-1 flex items-center gap-2">
+              <i class="fa-solid fa-arrows-spin text-primary-500"></i>
+              Infografía Interactiva: Ciclo de Vida del Tubo
+            </h2>
+          </div>
+          <div class="text-xs text-slate-500">Haga clic en cada fase para ver el comportamiento del sistema</div>
+        </div>
+
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+          Los tubos (cilindros) de gas transitan por distintas áreas de la planta y ubicaciones de clientes. Las zonas de lectura RFID cambian los estados de forma autónoma.
+        </p>
+
+        <!-- Interactive Visual Pipeline -->
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+          <button onclick="selectLifecycleStep('vacios')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32 active" id="btn-step-vacios">
+            <div class="bg-slate-100 text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">1</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">ZONA VACÍOS</span>
+              <span class="text-[10px] text-slate-500">Estado: VACIO</span>
+            </div>
+          </button>
+          
+          <button onclick="selectLifecycleStep('laboratorio')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32" id="btn-step-laboratorio">
+            <div class="bg-blue-100 text-blue-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">2</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">LABORATORIO</span>
+              <span class="text-[10px] text-slate-500">PH / Mantenimiento</span>
+            </div>
+          </button>
+
+          <button onclick="selectLifecycleStep('carga')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32" id="btn-step-carga">
+            <div class="bg-amber-100 text-amber-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">3</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">PLANTA CARGA</span>
+              <span class="text-[10px] text-slate-500">Llenado / Balanza</span>
+            </div>
+          </button>
+
+          <button onclick="selectLifecycleStep('llenos')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32" id="btn-step-llenos">
+            <div class="bg-green-100 text-green-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">4</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">ZONA LLENOS</span>
+              <span class="text-[10px] text-slate-500">Stock Disponible</span>
+            </div>
+          </button>
+
+          <button onclick="selectLifecycleStep('reparto')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32" id="btn-step-reparto">
+            <div class="bg-purple-100 text-purple-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">5</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">EN TRÁNSITO</span>
+              <span class="text-[10px] text-slate-500">Rutas / Reparto</span>
+            </div>
+          </button>
+
+          <button onclick="selectLifecycleStep('cliente')" class="lifecycle-step-btn p-3 rounded-xl border-2 border-slate-200 hover:border-primary-500 hover:bg-orange-50/30 text-left transition flex flex-col justify-between h-32" id="btn-step-cliente">
+            <div class="bg-teal-100 text-teal-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">6</div>
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">CON CLIENTE</span>
+              <span class="text-[10px] text-slate-500">Retención Activa</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Lifecycle Step Explanation Card -->
+        <div id="lifecycle-explanation-box" class="bg-slate-50 p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-start gap-4">
+          <!-- Dynamically populated via javascript -->
+          <div class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200 flex-shrink-0" id="lifecycle-ico">
+            <i class="fa-solid fa-boxes-packing text-2xl text-slate-500"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 text-base" id="lifecycle-title">Zona Vacíos (Entrada al Taller)</h4>
+            <p class="text-xs text-primary-600 font-bold mt-0.5 uppercase" id="lifecycle-metadata">Regla Automatizada de Entrada • Transición: VACIO</p>
+            <p class="text-sm text-slate-600 mt-2" id="lifecycle-desc">
+              Cuando el camión de distribución regresa del recorrido con los cilindros consumidos por los clientes, se descargan en el área física de "VACÍOS". Un lector RFID aéreo registra las lecturas masivas y cambia automáticamente el estado del cilindro a "VACIO", ingresándolo en el stock de cilindros listos para inspección previa a la recarga.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTERACTIVE SIMULATOR: CABINA INTELIGENTE (IoT ENGINE) -->
+      <section id="cabina-playground" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 pb-4 mb-6">
+          <div>
+            <span class="text-xs font-extrabold text-blue-600 tracking-wider uppercase bg-blue-50 px-2.5 py-1 rounded-full">Simulador de Planta</span>
+            <h2 class="text-xl font-extrabold text-slate-800 mt-1 flex items-center gap-2">
+              <i class="fa-solid fa-hard-drive text-blue-500"></i>
+              Módulo de Pruebas: Motor de Decisión de Cabina IoT
+            </h2>
+          </div>
+          <span class="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold">Modo Sandbox</span>
+        </div>
+
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+          Esta herramienta simula el comportamiento de la cabina inteligente instalada en depósito. Elija una plantilla de cilindro para cargar los datos de manera automática o cámbielos libremente, luego presione <strong>"Simular Validación"</strong> para ver la respuesta del motor del software.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Controller Panel -->
+          <div class="lg:col-span-5 bg-slate-50 p-5 rounded-2xl border border-slate-200 flex flex-col gap-4">
+            <h3 class="text-sm font-bold text-slate-700 border-b border-slate-200 pb-2"><i class="fa-solid fa-sliders mr-1.5 text-primary-500"></i>Parámetros del Cilindro</h3>
+            
+            <!-- Quick Selection Template -->
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">Cargar plantilla predefinida:</label>
+              <select id="cabina-preset" onchange="loadCabinaPreset(this.value)" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none">
+                <option value="ok_oxigeno">Oxígeno 40L - Correcto (Permitir)</option>
+                <option value="vencido_ph">Nitrógeno 50L - PH Vencida (Rechazar)</option>
+                <option value="sobrepeso">Argón 40L - Inconsistencia de Peso (Revisar)</option>
+                <option value="sin_registro">Cilindro con RFID no registrado (Rechazar)</option>
+              </select>
+            </div>
+
+            <!-- Serial & RFID Tag Input -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Número de Serie</label>
+                <input type="text" id="cabina-serial" value="OX-90823" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none font-mono">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Tag RFID (TID)</label>
+                <input type="text" id="cabina-tid" value="E280110C20007F12" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none font-mono">
+              </div>
+            </div>
+
+            <!-- Gas and Capacity -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Gas Seleccionado</label>
+                <select id="cabina-gas" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none">
+                  <option value="OX">Oxígeno (Inerte/Comburente)</option>
+                  <option value="AR">Argón (Inerte)</option>
+                  <option value="N2">Nitrógeno (Inerte)</option>
+                  <option value="CO2">Dióxido de Carbono</option>
+                  <option value="C2H2">Acetileno (Combustible)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Capacidad (L)</label>
+                <select id="cabina-capacity" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none">
+                  <option value="10">10 Litros</option>
+                  <option value="40">40 Litros</option>
+                  <option value="50">50 Litros</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Weight (Balanza IoT Slider) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase">Balanza IoT (Peso Real)</label>
+                <span class="text-xs font-mono font-bold text-primary-600" id="weight-slider-val">52.5 Kg</span>
+              </div>
+              <input type="range" id="cabina-weight" min="5" max="110" step="0.5" value="52.5" oninput="updateWeightSlider(this.value)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-600">
+              <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                <span>Tara Mínima (5 kg)</span>
+                <span>Lleno Máximo (110 kg)</span>
+              </div>
+            </div>
+
+            <!-- PH State & Camera Input -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Prueba Hidrostática (PH)</label>
+                <select id="cabina-ph" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none">
+                  <option value="vigente">Vigente (Aprobado)</option>
+                  <option value="vencido">Vencido (PH mayor a 5 años)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-1">Evidencia de Foto</label>
+                <select id="cabina-photo" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none">
+                  <option value="si">Capturada con Éxito</option>
+                  <option value="no">Falla de Cámara / Sin Foto</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Validate Button -->
+            <button onclick="runDecisionEngine()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition duration-150 flex items-center justify-center space-x-2 shadow-md">
+              <i class="fa-solid fa-shield-halved"></i>
+              <span>VALIDAR CILINDRO EN MOTOR</span>
+            </button>
+          </div>
+
+          <!-- Cabina decision output screen -->
+          <div class="lg:col-span-7 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between bg-slate-950 text-slate-100 min-h-[400px] font-mono relative overflow-hidden">
+            <div class="absolute inset-0 bg-blue-900/5 pointer-events-none"></div>
+            
+            <!-- Terminal Header -->
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4 text-xs">
+              <span class="text-blue-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-terminal text-[10px]"></i>
+                ESTACIÓN CABINA_01_RECEP
+              </span>
+              <span class="text-slate-500 text-[10px]" id="cabina-timestamp">SYS-TIME: LIVE</span>
+            </div>
+
+            <!-- Dynamic Decision Banner -->
+            <div id="decision-banner" class="bg-emerald-950/50 border border-emerald-800 text-emerald-400 rounded-xl p-4 flex items-center space-x-3 mb-4">
+              <i class="fa-solid fa-circle-check text-2xl" id="decision-icon"></i>
+              <div>
+                <div class="text-xs font-extrabold tracking-widest uppercase">DIAGNÓSTICO: <span id="decision-status">OK</span></div>
+                <div class="text-[10px] text-emerald-300/80 mt-0.5">ACCIÓN SUGERIDA: <span class="font-bold underline" id="decision-action">PERMITIR ACCESO</span></div>
+              </div>
+            </div>
+
+            <!-- Verification Terminal Lines -->
+            <div class="space-y-2 text-xs flex-grow font-mono">
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Lectura RFID Tag:</span>
+                <span id="term-tid" class="text-slate-300">E280110C20007F12</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Número de Serie:</span>
+                <span id="term-serial" class="text-slate-300">OX-90823</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Gas en Memoria:</span>
+                <span id="term-gas" class="text-slate-300">Oxígeno de Alta Pureza</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Peso en Balanza:</span>
+                <span id="term-weight" class="text-slate-300">52.5 Kg (Esperado: 50.0 - 55.0)</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Prueba Hidrostática:</span>
+                <span id="term-ph" class="text-emerald-400 font-bold">VIGENTE (Exp. 12/2028)</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-900 pb-1">
+                <span class="text-slate-500">Evidencia Visual:</span>
+                <span id="term-photo" class="text-emerald-400">Captura JPG Guardada</span>
+              </div>
+            </div>
+
+            <!-- Decision explanation footer -->
+            <div class="mt-4 pt-3 border-t border-slate-800 text-[10px] text-slate-400">
+              <span class="text-orange-400 font-bold">Resumen de Regla:</span>
+              <span id="term-rule-desc">El cilindro cumple con las validaciones de peso de contenido gaseoso, el tag RFID está verificado y cuenta con la vigencia de prueba de presión obligatoria. El cilindro ingresa directamente a "LLENOS".</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- INTERACTIVE SIMULATOR: GPS LOGISTICS & ROUTE PLANNER -->
+      <section id="rutas-playground" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 pb-4 mb-6">
+          <div>
+            <span class="text-xs font-extrabold text-purple-600 tracking-wider uppercase bg-purple-50 px-2.5 py-1 rounded-full">Simulador de Transporte</span>
+            <h2 class="text-xl font-extrabold text-slate-800 mt-1 flex items-center gap-2">
+              <i class="fa-solid fa-route text-purple-500"></i>
+              Simulador de Logística y Envío de Pings GPS
+            </h2>
+          </div>
+          <button id="gps-btn" onclick="toggleGPSSimulation()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition flex items-center gap-2">
+            <i class="fa-solid fa-play" id="gps-btn-icon"></i>
+            <span id="gps-btn-text">Iniciar GPS Simulador</span>
+          </button>
+        </div>
+
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+          En el sistema real, los choferes inician el recorrido del remite. Los pings del posicionamiento móvil calculan los kilómetros, tiempos, controlan la geocerca de seguridad, y reportan desvíos. Pruébelo a continuación:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Route Controls -->
+          <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-1.5">
+              <i class="fa-solid fa-map-pin text-primary-500"></i>
+              Plan de Paradas (Ruta: San Nicolás → Ramallo)
+            </h3>
+            
+            <div class="space-y-4">
+              <!-- Stop 1 -->
+              <div class="flex items-start space-x-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs" id="stop-card-1">
+                <div class="bg-primary-600 text-white font-bold text-xs rounded-full w-5 h-5 flex items-center justify-center mt-0.5 flex-shrink-0">1</div>
+                <div class="flex-grow">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-800">Siderar Planta General</span>
+                    <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold" id="stop-status-1 font-mono">EN CAMINO</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500">Demanda: 8 Tubos de Nitrógeno 50L (Canje)</p>
+                </div>
+              </div>
+
+              <!-- Stop 2 -->
+              <div class="flex items-start space-x-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs opacity-60" id="stop-card-2">
+                <div class="bg-slate-400 text-white font-bold text-xs rounded-full w-5 h-5 flex items-center justify-center mt-0.5 flex-shrink-0">2</div>
+                <div class="flex-grow">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-800">Metalúrgica San Nicolás</span>
+                    <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold" id="stop-status-2 font-mono">PENDIENTE</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500">Demanda: 3 Tubos de Argón 40L (Sin Envase)</p>
+                </div>
+              </div>
+
+              <!-- Stop 3 -->
+              <div class="flex items-start space-x-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs opacity-60" id="stop-card-3">
+                <div class="bg-slate-400 text-white font-bold text-xs rounded-full w-5 h-5 flex items-center justify-center mt-0.5 flex-shrink-0">3</div>
+                <div class="flex-grow">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-800">Taller de Estructuras Ramallo</span>
+                    <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold" id="stop-status-3 font-mono">PENDIENTE</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500">Demanda: 1 Tubo de Acetileno 10L</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GPS Telemetry Feed -->
+          <div class="bg-slate-950 text-slate-200 rounded-2xl p-5 font-mono text-xs flex flex-col justify-between min-h-[250px] border border-slate-800">
+            <div>
+              <div class="flex justify-between text-[10px] text-purple-400 border-b border-slate-900 pb-2 mb-3">
+                <span>CONSOLA DE TELEMETRÍA MÓVIL</span>
+                <span class="animate-pulse flex items-center" id="gps-status-indicator"><i class="fa-solid fa-circle text-[6px] mr-1 text-slate-500"></i>OFFLINE</span>
+              </div>
+              
+              <div class="space-y-2 text-[11px]" id="gps-feed-lines">
+                <div class="text-slate-500">&gt; Esperando inicio del simulador de viaje...</div>
+                <div class="text-slate-500">&gt; Presione "Iniciar GPS Simulador" para emitir telemetría.</div>
+              </div>
+            </div>
+
+            <!-- Route Summary metrics -->
+            <div class="border-t border-slate-900 pt-3 mt-4 grid grid-cols-3 gap-2 text-center text-[10px]">
+              <div class="bg-slate-900/50 p-1.5 rounded border border-slate-900">
+                <span class="text-slate-500 block uppercase">Distancia</span>
+                <strong id="gps-metric-dist" class="text-slate-100">0.00 Km</strong>
+              </div>
+              <div class="bg-slate-900/50 p-1.5 rounded border border-slate-900">
+                <span class="text-slate-500 block uppercase">Velocidad</span>
+                <strong id="gps-metric-speed" class="text-slate-100">0 Km/h</strong>
+              </div>
+              <div class="bg-slate-900/50 p-1.5 rounded border border-slate-900">
+                <span class="text-slate-500 block uppercase">Costo Est.</span>
+                <strong class="text-green-400">$24,500</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MANUAL COMPREHENSIVE TEXT SECTIONS -->
+      <div id="manual-text-container" class="space-y-8">
+        
+        <!-- Section 1 -->
+        <section id="intro" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">1</span>
+              Introducción al Sistema
+            </h2>
+            <span class="text-[10px] font-bold text-slate-400">NORMA GENERAL</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4 leading-relaxed">
+            <p><strong>Control Digital</strong> es un sistema web para la gestión integral de tubos de gas (cilindros). Permite administrar el inventario, los clientes, las rutas de distribución, los pedidos, la facturación, el mantenimiento, la flota de vehículos, y el monitoreo IoT mediante sensores RFID, balanzas y cámaras en una cabina inteligente.</p>
+            <p>El sistema cuenta con <strong>dos tipos de acceso diferenciados</strong>:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Usuarios internos (empleados):</strong> acceden a todos los módulos administrativos y operativos según su rol jerárquico.</li>
+              <li><strong>Clientes:</strong> acceden exclusivamente al Portal de Clientes para gestionar sus pedidos y consultar sus tubos.</li>
+            </ul>
+            <p>Base operativa: <strong>San Nicolás de los Arroyos, Buenos Aires, Argentina</strong>.</p>
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+              <strong class="text-slate-700 block mb-1">Tecnología de Infraestructura:</strong>
+              <ul class="grid grid-cols-2 md:grid-cols-3 gap-2 text-slate-500">
+                <li><i class="fa-solid fa-database text-blue-500 mr-1.5"></i>PostgreSQL principal</li>
+                <li><i class="fa-solid fa-cloud text-purple-500 mr-1.5"></i>Despliegue en Render</li>
+                <li><i class="fa-solid fa-mobile-screen text-green-500 mr-1.5"></i>PWA Instalable</li>
+                <li><i class="fa-solid fa-map text-amber-500 mr-1.5"></i>OpenStreetMap & Leaflet</li>
+                <li><i class="fa-solid fa-chart-line text-rose-500 mr-1.5"></i>Gráficos Recharts</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2 -->
+        <section id="login" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">2</span>
+              Inicio de Sesión y Roles
+            </h2>
+            <span class="text-[10px] font-bold bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">Acceso Seguro</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm">2.1. Ingreso al sistema</h3>
+            <p>Al abrir la aplicación verá la pantalla de inicio de sesión con dos pestañas:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Usuarios:</strong> para empleados (usuario y contraseña internos).</li>
+              <li><strong>Clientes:</strong> para clientes registrados con credenciales propias.</li>
+            </ul>
+            
+            <div class="space-y-2 mt-2 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div class="flex items-center space-x-2"><span class="bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">1</span><span>Seleccione la pestaña correspondiente (Usuarios o Clientes).</span></div>
+              <div class="flex items-center space-x-2"><span class="bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">2</span><span>Ingrese su usuario o razón social según corresponda.</span></div>
+              <div class="flex items-center space-x-2"><span class="bg-primary-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">3</span><span>Ingrese su contraseña.</span></div>
+            </div>
+
+            <h3 class="font-bold text-slate-800 text-sm mt-4">2.2. Tabla de Roles de Usuario</h3>
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase text-[10px]">
+                  <th class="p-2.5 font-bold">Rol</th>
+                  <th class="p-2.5 font-bold">Permiso Operativo</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr>
+                  <td class="p-2.5 font-mono font-bold text-primary-600">admin</td>
+                  <td class="p-2.5">Acceso completo a todas las secciones del sistema sin restricciones.</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-mono font-bold text-primary-600">deposito</td>
+                  <td class="p-2.5">Inventario, Depósito, RFID, Cabina, Logística, Rutas.</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-mono font-bold text-primary-600">reparto</td>
+                  <td class="p-2.5">Rutas, Vehículos, Logística, Clientes (consulta básica).</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-mono font-bold text-primary-600">facturacion</td>
+                  <td class="p-2.5">Facturación, Pedidos, Clientes, Finanzas, Reportes.</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-mono font-bold text-primary-600">auditor</td>
+                  <td class="p-2.5">Solo lectura en todos los módulos, más acceso a Tablero y Análisis.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 3 & 4 (Dashboard & Mapa) -->
+        <section id="dashboard" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">3</span>
+              Dashboard y Visualización de Mapa (Geolocalización)
+            </h2>
+            <span class="text-[10px] font-bold bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">Paneles</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>El <strong>Dashboard</strong> consolida los indicadores críticos (KPIs) en tiempo real para agilizar la toma de decisiones:</p>
+            <ul class="list-disc pl-5 space-y-1 text-slate-600">
+              <li><strong>Totalizador de inventario:</strong> desglosado en Llenos, En Uso, Vacíos, Mantenimiento y Tránsito.</li>
+              <li><strong>Alertas tempranas:</strong> cilindros próximos a vencer en prueba hidrostática o con retención de cliente mayor a 3 meses.</li>
+              <li><strong>Geolocalización:</strong> mapa integrado con Leaflet y OpenStreetMap que localiza las coordenadas registradas de cada cilindro, mostrando geocercas activas (zonas de exclusión o seguridad).</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 5 -->
+        <section id="inventario" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">5</span>
+              Inventario y 13 Estados del Tubo
+            </h2>
+            <span class="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Núcleo</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>La ficha técnica del cilindro almacena parámetros de alta precisión estructural y de trazabilidad:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div>
+                <strong class="text-slate-800 block mb-2">Campos Técnicos Críticos:</strong>
+                <ul class="space-y-1.5 text-slate-600">
+                  <li><strong>N° de Serie:</strong> grabado físico indeleble en la ojiva.</li>
+                  <li><strong>Prueba Hidrostática (PH):</strong> obligatoria cada 5 años.</li>
+                  <li><strong>Presión de Ensayo:</strong> presión máxima de trabajo segura en bar.</li>
+                  <li><strong>Diámetro de Ojiva:</strong> usado para optimizar el estibado en vehículos.</li>
+                </ul>
+              </div>
+              <div>
+                <strong class="text-slate-800 block mb-2">Clasificación de Estados:</strong>
+                <ul class="space-y-1.5 text-slate-600">
+                  <li><span class="font-bold text-green-600">Activos:</span> LLENO, EN_CLIENTE, EN_REPARTO, EN_CARGA, EN_DEPOSITO.</li>
+                  <li><span class="font-bold text-orange-600">Inactivos / Taller:</span> VACIO, MANTENIMIENTO, RETENIDO, PH_VENCIDO, TRANSITO.</li>
+                  <li><span class="font-bold text-red-600">Pérdidas de Activo:</span> BAJA, EXTRAVIADO.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 6 & 7 (Rutas & Catalogo) -->
+        <section id="rutas" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">6</span>
+              Logística, Rutas y Catálogo
+            </h2>
+            <span class="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">Distribución</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>La creación de rutas integra un calculador de costo dinámico combinado con las métricas registradas en los vehículos:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Optimización de paradas:</strong> algoritmo que ordena las direcciones basándose en distancias OSRM minimizando combustible.</li>
+              <li><strong>Validación de estibado:</strong> contrasta las dimensiones físicas de la caja del camión contra el diámetro de los tubos asignados en el remito de carga.</li>
+              <li><strong>Catálogo unificado:</strong> especifica el tipo de gas clasificado por peligrosidad (Inerte, Activo, Combustible, Comburente) según norma europea EN 1089-3 de identificación por color de ojiva.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 8 & 9 (Clientes & Laboratorio) -->
+        <section id="clientes" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">8</span>
+              Clientes, Seguridad y Laboratorio Técnico
+            </h2>
+            <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">Operativo</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>El área de <strong>Laboratorio</strong> es la responsable del control de calidad preventivo y de cumplir las exigencias legales de los cilindros:</p>
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+              <h4 class="text-xs font-extrabold text-red-800 uppercase flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Alerta de Prueba Hidrostática (PH):</h4>
+              <p class="text-xs text-red-700 mt-1">
+                La prueba hidrostática debe registrarse y ensayarse a presión extrema cada 5 años. Todo cilindro detectado con PH vencida cambia de forma obligatoria al estado <strong>PH_VENCIDO</strong>. El motor de reglas de depósito, carga y la cabina inteligente bloqueará inmediatamente su recarga.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 10 - 15 (Config, Pedidos, Fact, Remitos, Mant, Tablas) -->
+        <section id="configuracion" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">10</span>
+              Procesos Administrativos (Pedidos, Facturas, Remitos y Tablas)
+            </h2>
+            <span class="text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-0.5 rounded-full">Administrativo</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-3">
+            <p>El flujo comercial se encuentra automatizado desde la creación del pedido del cliente hasta el cierre de caja contable:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Pedidos:</strong> posee transiciones lógicas estrictas (PENDIENTE → CONFIRMADO → EN_PREPARACION → DESPACHADO → ENTREGADO).</li>
+              <li><strong>Facturación Integrada:</strong> calcula las tasas impositivas basándose en la condición fiscal fiscalizada por CUIT y asocia cobros mensuales automáticos de alquiler de cilindros basándose en los días de retención en cliente.</li>
+              <li><strong>Remito de firma digital:</strong> al entregar en destino, el chofer recopila la firma del cliente en pantalla, cerrando la orden de entrega.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 16 - 19 (Reportes, Observaciones, Vehiculos, Logistica) -->
+        <section id="reportes" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">16</span>
+              Herramientas de Terreno (Reportes, Multimedia, Flota de Vehículos y Carga)
+            </h2>
+            <span class="text-[10px] font-bold bg-green-50 text-green-600 px-2 py-0.5 rounded-full">Operaciones</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>El control del transporte de mercancías peligrosas requiere un riguroso registro de la flota vehicular:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Ficha de Vehículos:</strong> registra VTV, póliza de seguro, consumo de combustible, kilometraje de servicio y costo por kilómetro.</li>
+              <li><strong>Carga de Cilindros:</strong> proporciona una grilla interactiva que representa la caja de carga del camión para estibar cilindros de forma segura respetando las indicaciones de volumen máximo.</li>
+              <li><strong>Observaciones Multimedia:</strong> permite registrar fotos, video e informes de fallas visuales capturadas directamente desde los dispositivos de campo.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 20 & 21 (Depósito, RFID & Cabina) -->
+        <section id="deposito" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">20</span>
+              Control de Depósito, RFID y Cabina Inteligente IoT
+            </h2>
+            <span class="text-[10px] font-bold bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">Integración IoT</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4 leading-relaxed">
+            <p>El núcleo del control de stock sin fricción se fundamenta en la tecnología <strong>RFID Pasiva de Ultra Alta Frecuencia (UHF)</strong>.</p>
+            <h3 class="font-bold text-slate-800 text-xs uppercase">Arquitectura de Zonas RFID</h3>
+            <p>La planta cuenta con 7 zonas equipadas con lectores automáticos que registran los Tags en movimiento:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div class="space-y-2">
+                <div class="flex items-center space-x-2"><span class="bg-slate-800 text-white px-2 py-0.5 font-bold rounded">VACIOS</span><span>Entrada de tubos consumidos de clientes.</span></div>
+                <div class="flex items-center space-x-2"><span class="bg-slate-800 text-white px-2 py-0.5 font-bold rounded">LLENOS</span><span>Stock aprobado para comercialización.</span></div>
+                <div class="flex items-center space-x-2"><span class="bg-slate-800 text-white px-2 py-0.5 font-bold rounded">SALIDA_REPARTO</span><span>Despacho a camiones de entrega.</span></div>
+              </div>
+              <div class="space-y-2">
+                <div class="flex items-center space-x-2"><span class="bg-slate-800 text-white px-2 py-0.5 font-bold rounded">ENVIO_CARGA</span><span>Envío masivo a planta compresora de gas.</span></div>
+                <div class="flex items-center space-x-2"><span class="bg-slate-800 text-white px-2 py-0.5 font-bold rounded">MANTENIMIENTO</span><span>Cilindros retenidos para taller o PH.</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 22 - 24 (Finanzas, Análisis, Tablero Gerencial) -->
+        <section id="finanzas" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">22</span>
+              Inteligencia de Negocio (Finanzas, Análisis y Tablero Gerencial)
+            </h2>
+            <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full">BI</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            <p>Módulos diseñados para la gerencia y auditores, consolidando métricas avanzadas de rendimiento operativo:</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-center font-bold">
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-slate-500 text-[10px] block">Rotación de Inventario</span>
+                <span class="text-base text-primary-600">30 Días Promedio</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-slate-500 text-[10px] block">% Uso de Flota Tubos</span>
+                <span class="text-base text-green-600">84.2% Activo</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-slate-500 text-[10px] block">Clientes con Retención Crítica</span>
+                <span class="text-base text-red-600">Riesgo Alto (&gt;90d)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 25 (Portal Clientes) -->
+        <section id="cliente-portal" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">25</span>
+              Portal de Autogestión de Clientes
+            </h2>
+            <span class="text-[10px] font-bold bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">Portal</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-3">
+            <p>Canal exclusivo y seguro de autogestión para los destinatarios de los cilindros. El acceso es otorgado y administrado de forma interna por la empresa:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Creación autónoma de pedidos:</strong> el cliente selecciona el gas, la capacidad y la operación (con envase, canje) verificando automáticamente la disponibilidad de stock en el depósito de San Nicolás.</li>
+              <li><strong>Trazabilidad de cilindros:</strong> listado instantáneo de todos los cilindros que posee físicamente el cliente en su fábrica junto con los días de permanencia para evitar cargos adicionales de alquiler.</li>
+              <li><strong>Historial comercial:</strong> consulta de facturas, remitos firmados y estado de cuenta corriente.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section 26 (FAQ) -->
+        <section id="faq" class="manual-section bg-white p-6 rounded-3xl shadow-sm border border-slate-200 scroll-mt-20">
+          <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span class="bg-primary-100 text-primary-600 rounded-lg w-7 h-7 flex items-center justify-center text-xs font-bold">26</span>
+              Preguntas Frecuentes (FAQ)
+            </h2>
+            <span class="text-[10px] font-bold bg-slate-50 text-slate-600 px-2 py-0.5 rounded-full">Soporte</span>
+          </div>
+          <div class="text-sm text-slate-600 space-y-4">
+            
+            <div class="border-b border-slate-100 pb-3">
+              <h4 class="font-bold text-slate-800 text-xs">❓ ¿Cómo sé cuándo vence la prueba hidrostática de un tubo?</h4>
+              <p class="text-xs text-slate-500 mt-1">En el Inventario, la columna "Pr. Hidrostática" muestra la fecha. Si está vencida o próxima a vencer, aparecerá una alerta de sistema. También puede consultar el Tablero Gerencial > PH/Retest para ver todos los tubos con fechas próximas.</p>
+            </div>
+
+            <div class="border-b border-slate-100 pb-3">
+              <h4 class="font-bold text-slate-800 text-xs">❓ ¿Qué significan los estados de los tubos?</h4>
+              <p class="text-xs text-slate-500 mt-1">Ver sección 5 del manual. El sistema maneja 13 estados estandarizados que cubren todo el ciclo de vida del cilindro, impidiendo que cilindros vacíos o en mantenimiento sean vendidos por error.</p>
+            </div>
+
+            <div class="border-b border-slate-100 pb-3">
+              <h4 class="font-bold text-slate-800 text-xs">❓ ¿Los datos se pierden si se reinicia el servidor de Render?</h4>
+              <p class="text-xs text-slate-500 mt-1">No. El sistema utiliza <strong>PostgreSQL</strong> como base de datos con volumen de almacenamiento persistente. Los datos no se pierden al redeployar o reiniciar los servidores.</p>
+            </div>
+
+            <div>
+              <h4 class="font-bold text-slate-800 text-xs">❓ ¿Qué hago si la aplicación no carga correctamente?</h4>
+              <p class="text-xs text-slate-500 mt-1">Verifique la conexión a internet, limpie el caché de su navegador (Ctrl+Shift+Del) o intente cerrar sesión e ingresar nuevamente. Si el inconveniente continúa, envíe un ticket a soporte técnico de ManejaDatos.</p>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 text-xs py-10 mt-12 border-t border-slate-800 text-center">
+    <div class="max-w-7xl mx-auto px-4 space-y-4">
+      <div class="flex justify-center space-x-6 text-slate-300">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot"></i> San Nicolás de los Arroyos, Bs.As.</span>
+        <span>•</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-industry"></i> Gases Industriales & Alta Pureza</span>
+        <span>•</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-microscope"></i> Laboratorio Autorizado</span>
+      </div>
+      <p class="text-[11px] text-slate-500">Control Digital es una marca registrada de ManejaDatos para el control de cilindros presurizados de gas en Argentina.</p>
+      <p class="text-[10px] text-slate-600">&copy; 2026 ManejaDatos — Manual de Usuario Interactivo v2.5 — Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- CORE INTERACTIVE JAVASCRIPT LOGIC -->
+  <script>
+    // Lifecycle explanation data mapping
+    const lifecycleData = {
+      vacios: {
+        title: "Zona Vacíos (Entrada de Envases Devueltos)",
+        metadata: "Regla Automatizada de Entrada • Transición: VACIO",
+        desc: "Cuando el camión de distribución regresa del recorrido con los cilindros consumidos por los clientes, se descargan en el área física de 'VACÍOS'. Un lector RFID aéreo registra las lecturas masivas y cambia automáticamente el estado del cilindro a 'VACIO', ingresándolo en el stock de cilindros listos para inspección previa a la recarga.",
+        icon: "fa-solid fa-boxes-packing text-slate-500"
+      },
+      laboratorio: {
+        title: "Laboratorio Técnico (Inspección y PH)",
+        metadata: "Verificación de Seguridad Obligatoria • Transición: MANTENIMIENTO",
+        desc: "En esta estación de trabajo, el personal técnico realiza pruebas hidráulicas de resistencia a la presión (PH) obligatorias cada 5 años. Si la prueba hidrostática se encuentra vencida, el sistema cambia el estado a 'PH_VENCIDO', bloqueando cualquier intento de llenado o despacho comercial.",
+        icon: "fa-solid fa-microscope text-blue-500"
+      },
+      carga: {
+        title: "Planta de Carga e Inyección de Gas",
+        metadata: "Validación de Contenido por Peso • Transición: EN_CARGA",
+        desc: "Los cilindros aprobados en laboratorio ingresan a la rampa de llenado del tipo de gas seleccionado (Oxígeno, Argón, Nitrógeno). Al finalizar el llenado, se realiza el control de tara contra el peso de gas comprimido en la balanza IoT de la cabina de validación.",
+        icon: "fa-solid fa-gauge-high text-amber-500"
+      },
+      llenos: {
+        title: "Zona de Stock de Cilindros Llenos",
+        metadata: "Disponibilidad Comercial Inmediata • Transición: LLENO",
+        desc: "Los cilindros pesados, verificados y autorizados se trasladan al área de despacho etiquetados bajo el estado de 'LLENO'. Se encuentran listos para ser asignados a pedidos solicitados a través del Portal de Autogestión de Clientes.",
+        icon: "fa-solid fa-square-poll-horizontal text-green-500"
+      },
+      reparto: {
+        title: "En Reparto y Distribución Logística",
+        metadata: "Seguimiento Telemétrico y GPS • Transición: EN_REPARTO",
+        desc: "Los cilindros cargados en la flota de vehículos aprobados cambian su estado a 'EN_REPARTO'. El software inicia el remito de entrega y el camión comienza a reportar coordenadas de posicionamiento GPS en tiempo real para el control de geocercas.",
+        icon: "fa-solid fa-truck text-purple-500"
+      },
+      cliente: {
+        title: "Ubicación en Cliente (Uso Activo)",
+        metadata: "Control de Retención y Alquiler Mensual • Transición: EN_CLIENTE",
+        desc: "Al completarse la firma digital del remito de entrega, el cilindro pasa al estado 'EN_CLIENTE' bajo la responsabilidad patrimonial del mismo. El sistema comienza a computar los días de uso diario para liquidar el abono o alquiler del envase.",
+        icon: "fa-solid fa-user-check text-teal-500"
+      }
+    };
+
+    // Preset configurations for Cabina IoT simulator
+    const cabinaPresets = {
+      ok_oxigeno: {
+        serial: "OX-90823",
+        tid: "E280110C20007F12",
+        gas: "OX",
+        capacity: "40",
+        weight: "52.5",
+        ph: "vigente",
+        photo: "si"
+      },
+      vencido_ph: {
+        serial: "N2-33411",
+        tid: "E280110C200021A5",
+        gas: "N2",
+        capacity: "50",
+        weight: "61.0",
+        ph: "vencido",
+        photo: "si"
+      },
+      sobrepeso: {
+        serial: "AR-44980",
+        tid: "E280110C200044B2",
+        gas: "AR",
+        capacity: "40",
+        weight: "92.0",
+        ph: "vigente",
+        photo: "si"
+      },
+      sin_registro: {
+        serial: "DESCONOCIDO",
+        tid: "SIN_TAG_LEIDO",
+        gas: "CO2",
+        capacity: "10",
+        weight: "12.0",
+        ph: "vigente",
+        photo: "si"
+      }
+    };
+
+    // Live state tracking
+    let activeLifecycleStep = 'vacios';
+    let gpsInterval = null;
+    let gpsDistance = 0.0;
+    let gpsStep = 0;
+
+    // Initialize systems on load
+    window.onload = function() {
+      // Set timestamp in mock terminal
+      updateTerminalTimestamp();
+      setInterval(updateTerminalTimestamp, 1000);
+      
+      // Load initial preset
+      loadCabinaPreset('ok_oxigeno');
+    };
+
+    // 1. Lifecycle Step Click Handler
+    function selectLifecycleStep(stepKey) {
+      // Remove active class from all buttons
+      document.querySelectorAll('.lifecycle-step-btn').forEach(btn => {
+        btn.classList.remove('border-primary-500', 'bg-orange-50/30', 'ring-2', 'ring-primary-400');
+      });
+
+      // Add active classes to selected button
+      const activeBtn = document.getElementById(`btn-step-${stepKey}`);
+      if (activeBtn) {
+        activeBtn.classList.add('border-primary-500', 'bg-orange-50/30', 'ring-2', 'ring-primary-400');
+      }
+
+      // Update description box with smooth transition
+      const data = lifecycleData[stepKey];
+      if (data) {
+        document.getElementById('lifecycle-title').innerText = data.title;
+        document.getElementById('lifecycle-metadata').innerText = data.metadata;
+        document.getElementById('lifecycle-desc').innerText = data.desc;
+        document.getElementById('lifecycle-ico').innerHTML = `<i class="${data.icon} text-2xl"></i>`;
+      }
+    }
+
+    // 2. Search filtering function
+    function filterManualContents(query) {
+      const filter = query.toLowerCase();
+      const sections = document.querySelectorAll('.manual-section');
+      let visibleCount = 0;
+
+      sections.forEach(section => {
+        const text = section.innerText.toLowerCase();
+        if (text.includes(filter)) {
+          section.style.display = "block";
+          visibleCount++;
+        } else {
+          section.style.style = "none";
+          section.style.display = "none";
+        }
+      });
+
+      // Highlight left menu items
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(filter)) {
+          item.classList.remove('opacity-40');
+        } else {
+          item.classList.add('opacity-40');
+        }
+      });
+
+      document.getElementById('toc-count').innerText = `${visibleCount} Temas`;
+    }
+
+    // 3. Switch role and toggle visibility of advanced modules
+    function switchRole(role) {
+      const banner = document.getElementById('role-alert-banner');
+      const titleSpan = document.getElementById('current-role-title');
+      
+      // Reset styles
+      banner.className = "border p-4 rounded-2xl flex items-start space-x-3 shadow-sm ";
+      
+      if (role === 'admin') {
+        titleSpan.innerText = "Administrador (Completo)";
+        banner.classList.add('bg-orange-50', 'border-primary-200');
+        document.getElementById('cabina-playground').style.display = "block";
+        document.getElementById('rutas-playground').style.display = "block";
+      } else if (role === 'deposito') {
+        titleSpan.innerText = "Operador Depósito";
+        banner.classList.add('bg-blue-50', 'border-blue-200');
+        document.getElementById('cabina-playground').style.display = "block";
+        document.getElementById('rutas-playground').style.display = "none";
+      } else if (role === 'reparto') {
+        titleSpan.innerText = "Chofer Reparto";
+        banner.classList.add('bg-purple-50', 'border-purple-200');
+        document.getElementById('cabina-playground').style.display = "none";
+        document.getElementById('rutas-playground').style.display = "block";
+      } else if (role === 'cliente') {
+        titleSpan.innerText = "Cliente (Portal Autónomo)";
+        banner.classList.add('bg-teal-50', 'border-teal-200');
+        document.getElementById('cabina-playground').style.display = "none";
+        document.getElementById('rutas-playground').style.display = "none";
+      } else {
+        titleSpan.innerText = role.toUpperCase();
+        banner.classList.add('bg-slate-50', 'border-slate-200');
+        document.getElementById('cabina-playground').style.display = "block";
+        document.getElementById('rutas-playground').style.display = "block";
+      }
+    }
+
+    // PWA Install simulator (No browser-side native call alerts)
+    function simulatePWAInstall() {
+      const notification = document.createElement('div');
+      notification.className = "fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-700 text-xs font-bold z-50 flex items-center space-x-3";
+      notification.innerHTML = `
+        <i class="fa-solid fa-circle-check text-green-400 text-base animate-bounce"></i>
+        <span>¡Simulador PWA: Aplicación "Control Digital" instalada en su computadora!</span>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.remove();
+      }, 4000);
+    }
+
+    // 4. Cabina IoT Logic
+    function loadCabinaPreset(presetKey) {
+      const preset = cabinaPresets[presetKey];
+      if (preset) {
+        document.getElementById('cabina-serial').value = preset.serial;
+        document.getElementById('cabina-tid').value = preset.tid;
+        document.getElementById('cabina-gas').value = preset.gas;
+        document.getElementById('cabina-capacity').value = preset.capacity;
+        document.getElementById('cabina-weight').value = preset.weight;
+        document.getElementById('cabina-ph').value = preset.ph;
+        document.getElementById('cabina-photo').value = preset.photo;
+        
+        updateWeightSlider(preset.weight);
+      }
+    }
+
+    function updateWeightSlider(val) {
+      document.getElementById('weight-slider-val').innerText = `${val} Kg`;
+    }
+
+    function updateTerminalTimestamp() {
+      const now = new Date();
+      document.getElementById('cabina-timestamp').innerText = `SYS-TIME: ${now.toLocaleTimeString()}`;
+    }
+
+    function runDecisionEngine() {
+      const serial = document.getElementById('cabina-serial').value;
+      const tid = document.getElementById('cabina-tid').value;
+      const gas = document.getElementById('cabina-gas').value;
+      const capacity = parseFloat(document.getElementById('cabina-capacity').value);
+      const weight = parseFloat(document.getElementById('cabina-weight').value);
+      const ph = document.getElementById('cabina-ph').value;
+      const photo = document.getElementById('cabina-photo').value;
+
+      // DOM target fields
+      const banner = document.getElementById('decision-banner');
+      const icon = document.getElementById('decision-icon');
+      const statusText = document.getElementById('decision-status');
+      const actionText = document.getElementById('decision-action');
+      
+      const termTid = document.getElementById('term-tid');
+      const termSerial = document.getElementById('term-serial');
+      const termGas = document.getElementById('term-gas');
+      const termWeight = document.getElementById('term-weight');
+      const termPh = document.getElementById('term-ph');
+      const termPhoto = document.getElementById('term-photo');
+      const ruleDesc = document.getElementById('term-rule-desc');
+
+      // Update terminal text values immediately
+      termTid.innerText = tid;
+      termSerial.innerText = serial;
+      termPhoto.innerText = photo === 'si' ? "Captura JPG Guardada" : "ERROR: Falló captura";
+      termPhoto.className = photo === 'si' ? "text-emerald-400" : "text-red-500 font-bold";
+
+      let gasName = "Gas Desconocido";
+      if (gas === 'OX') gasName = "Oxígeno de Alta Pureza";
+      if (gas === 'AR') gasName = "Argón Puro";
+      if (gas === 'N2') gasName = "Nitrógeno Industrial";
+      if (gas === 'CO2') gasName = "Dióxido de Carbono";
+      if (gas === 'C2H2') gasName = "Acetileno Combustible";
+      termGas.innerText = `${gasName} (${capacity} Litros)`;
+
+      // Basic limits of tara and pressure based on presets
+      let tara = capacity === 10 ? 12 : capacity === 40 ? 50 : 60;
+      let maxAllowedWeight = tara + (capacity * 0.35); // simulated gas capacity weight limit
+      termWeight.innerText = `${weight} Kg (Rango Esperado: ${tara.toFixed(1)} - ${maxAllowedWeight.toFixed(1)} Kg)`;
+
+      // Evaluation tree
+      if (tid === 'SIN_TAG_LEIDO' || serial === 'DESCONOCIDO') {
+        // Unregistered Cylinders
+        banner.className = "bg-red-950/50 border border-red-800 text-red-400 rounded-xl p-4 flex items-center space-x-3 mb-4";
+        icon.className = "fa-solid fa-circle-xmark text-2xl";
+        statusText.innerText = "NO_REGISTRADO";
+        actionText.innerText = "RECHAZAR / CONTROL MANUAL";
+        
+        termPh.innerText = "DESCONOCIDO";
+        termPh.className = "text-slate-500";
+        ruleDesc.innerText = "El Tag RFID escaneado no coincide con ningún cilindro activo en la base de datos PostgreSQL de la empresa. Retire el envase y envíelo a auditoría para evitar fraudes.";
+      } 
+      else if (ph === 'vencido') {
+        // Vencido
+        banner.className = "bg-red-950/50 border border-red-800 text-red-400 rounded-xl p-4 flex items-center space-x-3 mb-4";
+        icon.className = "fa-solid fa-triangle-exclamation text-2xl";
+        statusText.innerText = "PH_VENCIDO";
+        actionText.innerText = "BLOQUEAR / ENVIAR A TALLER";
+        
+        termPh.innerText = "VENCIDO (Último ensayo mayor a 5 años)";
+        termPh.className = "text-red-500 font-bold animate-pulse";
+        ruleDesc.innerText = "La fecha de la última prueba hidrostática registrada supera el límite de seguridad de 5 años determinado por la norma ISO 18119. La rampa de llenado se encuentra bloqueada por seguridad.";
+      } 
+      else if (weight < tara || weight > maxAllowedWeight) {
+        // Out of Weight Range
+        banner.className = "bg-amber-950/50 border border-amber-800 text-amber-400 rounded-xl p-4 flex items-center space-x-3 mb-4";
+        icon.className = "fa-solid fa-scale-unbalanced text-2xl";
+        statusText.innerText = "INCONSISTENCIA_PESO";
+        actionText.innerText = "REVISAR VÁLVULA / FUGA";
+        
+        termPh.innerText = "VIGENTE";
+        termPh.className = "text-emerald-400";
+        ruleDesc.innerText = `El peso registrado por la balanza IoT (${weight} kg) se encuentra fuera del rango esperado para un cilindro de capacidad de agua de ${capacity}L. Puede deberse a pérdida de gas o válvula rota.`;
+      } 
+      else {
+        // All OK
+        banner.className = "bg-emerald-950/50 border border-emerald-800 text-emerald-400 rounded-xl p-4 flex items-center space-x-3 mb-4";
+        icon.className = "fa-solid fa-circle-check text-2xl";
+        statusText.innerText = "OK_APROBADO";
+        actionText.innerText = "PERMITIR TRANSICIÓN A 'LLENO'";
+        
+        termPh.innerText = "VIGENTE (En fecha de vigencia)";
+        termPh.className = "text-emerald-400";
+        ruleDesc.innerText = "El cilindro cumple satisfactoriamente con las normativas estructurales, peso calibrado de contenido y vigencia de la oblea hidráulica. Transición automática de stock iniciada.";
+      }
+    }
+
+    // 5. Route Planner Simulator (GPS pings)
+    function toggleGPSSimulation() {
+      const btnIcon = document.getElementById('gps-btn-icon');
+      const btnText = document.getElementById('gps-btn-text');
+      const statusIndicator = document.getElementById('gps-status-indicator');
+      const feed = document.getElementById('gps-feed-lines');
+
+      if (gpsInterval) {
+        // Stop simulation
+        clearInterval(gpsInterval);
+        gpsInterval = null;
+        
+        btnIcon.className = "fa-solid fa-play";
+        btnText.innerText = "Iniciar GPS Simulador";
+        statusIndicator.innerHTML = '<i class="fa-solid fa-circle text-[6px] mr-1 text-slate-500"></i>OFFLINE';
+        
+        feed.innerHTML += '<div class="text-red-400">&gt; GPS SIMULACIÓN PAUSADA POR USUARIO.</div>';
+      } else {
+        // Start simulation
+        btnIcon.className = "fa-solid fa-pause";
+        btnText.innerText = "Pausar GPS";
+        statusIndicator.innerHTML = '<i class="fa-solid fa-circle text-[6px] mr-1 text-green-400 animate-ping"></i>EN RUTA';
+        
+        feed.innerHTML = '<div class="text-green-400">&gt; Conexión establecida con celular de chofer...</div>';
+        feed.innerHTML += '<div class="text-green-400">&gt; Enviando pings GPS a la API de Control Digital...</div>';
+        
+        gpsStep = 1;
+        gpsDistance = 0.0;
+        
+        gpsInterval = setInterval(() => {
+          gpsDistance += 1.45;
+          document.getElementById('gps-metric-dist').innerText = `${gpsDistance.toFixed(2)} Km`;
+          
+          let speed = Math.floor(Math.random() * (75 - 50) + 50);
+          document.getElementById('gps-metric-speed').innerText = `${speed} Km/h`;
+
+          if (gpsStep === 1) {
+            feed.innerHTML = `<div class="text-purple-300">&gt; Ping: Lat -33.3414, Lng -60.2180 • Vel: ${speed} Km/h</div>`;
+            feed.innerHTML += `<div class="text-amber-300">&gt; Evento: Vehículo ingresando a la autopista...</div>`;
+            gpsStep++;
+          } else if (gpsStep === 2) {
+            feed.innerHTML = `<div class="text-purple-300">&gt; Ping: Lat -33.3850, Lng -60.1550 • Vel: ${speed} Km/h</div>`;
+            feed.innerHTML += `<div class="text-emerald-400">&gt; Alerta: Geocerca "Siderar Planta" detectada.</div>`;
+            
+            // Mark stop 1 as complete
+            document.getElementById('stop-card-1').classList.remove('opacity-100');
+            document.getElementById('stop-card-1').classList.add('opacity-50', 'bg-emerald-50/50');
+            
+            // Activate stop 2
+            document.getElementById('stop-card-2').classList.remove('opacity-60');
+            document.getElementById('stop-card-2').classList.add('opacity-100');
+            gpsStep++;
+          } else if (gpsStep === 3) {
+            feed.innerHTML = `<div class="text-purple-300">&gt; Ping: Lat -33.4210, Lng -60.0501 • Vel: ${speed} Km/h</div>`;
+            feed.innerHTML += `<div class="text-green-400">&gt; Evento: Parada 1 confirmada con firma en remito digital.</div>`;
+            
+            // Mark stop 2 as complete
+            document.getElementById('stop-card-2').classList.remove('opacity-100');
+            document.getElementById('stop-card-2').classList.add('opacity-50', 'bg-emerald-50/50');
+            
+            // Activate stop 3
+            document.getElementById('stop-card-3').classList.remove('opacity-60');
+            document.getElementById('stop-card-3').classList.add('opacity-100');
+            gpsStep++;
+          } else {
+            feed.innerHTML = `<div class="text-emerald-400">&gt; ¡Ruta Completada con Éxito! Envases entregados.</div>`;
+            toggleGPSSimulation(); // auto-stop
+          }
+        }, 3000);
+      }
+    }
+  </script>
+</body>
+</html>
