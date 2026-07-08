@@ -254,7 +254,7 @@ export default function Home() {
               <ShoppingCart className="w-4 h-4" /><span>Pedidos</span>
             </TabsTrigger>
             <TabsTrigger value="facturacion" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Receipt className="w-4 h-4" /><span>Facturación</span>
+              <Receipt className="w-4 h-4" /><span>Consulta de Fact.</span>
             </TabsTrigger>
             <TabsTrigger value="comprobantes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <FileText className="w-4 h-4" /><span>Comprobantes</span>
