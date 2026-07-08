@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X, Receipt, Save, FileText } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,8 +23,9 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import type { Cylinder, Gas } from '@/lib/tab-types'
+import type { Cylinder as CylinderType, Gas } from '@/lib/tab-types'
 import { formatDate, SgaBadge, ESTADO_LABELS, ESTADO_COLORS } from '@/lib/tab-constants'
+import TubeSelector from '@/components/tube-selector'
 
 interface RemitoItemData {
   id?: string
@@ -59,7 +60,7 @@ export default function RemitosTab() {
   const [remitos, setRemitos] = useState<Remito[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [gases, setGases] = useState<Gas[]>([])
-  const [cylinders, setCylinders] = useState<Cylinder[]>([])
+  const [cylinders, setCylinders] = useState<CylinderType[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -76,11 +77,13 @@ export default function RemitosTab() {
   const [tipo, setTipo] = useState('ENTREGA')
   const [tecnico, setTecnico] = useState('')
   const [observaciones, setObservaciones] = useState('')
-  const [items, setItems] = useState<any[]>([{ gasId: '', gasCodigo: '', tipoOperacion: 'ALQUILER', cantidad: 1 }])
+  const [items, setItems] = useState<any[]>([])
+  const [useTubeSelector, setUseTubeSelector] = useState(true)
 
   function resetForm() {
     setClienteId(''); setTipo('ENTREGA'); setTecnico(''); setObservaciones('')
-    setItems([{ gasId: '', gasCodigo: '', tipoOperacion: 'ALQUILER', cantidad: 1 }])
+    setItems([])
+    setUseTubeSelector(true)
     setEditingId(null)
   }
 
@@ -238,49 +241,100 @@ export default function RemitosTab() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Técnico</Label>
-                <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nombre del técnico" />
-              </div>
-              <div>
-                <Label>Gas / Cilindro</Label>
-                <select className="w-full border rounded px-3 py-2 text-sm" value={items[0]?.gasId || ''} onChange={(e) => {
-                  const gas = gases.find((g) => g.id === e.target.value)
-                  const newItems = [{ gasId: e.target.value, gasCodigo: gas?.codigo || '', tipoOperacion: 'ALQUILER', cantidad: 1 }]
-                  setItems(newItems)
-                }}>
-                  <option value="">Seleccionar gas...</option>
-                  {gases.map((g) => <option key={g.id} value={g.id}>{g.nombre} ({g.codigo})</option>)}
-                </select>
-              </div>
+            <div>
+              <Label>Técnico</Label>
+              <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nombre del técnico" />
             </div>
-            {items[0]?.gasId && (
+
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex items-center gap-1 cursor-pointer" onClick={() => setUseTubeSelector(true)}>
+                <input type="radio" checked={useTubeSelector} onChange={() => setUseTubeSelector(true)} className="accent-orange-500" /> Tubos existentes
+              </Label>
+              <Label className="text-xs flex items-center gap-1 cursor-pointer" onClick={() => setUseTubeSelector(false)}>
+                <input type="radio" checked={!useTubeSelector} onChange={() => setUseTubeSelector(false)} className="accent-orange-500" /> Gas manual
+              </Label>
+            </div>
+
+            {useTubeSelector ? (
               <div className="border rounded-lg p-3 bg-slate-50">
-                <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                  <span>Items del remito</span>
-                </div>
-                {items.map((it, idx) => (
-                  <div key={idx} className="flex items-center gap-2 mb-2">
-                    <select className="border rounded px-2 py-1 text-sm flex-1" value={it.tipoOperacion} onChange={(e) => {
-                      const newItems = [...items]; newItems[idx].tipoOperacion = e.target.value; setItems(newItems)
-                    }}>
-                      <option value="ALQUILER">Alquiler</option>
-                      <option value="VENTA">Venta</option>
-                      <option value="CAMBIO">Cambio</option>
-                      <option value="DEVOLUCION">Devolución</option>
-                    </select>
-                    <Input type="number" min={1} className="w-20 text-sm" value={it.cantidad} onChange={(e) => {
-                      const newItems = [...items]; newItems[idx].cantidad = parseInt(e.target.value) || 1; setItems(newItems)
-                    }} />
-                    <Button variant="ghost" size="sm" onClick={() => {
-                      if (items.length > 1) { const newItems = items.filter((_, i) => i !== idx); setItems(newItems) }
-                    }}><X className="w-4 h-4" /></Button>
+                <Label className="text-xs font-semibold mb-2 block">Seleccionar tubos llenos disponibles</Label>
+                <TubeSelector
+                  clientId={clienteId || undefined}
+                  onSelect={(tubes) => {
+                    setItems(tubes.map((t) => ({
+                      cylinderId: t.id,
+                      numeroSerie: t.numeroSerie,
+                      gasId: t.gasId,
+                      gasCodigo: t.gas.codigo,
+                      tipoOperacion: 'ALQUILER',
+                      cantidad: 1,
+                    })))
+                  }}
+                  selected={items.filter((i) => i.cylinderId).map((i) => ({
+                    id: i.cylinderId,
+                    numeroSerie: i.numeroSerie,
+                    gasId: i.gasId,
+                    gas: gases.find((g) => g.id === i.gasId) || { id: i.gasId, codigo: i.gasCodigo, nombre: '', colorHex: '#ccc', presionBar: 0 },
+                    capacidadLitros: 0,
+                    presionActualBar: 0,
+                    estado: 'LLENO',
+                    ubicacionNombre: '',
+                    cliente: null,
+                  }))}
+                />
+                {items.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <Label className="text-xs text-slate-500">Tubos seleccionados ({items.length})</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {items.filter((i) => i.cylinderId).map((it, idx) => (
+                        <Badge key={idx} variant="outline" className="text-[10px]">
+                          <Cylinder className="w-3 h-3 mr-1" />
+                          {it.numeroSerie} · {it.gasCodigo}
+                          <button className="ml-1.5 hover:text-red-500" onClick={() => {
+                            const i = items.filter((_, j) => j !== idx)
+                            setItems(i.length === 0 ? [] : i)
+                          }}><X className="w-3 h-3" /></button>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                ))}
-                <Button variant="outline" size="sm" className="mt-1" onClick={() => setItems([...items, { gasId: items[0]?.gasId || '', gasCodigo: items[0]?.gasCodigo || '', tipoOperacion: 'ALQUILER', cantidad: 1 }])}>
-                  + Agregar item
-                </Button>
+                )}
+              </div>
+            ) : (
+              <div className="border rounded-lg p-3 bg-slate-50">
+                <Label className="text-xs font-semibold mb-2 block">Gas manual</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select className="border rounded px-2 py-1.5 text-sm" value={items[0]?.gasId || ''} onChange={(e) => {
+                    const gas = gases.find((g) => g.id === e.target.value)
+                    setItems([{ gasId: e.target.value, gasCodigo: gas?.codigo || '', tipoOperacion: 'ALQUILER', cantidad: 1 }])
+                  }}>
+                    <option value="">Seleccionar gas...</option>
+                    {gases.map((g) => <option key={g.id} value={g.id}>{g.nombre} ({g.codigo})</option>)}
+                  </select>
+                  <Input type="number" min={1} placeholder="Cantidad" className="text-sm" value={items[0]?.cantidad || 1} onChange={(e) => {
+                    const n = [...items]; n[0] = { ...n[0], cantidad: parseInt(e.target.value) || 1 }; setItems(n)
+                  }} />
+                </div>
+                {items[0]?.gasId && (
+                  <div className="mt-2">
+                    {items.map((it, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-1">
+                        <select className="border rounded px-2 py-1 text-xs flex-1" value={it.tipoOperacion} onChange={(e) => {
+                          const n = [...items]; n[idx].tipoOperacion = e.target.value; setItems(n)
+                        }}>
+                          <option value="ALQUILER">Alquiler</option>
+                          <option value="VENTA">Venta</option>
+                          <option value="CAMBIO">Cambio</option>
+                          <option value="DEVOLUCION">Devolución</option>
+                        </select>
+                        {idx > 0 && <Button variant="ghost" size="sm" onClick={() => setItems(items.filter((_, i) => i !== idx))}><X className="w-3 h-3" /></Button>}
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" className="mt-1 text-xs" onClick={() => setItems([...items, { gasId: items[0].gasId, gasCodigo: items[0].gasCodigo, tipoOperacion: 'ALQUILER', cantidad: 1 }])}>
+                      + Agregar item
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             <div>

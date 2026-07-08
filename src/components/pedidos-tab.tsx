@@ -12,6 +12,7 @@ import {
   Search,
   Edit3,
   Building2,
+  Receipt,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -92,6 +93,7 @@ interface Pedido {
   observaciones: string | null
   items: PedidoItem[]
   cilindros: PedidoCilindro[]
+  facturaId: string | null
   createdAt: string
 }
 
@@ -589,6 +591,20 @@ export default function PedidosTab() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setViewPedido(p); setTimeout(() => window.print(), 300) }} title="Imprimir / PDF">
                             <FileText className="w-3.5 h-3.5 text-amber-600" />
                           </Button>
+                          {!p.facturaId && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/pedidos/${p.id}/facturar`, { method: 'POST' })
+                                if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error') }
+                                toast({ title: 'Factura creada', description: 'El pedido fue facturado correctamente' })
+                                load()
+                              } catch (e) {
+                                toast({ title: 'Error', description: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+                              }
+                            }} title="Facturar">
+                              <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => eliminarPedido(p.id)} title="Eliminar">
                             <Trash2 className="w-3.5 h-3.5 text-red-500" />
                           </Button>

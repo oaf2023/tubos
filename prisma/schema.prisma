@@ -570,14 +570,15 @@ model RemitoItem {
 model Factura {
   id               String        @id @default(cuid())
   numero           Int           @default(0) // Número de factura autoincremental
-  clienteId        String
-  cliente          String        // Nombre denormalizado
+  clienteId        String?
+  cliente          String?       // Nombre denormalizado
   fecha            DateTime      @default(now())
   fechaVencimiento  DateTime?
   fechaDesde       DateTime?     // Inicio del período facturado
   fechaHasta       DateTime?     // Fin del período facturado
   tipoPeriodo      String?       // DIARIO, MENSUAL, QUINCENAL, SEMANAL, PERSONALIZADO
   remitoIds        String        // IDs de remitos relacionados (separados por coma)
+  pedidoIds        String        // IDs de pedidos relacionados (separados por coma)
   subtotal         Decimal @default(0)
   descuento        Decimal @default(0)
   impuestos        Decimal @default(0)
@@ -590,6 +591,7 @@ model Factura {
   observaciones    String?
   items            FacturaItem[]
   remitos          Remito[]       @relation("FacturaRemitos")
+  pedidos          Pedido[]       @relation("FacturaPedidos")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -951,6 +953,8 @@ model Pedido {
   phObservacion   String?
   total           Decimal   @default(0)
   estado          EstadoPedido     @default(PENDIENTE)
+  facturaId       String?
+  factura         Factura?         @relation("FacturaPedidos", fields: [facturaId], references: [id])
   observaciones   String?
   items           PedidoItem[]
   cilindros       PedidoCilindro[]

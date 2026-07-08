@@ -13,7 +13,7 @@ interface FacturaItemInput {
 }
 
 interface CreateFacturaInput {
-  clienteId: string
+  clienteId: string | null
   cliente: string
   fechaVencimiento?: string | null
   fechaDesde?: string | null
@@ -44,7 +44,7 @@ export async function createFactura(input: CreateFacturaInput) {
     const factura = await tx.factura.create({
       data: {
         numero,
-        clienteId: input.clienteId,
+        clienteId: input.clienteId || null,
         cliente: input.cliente,
         fechaVencimiento: input.fechaVencimiento ? new Date(input.fechaVencimiento) : null,
         fechaDesde: input.fechaDesde ? new Date(input.fechaDesde) : null,

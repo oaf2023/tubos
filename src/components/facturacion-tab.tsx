@@ -11,6 +11,7 @@ import {
   X,
   Save,
   Clock,
+  Cylinder,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import ComprobantesHistoricos from '@/components/comprobantes-historicos'
@@ -37,6 +38,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Gas, Cliente } from '@/lib/tab-types'
 import { formatDate } from '@/lib/tab-constants'
+import TubeSelector from '@/components/tube-selector'
 
 // ===== Types =====
 interface FacturaItem {
@@ -291,6 +293,9 @@ export default function FacturacionTab() {
   const [previewFactura, setPreviewFactura] = useState<Factura | null>(null)
 
   const [clienteId, setClienteId] = useState('')
+  const [consumidorFinal, setConsumidorFinal] = useState(false)
+  const [showTubeSelector, setShowTubeSelector] = useState(false)
+  const [cargandoSaldo, setCargandoSaldo] = useState(false)
   const [fechaDesde, setFechaDesde] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 1)
     return d.toISOString().split('T')[0]
@@ -314,6 +319,7 @@ export default function FacturacionTab() {
   function resetForm() {
     const now = new Date()
     setClienteId('')
+    setConsumidorFinal(false)
     const d = new Date(); d.setMonth(d.getMonth() - 1)
     setFechaDesde(d.toISOString().split('T')[0])
     setFechaHasta(now.toISOString().split('T')[0])
@@ -399,12 +405,12 @@ export default function FacturacionTab() {
   }
 
   async function guardar() {
-    if (!clienteId) { toast({ title: 'Error', description: 'Seleccioná un cliente', variant: 'destructive' }); return }
+    if (!clienteId && !consumidorFinal) { toast({ title: 'Error', description: 'Seleccioná un cliente o Consumidor Final', variant: 'destructive' }); return }
     if (facturaItems.length === 0) { toast({ title: 'Error', description: 'Agregá al menos un ítem', variant: 'destructive' }); return }
-    const cliente = clientes.find((c: any) => c.id === clienteId)
+    const clienteActual = consumidorFinal ? { nombre: 'Consumidor Final' } : clientes.find((c: any) => c.id === clienteId)
     const payload = {
-      clienteId,
-      cliente: cliente?.nombre || '',
+      clienteId: consumidorFinal ? null : clienteId,
+      cliente: clienteActual?.nombre || 'Consumidor Final',
       fechaVencimiento,
       fechaDesde,
       fechaHasta,
@@ -639,8 +645,30 @@ export default function FacturacionTab() {
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
                 <Label>Cliente</Label>
-                <select className="w-full border rounded px-3 py-2 text-sm" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                <select className="w-full border rounded px-3 py-2 text-sm" value={consumidorFinal ? 'CONSUMIDOR_FINAL' : clienteId} onChange={async (e) => {
+                  const cid = e.target.value
+                  if (cid === 'CONSUMIDOR_FINAL') {
+                    setConsumidorFinal(true)
+                    setClienteId('')
+                    setSaldoAnterior(0)
+                  } else {
+                    setConsumidorFinal(false)
+                    setClienteId(cid)
+                    // Auto-cargar saldo anterior
+                    if (cid) {
+                      setCargandoSaldo(true)
+                      try {
+                        const res = await fetch(`/api/clientes/${cid}/saldo`)
+                        if (res.ok) { const data = await res.json(); setSaldoAnterior(data.saldo || 0) }
+                      } catch { /* ignore */ }
+                      setCargandoSaldo(false)
+                    } else {
+                      setSaldoAnterior(0)
+                    }
+                  }
+                }}>
                   <option value="">Seleccionar cliente...</option>
+                  <option value="CONSUMIDOR_FINAL">🧾 Consumidor Final</option>
                   {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
@@ -794,9 +822,34 @@ export default function FacturacionTab() {
               </div>
             )}
 
+            {showTubeSelector && (
+              <div className="border rounded-lg p-3 bg-slate-50">
+                <Label className="text-xs font-semibold mb-2 block">Seleccionar tubos llenos para facturar</Label>
+                <TubeSelector
+                  clientId={clienteId || undefined}
+                  onSelect={(tubes) => {
+                    setFacturaItems((prev) => {
+                      const nuevos = tubes.map((t) => ({
+                        cylinderId: t.id,
+                        numeroSerie: t.numeroSerie,
+                        concepto: `Tubo ${t.gas.codigo} - ${t.numeroSerie}`,
+                        tipo: 'alquiler' as const,
+                        cantidad: 1,
+                        precioUnitario: 0,
+                        total: 0,
+                      }))
+                      return [...prev, ...nuevos]
+                    })
+                    setShowTubeSelector(false)
+                  }}
+                  selected={[]}
+                />
+              </div>
+            )}
+
             {facturaItems.length > 0 && (
               <div>
-                <Label>Detalle de conceptos a facturar</Label>
+                <Label>Detalle de conceptos a facturar ({facturaItems.length})</Label>
                 <div className="border rounded-lg overflow-hidden mt-1">
                   <Table>
                     <TableHeader>
@@ -880,9 +933,20 @@ export default function FacturacionTab() {
               </div>
             )}
 
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowTubeSelector((p) => !p)}>
+                <Cylinder className="w-3.5 h-3.5 mr-1" /> Tubos existentes
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                setFacturaItems((prev) => [...prev, { concepto: '', tipo: 'producto', cantidad: 1, precioUnitario: 0, total: 0 }])
+              }}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Item manual
+              </Button>
+            </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <Label className="text-xs">Saldo anterior</Label>
+                <Label className="text-xs">Saldo anterior {cargandoSaldo && <RefreshCw className="w-3 h-3 inline animate-spin" />}</Label>
                 <Input
                   type="number"
                   step={0.01}
