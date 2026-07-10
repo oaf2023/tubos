@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { FileText, Plus, RefreshCw, Eye, Trash2, Save, Search, Package, Printer, Cylinder } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileText, Plus, RefreshCw, Eye, Trash2, Save, Search, Package, Printer, Cylinder, Camera, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -216,6 +216,8 @@ export default function ComprobantesTab() {
   const [preview, setPreview] = useState<Doc | null>(null)
   const [artSearch, setArtSearch] = useState('')
   const [showTubeSelector, setShowTubeSelector] = useState(false)
+  const [camScan, setCamScan] = useState(false)
+  const [camScanTarget, setCamScanTarget] = useState<'articulo' | 'tubo'>('articulo')
   const [form, setForm] = useState<any>({ tipo: 'FACTURA_B', fecha: today(), moneda: 'ARS', tipoCambio: 1, clienteId: '', consumidorFinal: false, items: [] as Item[], observaciones: '', estado: 'BORRADOR', origen: 'MANUAL', condicionVenta: 'Cuenta Corriente', saldoAnterior: 0 })
 
   async function load() {
@@ -306,13 +308,75 @@ export default function ComprobantesTab() {
       <div><Label>Cliente</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.consumidorFinal ? 'CONSUMIDOR_FINAL' : form.clienteId} onChange={e => { setCliente(e.target.value) }}><option value="">Seleccionar...</option><option value="CONSUMIDOR_FINAL">🧾 Consumidor Final</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
       <div className="grid grid-cols-2 gap-3"><Input placeholder="CUIT/DNI" value={form.clienteDocumentoNumero || ''} onChange={e => setForm((f: any) => ({ ...f, clienteDocumentoNumero: e.target.value }))} /><Input placeholder="Condición IVA" value={form.clienteCondicionIva || ''} onChange={e => setForm((f: any) => ({ ...f, clienteCondicionIva: e.target.value }))} /></div>
       <div className="grid grid-cols-2 gap-3"><Input placeholder="Domicilio" value={form.clienteDomicilio || ''} onChange={e => setForm((f: any) => ({ ...f, clienteDomicilio: e.target.value }))} /><Input placeholder="Provincia" value={form.clienteProvincia || ''} onChange={e => setForm((f: any) => ({ ...f, clienteProvincia: e.target.value }))} /></div>
-      <div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">2. Ítems del comprobante</div><div className="text-xs text-slate-500">Agregá artículos, gases o importá referencias desde remitos/pedidos.</div></div><div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm flex items-center gap-2"><Package className="w-4 h-4" />Agregar artículo</div><div className="flex gap-2"><Input placeholder="Buscar artículo" value={artSearch} onChange={e => setArtSearch(e.target.value)} onKeyDown={e => { if(e.key==='Enter') buscarArticulos() }} /><Button variant="outline" onClick={buscarArticulos}><Search className="w-4 h-4" /></Button></div>{articulos.slice(0,5).map(a => <button key={a.ART_CODI} className="w-full text-left text-xs p-2 rounded hover:bg-slate-50 border" onClick={() => addItem({ codigo: String(a.ART_CODI), detalle: a.ART_DET1, cantidad: 1, unidad: a.ART_UNID || 'unidades', precioUnitario: Number(a.ART_PRE1 || 0), alicuotaIva: Number(config?.ivaDefaultArticulos || 21), articuloId: a.ART_CODI })}>{a.ART_CODI} · {a.ART_DET1} · ${fmt(a.ART_PRE1)}</button>)}</div>
-      <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm flex items-center gap-2"><Cylinder className="w-4 h-4" />Seleccionar tubos llenos</div>{showTubeSelector ? <div className="border rounded p-2 bg-slate-50 space-y-2"><TubeSelector clientId={form.clienteId || undefined} onSelect={(tubes) => { setForm((f: any) => ({ ...f, tubeSelected: tubes })) }} selected={form.tubeSelected || []} /><div className="flex gap-2"><Button size="sm" className="text-xs" onClick={() => { const tubes = form.tubeSelected || []; setForm((f: any) => { const existing = (f.items || []).filter((it: any) => !it._isTube); const tubeItems = tubes.map((t: any) => ({ _isTube: true, codigo: t.gas.codigo, detalle: `Tubo ${t.gas.codigo} - ${t.numeroSerie}`, cantidad: 1, unidad: 'unidades', precioUnitario: 0, alicuotaIva: Number(config?.ivaDefaultGases || 21), gasId: t.gasId })); return { ...f, items: [...existing, ...tubeItems] } }); setShowTubeSelector(false) }}>Confirmar tubos</Button><Button variant="ghost" size="sm" className="text-xs" onClick={() => setShowTubeSelector(false)}>Cancelar</Button></div></div> : <Button variant="outline" size="sm" onClick={() => setShowTubeSelector(true)}><Cylinder className="w-3.5 h-3.5 mr-1" />Elegir tubos {(form.tubeSelected?.length) ? `(${form.tubeSelected.length})` : ''}</Button>}</div>
+      <div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">2. Ítems del comprobante</div><div className="text-xs text-slate-500">Agregá artículos, gases o importá referencias desde remitos/pedidos.</div></div>      <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm flex items-center gap-2"><Package className="w-4 h-4" />Agregar artículo</div><div className="flex gap-2"><Input placeholder="Buscar artículo (escanear QR/código barras)" autoFocus value={artSearch} onChange={e => setArtSearch(e.target.value)} onKeyDown={e => { if(e.key==='Enter') buscarArticulos() }} /><Button variant="outline" onClick={buscarArticulos}><Search className="w-4 h-4" /></Button><Button variant="outline" size="icon" title="Escanear con cámara" onClick={() => { setCamScanTarget('articulo'); setCamScan(true) }}><Camera className="w-4 h-4 text-orange-500" /></Button></div><div className="text-[9px] text-slate-400">Usá un lector de barras/QR o la cámara para escanear</div>{articulos.slice(0,5).map(a => <button key={a.ART_CODI} className="w-full text-left text-xs p-2 rounded hover:bg-slate-50 border" onClick={() => addItem({ codigo: String(a.ART_CODI), detalle: a.ART_DET1, cantidad: 1, unidad: a.ART_UNID || 'unidades', precioUnitario: Number(a.ART_PRE1 || 0), alicuotaIva: Number(config?.ivaDefaultArticulos || 21), articuloId: a.ART_CODI })}>{a.ART_CODI} · {a.ART_DET1} · ${fmt(a.ART_PRE1)}</button>)}</div>
+      <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm flex items-center gap-2"><Cylinder className="w-4 h-4" />Seleccionar tubos llenos</div>{showTubeSelector ? <div className="border rounded p-2 bg-slate-50 space-y-2"><TubeSelector clientId={form.clienteId || undefined} onSelect={(tubes) => { setForm((f: any) => ({ ...f, tubeSelected: tubes })) }} selected={form.tubeSelected || []} /><div className="flex gap-2"><Button size="sm" className="text-xs" onClick={() => { const tubes = form.tubeSelected || []; setForm((f: any) => { const existing = (f.items || []).filter((it: any) => !it._isTube); const tubeItems = tubes.map((t: any) => ({ _isTube: true, codigo: t.gas.codigo, detalle: `Tubo ${t.gas.codigo} - ${t.numeroSerie}`, cantidad: 1, unidad: 'unidades', precioUnitario: 0, alicuotaIva: Number(config?.ivaDefaultGases || 21), gasId: t.gasId })); return { ...f, items: [...existing, ...tubeItems] } }); setShowTubeSelector(false) }}>Confirmar tubos</Button><Button variant="ghost" size="sm" className="text-xs" onClick={() => setShowTubeSelector(false)}>Cancelar</Button></div></div> : <Button variant="outline" size="sm" onClick={() => setShowTubeSelector(true)}><Cylinder className="w-3.5 h-3.5 mr-1" />Elegir tubos <span className="text-[9px] text-slate-400 ml-1">(escanear QR)</span>{(form.tubeSelected?.length) ? `(${form.tubeSelected.length})` : ''}</Button>}</div>
       {(form.clienteId || form.consumidorFinal) && <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm">Importar desde remitos/pedidos</div><div className="grid grid-cols-2 gap-2 max-h-36 overflow-auto">{remitos.slice(0,8).map(r => <Button key={r.id} variant="outline" size="sm" onClick={() => setForm((f: any) => ({ ...f, origen: 'REMITO', remitoIds: [...(f.remitoIds || []), r.id], observaciones: `${f.observaciones || ''}\nRemito ${r.numero}` }))}>Remito #{r.numero}</Button>)}{pedidos.slice(0,8).map(p => <Button key={p.id} variant="outline" size="sm" onClick={() => { (p.items || []).forEach((it: any) => addItem({ codigo: '', detalle: it.concepto || 'Ítem pedido', cantidad: 1, unidad: 'unidades', precioUnitario: Number(it.monto || 0), alicuotaIva: 21, pedidoItemId: it.id })); setForm((f: any) => ({ ...f, origen: 'PEDIDO', pedidoIds: [...(f.pedidoIds || []), p.id] })) }}>Pedido #{p.id.slice(-6)}</Button>)}</div></div>}
       <div className="rounded-lg border overflow-hidden"><Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Detalle</TableHead><TableHead>Cant.</TableHead><TableHead>Precio</TableHead><TableHead>IVA</TableHead><TableHead /></TableRow></TableHeader><TableBody>{form.items.map((it: Item, i: number) => <TableRow key={i}><TableCell>{it.codigo}</TableCell><TableCell className="text-xs">{it.detalle}</TableCell><TableCell><Input className="w-16 h-7" type="number" value={it.cantidad} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, cantidad: parseFloat(e.target.value) || 1 } : x) }))} /></TableCell><TableCell><Input className="w-24 h-7" type="number" value={it.precioUnitario} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, precioUnitario: parseFloat(e.target.value) || 0 } : x) }))} /></TableCell><TableCell><Input className="w-16 h-7" type="number" value={it.alicuotaIva} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: Item, idx: number) => idx === i ? { ...x, alicuotaIva: parseFloat(e.target.value) || 0 } : x) }))} /></TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(i)}><Trash2 className="w-4 h-4 text-red-500" /></Button></TableCell></TableRow>)}</TableBody></Table></div>
       <div className="grid grid-cols-3 gap-2"><div><Label className="text-xs">Saldo anterior</Label><Input type="number" className="h-7 text-sm" value={form.saldoAnterior} onChange={e => setForm((f: any) => ({ ...f, saldoAnterior: parseFloat(e.target.value) || 0 }))} /></div></div>
       <div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">3. Observaciones y datos externos</div><div className="text-xs text-slate-500">Acá van datos de Mercado Libre, Mercado Pago, envío, comprador o referencias internas.</div></div><div><Label>Observaciones / ML / MP</Label><Textarea rows={5} value={form.observaciones} onChange={e => setForm((f: any) => ({ ...f, observaciones: e.target.value }))} placeholder="Venta #, datos de envío, comprador, Mercado Pago, etc." /></div>
+      {/* Scanner de cámara */}
+      {camScan && <CamScanner onResult={(val) => { if (camScanTarget === 'articulo') { setArtSearch(val); setTimeout(() => buscarArticulos(), 100) }; setCamScan(false) }} onClose={() => setCamScan(false)} />}
     </div><div className="min-w-0 space-y-3 2xl:sticky 2xl:top-0 2xl:self-start"><div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="font-semibold">Vista previa del comprobante</div><div className="text-xs">Esta hoja muestra cómo se verá impreso. No se guarda hasta presionar Guardar. El número real sale del numerador configurado en Tablas.</div></div><div className="overflow-x-auto rounded-lg border bg-slate-100 p-3 shadow-sm"><div className="min-w-[620px]"><DocumentoPreview doc={draftPreview} config={config} /></div></div></div></div><DialogFooter><Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button><Button onClick={save}><Save className="w-4 h-4 mr-1" />Guardar comprobante</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={!!preview} onOpenChange={o => { if(!o) setPreview(null) }}><DialogContent className="!w-[96vw] !max-w-[1000px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" />Vista previa</DialogTitle></DialogHeader>{preview && <div className="overflow-x-auto"><div className="min-w-[620px]"><DocumentoPreview doc={preview} config={config} /></div></div>}</DialogContent></Dialog>
+  </div>
+}
+
+function CamScanner({ onResult, onClose }: { onResult: (val: string) => void; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [error, setError] = useState('')
+  const [scanResult, setScanResult] = useState('')
+  const [manual, setManual] = useState('')
+
+  useEffect(() => {
+    let active = true
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        if (!active) { stream.getTracks().forEach(t => t.stop()); return }
+        if (videoRef.current) videoRef.current.srcObject = stream
+        // Loop BarcodeDetector
+        if ('BarcodeDetector' in window) {
+          const detector = new (window as any).BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'codabar', 'upc_a', 'upc_e'] })
+          async function detect() {
+            if (!active) return
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+              try {
+                const codes = await detector.detect(videoRef.current)
+                if (codes.length > 0 && active) {
+                  const val = codes[0].rawValue
+                  setScanResult(val)
+                  stream.getTracks().forEach(t => t.stop())
+                  onResult(val)
+                  return
+                }
+              } catch {}
+            }
+            requestAnimationFrame(detect)
+          }
+          detect()
+        }
+      } catch (e) {
+        if (active) setError('No se pudo acceder a la cámara. Ingresá el código manualmente.')
+      }
+    }
+    start()
+    return () => { active = false }
+  }, [])
+
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="bg-white rounded-xl p-4 w-full max-w-sm mx-4 space-y-3" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold flex items-center gap-2"><ScanLine className="w-4 h-4 text-orange-500" />Escanear código</span>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      </div>
+      {error ? <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded">{error}
+        <div className="mt-2 flex gap-2">
+          <Input className="h-8 text-sm" placeholder="Código manual..." value={manual} onChange={e => setManual(e.target.value)} autoFocus />
+          <Button size="sm" className="text-xs" onClick={() => { if (manual.trim()) onResult(manual.trim()) }}>OK</Button>
+        </div>
+      </div> : <video ref={videoRef} autoPlay playsInline muted className="w-full rounded-lg bg-black aspect-[4/3] object-cover" />}
+      {scanResult && <div className="text-xs text-emerald-600 text-center">✓ Código detectado: {scanResult}</div>}
+      {!error && !scanResult && <div className="text-[10px] text-slate-400 text-center">Apuntá la cámara al código QR o barras</div>}
+    </div>
   </div>
 }
