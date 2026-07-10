@@ -44,6 +44,7 @@ export async function PUT(req: NextRequest, { params }: any) {
         operador: body.operador || null,
         condicionVenta: body.condicionVenta || null,
         origen: body.origen || undefined,
+        comprobanteAsociadoId: body.comprobanteAsociadoId || null,
         cae: body.cae || null,
         caeVencimiento: body.caeVencimiento ? new Date(body.caeVencimiento) : null,
         codigoAutorizacion: body.codigoAutorizacion || null,

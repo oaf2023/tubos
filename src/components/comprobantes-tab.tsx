@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FileText, Plus, RefreshCw, Eye, Trash2, Save, Search, Package, Printer, Cylinder, Camera, ScanLine } from 'lucide-react'
+import { FileText, Plus, RefreshCw, Eye, Trash2, Save, Search, Package, Printer, Cylinder, Camera, ScanLine, ShieldCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -13,14 +13,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast'
 import QRCode from 'qrcode'
 import TubeSelector from '@/components/tube-selector'
+import { sugerirComprobante, opcionesValidasParaReceptor } from '@/lib/arca/motor-comprobante'
+import { validarDatosComprobante } from '@/lib/arca/validaciones'
+import { ARCA_TIPOS_COMPROBANTE } from '@/lib/arca/catalogos'
 
 type Item = { codigo?: string; detalle: string; cantidad: number; unidad?: string; precioUnitario: number; bonificacionPorcentaje?: number; alicuotaIva: number; subtotal?: number; articuloId?: number; gasId?: string; pedidoItemId?: string; _isTube?: boolean }
 type Doc = any
 
 const TIPO_OPTIONS = [
-  { value: 'FACTURA_B', label: 'Factura B', tipoDocumento: 'FACTURA', letra: 'B' },
   { value: 'FACTURA_A', label: 'Factura A', tipoDocumento: 'FACTURA', letra: 'A' },
+  { value: 'FACTURA_B', label: 'Factura B', tipoDocumento: 'FACTURA', letra: 'B' },
+  { value: 'FACTURA_C', label: 'Factura C', tipoDocumento: 'FACTURA', letra: 'C' },
+  { value: 'FACTURA_E', label: 'Factura E (Exportación)', tipoDocumento: 'FACTURA', letra: 'E' },
   { value: 'NOTA_CREDITO_A', label: 'Nota de Crédito A', tipoDocumento: 'NOTA_CREDITO', letra: 'A' },
+  { value: 'NOTA_CREDITO_B', label: 'Nota de Crédito B', tipoDocumento: 'NOTA_CREDITO', letra: 'B' },
+  { value: 'NOTA_DEBITO_A', label: 'Nota de Débito A', tipoDocumento: 'NOTA_DEBITO', letra: 'A' },
+  { value: 'NOTA_DEBITO_B', label: 'Nota de Débito B', tipoDocumento: 'NOTA_DEBITO', letra: 'B' },
   { value: 'PRESUPUESTO_X', label: 'Presupuesto X', tipoDocumento: 'PRESUPUESTO', letra: 'X' },
   { value: 'REMITO_X', label: 'Remito X', tipoDocumento: 'REMITO', letra: 'X' },
   { value: 'ORDEN_INTERNA_X', label: 'Orden Interna X', tipoDocumento: 'ORDEN_INTERNA', letra: 'X' },
@@ -70,13 +78,19 @@ function ArcaQRCode({ doc, config }: { doc: any; config: any }) {
     if (!payload) return
     QRCode.toDataURL(payload, { width: 90, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } }).then(setDataUri).catch(() => setDataUri(null))
   }, [doc, config])
-  return dataUri ? <img src={dataUri} alt="QR ARCA" className="h-[90px] w-[90px] shrink-0 border-2 border-slate-900" /> : <div className="grid h-[90px] w-[90px] shrink-0 place-items-center border-2 border-slate-900 text-center text-[8px] font-bold">QR<br />ARCA</div>
+  const arcaUrl = doc.cae && doc.qrPayload ? `https://www.afip.gob.ar/fe/qr/?p=${encodeURIComponent(btoa(doc.qrPayload))}` : null
+  return dataUri ? <a href={arcaUrl || '#'} target="_blank" rel="noopener noreferrer"><img src={dataUri} alt="QR ARCA" className="h-[90px] w-[90px] shrink-0 border-2 border-slate-900 hover:opacity-80" /></a> : <div className="grid h-[90px] w-[90px] shrink-0 place-items-center border-2 border-slate-900 text-center text-[8px] font-bold">QR<br />ARCA</div>
 }
 
-function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; config: any; copia?: string }) {
+function DocumentoPreview({ doc, config, copia = 'ORIGINAL', comprobanteAsociado }: { doc: Doc; config: any; copia?: string; comprobanteAsociado?: any }) {
   const fiscal = !!doc.fiscal
   const esRemito = doc.tipoDocumento === 'REMITO'
   const showTotales = !esRemito
+  const esNota = doc.tipoDocumento === 'NOTA_CREDITO' || doc.tipoDocumento === 'NOTA_DEBITO'
+  const esConsumidorFinal = doc.clienteCondicionIva === 'Consumidor Final' || (!doc.clienteDocumentoTipo || doc.clienteDocumentoTipo.includes('DNI'))
+  const autorizado = doc.estado === 'AUTORIZADO' && !!doc.cae
+  const tieneCaeManual = !!doc.cae && !autorizado
+  const ivaContenido = esConsumidorFinal && (doc.iva21 || doc.iva105) ? Number(doc.iva21 || 0) + Number(doc.iva105 || 0) + Number(doc.iva27 || 0) + Number(doc.iva5 || 0) + Number(doc.iva25 || 0) : 0
   const tituloBase = doc.tipoDocumento === 'NOTA_CREDITO' ? 'NOTA DE CRÉDITO' : doc.tipoDocumento === 'ORDEN_INTERNA' ? 'COMPROBANTE INTERNO' : doc.tipoDocumento
   const titulo = `${tituloBase || 'COMPROBANTE'} ${doc.letra || ''}`.trim()
   const fecha = new Date(`${String(doc.fecha || today()).slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR')
@@ -133,6 +147,7 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
           <div><b>Condición de venta:</b> {doc.condicionVenta || 'Cuenta Corriente'}</div>
           <div><b>Lista de precios:</b> {doc.listaPrecio || '1'}</div>
           {fiscal && <div><b>Concepto:</b> Productos</div>}
+          {esNota && comprobanteAsociado ? <div className="mt-1 border-t border-slate-300 pt-1 text-[9px]"><b>Comp. original:</b> {comprobanteAsociado.tipoDocumento} {comprobanteAsociado.letra} · {comprobanteAsociado.numeroFormateado}<br /><b>Fecha:</b> {new Date(comprobanteAsociado.fecha).toLocaleDateString('es-AR')} · <b>Total:</b> ${fmt(comprobanteAsociado.total)}</div> : esNota && doc.comprobanteAsociadoId ? <div className="mt-1 border-t border-slate-300 pt-1 text-[9px]"><b>Comp. asociado:</b> {doc.comprobanteAsociadoId}</div> : null}
           <div className="mt-2 text-right text-[9px] text-slate-600">Operador: {doc.operador || 'conti julio'}</div>
         </div>
       </div>
@@ -159,7 +174,12 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
           <span className="text-slate-500">Neto gravado</span><b className="font-mono">$ {fmt(doc.netoGravado)}</b>
           {!!Number(doc.iva21) && <><span className="text-slate-500">IVA 21%</span><b className="font-mono">$ {fmt(doc.iva21)}</b></>}
           {!!Number(doc.iva105) && <><span className="text-slate-500">IVA 10,5%</span><b className="font-mono">$ {fmt(doc.iva105)}</b></>}
+          {!!Number(doc.iva27) && <><span className="text-slate-500">IVA 27%</span><b className="font-mono">$ {fmt(doc.iva27)}</b></>}
+          {!!Number(doc.iva5) && <><span className="text-slate-500">IVA 5%</span><b className="font-mono">$ {fmt(doc.iva5)}</b></>}
+          {!!Number(doc.iva25) && <><span className="text-slate-500">IVA 2,5%</span><b className="font-mono">$ {fmt(doc.iva25)}</b></>}
+          {!!Number(doc.netoExento) && <><span className="text-slate-500">Neto exento</span><b className="font-mono">$ {fmt(doc.netoExento)}</b></>}
           {!!Number(doc.percepciones) && <><span className="text-slate-500">Percepciones</span><b className="font-mono">$ {fmt(doc.percepciones)}</b></>}
+          {ivaContenido > 0 && <div className="col-span-2 border-t border-slate-300 pt-1 mt-1 text-[8px] text-slate-500 italic">El IVA está incluido en el precio final conforme RG 5045/2025. Importe total de IVA contenido: <b className="text-slate-700 not-italic">${fmt(ivaContenido)}</b></div>}
         </div>
         <div className="border-l-2 border-slate-900 bg-slate-100 p-3 text-right">
           <div className="text-[9px] font-bold uppercase tracking-wider">Total {doc.moneda === 'USD' ? 'U$S' : 'ARS'}</div>
@@ -167,7 +187,7 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
         </div>
       </div>}
       <div className="min-h-14 border-t-2 border-slate-900 p-3 whitespace-pre-wrap text-[9px]"><b className="text-[10px]">Observaciones</b><br />{doc.observaciones || '—'}</div>
-      {fiscal ? <div className="border-t-2 border-slate-900">
+      {autorizado ? <div className="border-t-2 border-slate-900">
         <div className="flex items-start gap-4 p-3">
           <ArcaQRCode doc={doc} config={config} />
           <div className="min-w-0">
@@ -178,9 +198,57 @@ function DocumentoPreview({ doc, config, copia = 'ORIGINAL' }: { doc: Doc; confi
             </div>
           </div>
           <div className="ml-auto shrink-0 text-right">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">CAE</div>
-            <div className="mt-0.5 font-mono text-sm font-black text-slate-900 tracking-wider">{doc.cae || 'Pendiente'}</div>
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">CAE N°</div>
+            <div className="mt-0.5 font-mono text-sm font-black text-slate-900 tracking-wider">{doc.cae}</div>
             <div className="mt-1.5 text-[9px] text-slate-600">Venc. CAE: <b className="text-slate-900">{doc.caeVencimiento ? new Date(doc.caeVencimiento).toLocaleDateString('es-AR') : '—'}</b></div>
+          </div>
+        </div>
+        <div className="relative overflow-hidden border-t-2 border-slate-900 bg-yellow-400 py-1.5 text-center text-[9px] font-black tracking-[0.18em] text-slate-900">
+          <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(0,0,0,0.12) 10px, rgba(0,0,0,0.12) 20px)' }} />
+          <span className="relative z-10">ORIGINAL</span>
+        </div>
+      </div> : tieneCaeManual ? <div className="border-t-2 border-slate-900">
+        <div className="flex items-start gap-4 p-3">
+          <div className="grid h-[90px] w-[90px] shrink-0 place-items-center border-2 border-slate-300 bg-orange-50 text-center text-[8px] font-bold text-amber-600">QR<br />MANUAL</div>
+          <div className="min-w-0">
+            <div className="text-lg font-black tracking-tight text-amber-600">CAE MANUAL</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500">CAE Ingresado Manualmente</div>
+            <div className="mt-1.5 text-[9px] leading-relaxed text-slate-600">
+              Este comprobante tiene un CAE ingresado manualmente. No ha sido autorizado por ARCA a través del Web Service. Verifique la validez del CAE antes de emitir.
+            </div>
+          </div>
+          <div className="ml-auto shrink-0 text-right">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-amber-600">CAE N°</div>
+            <div className="mt-0.5 font-mono text-sm font-black text-slate-900 tracking-wider">{doc.cae}</div>
+          </div>
+        </div>
+        <div className="border-t-2 border-slate-300">
+          <div className="mx-auto px-8 py-6 text-center">
+            <div className="border-2 border-amber-400 px-8 py-2 font-black tracking-widest text-amber-600 inline-block">CAE MANUAL - VERIFICAR</div>
+          </div>
+        </div>
+        <div className="relative overflow-hidden border-t-2 border-slate-900 bg-yellow-400 py-1.5 text-center text-[9px] font-black tracking-[0.18em] text-slate-900">
+          <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(0,0,0,0.12) 10px, rgba(0,0,0,0.12) 20px)' }} />
+          <span className="relative z-10">ORIGINAL</span>
+        </div>
+      </div> : fiscal ? <div className="border-t-2 border-slate-900">
+        <div className="flex items-start gap-4 p-3">
+          <div className="grid h-[90px] w-[90px] shrink-0 place-items-center border-2 border-slate-300 bg-slate-100 text-center text-[8px] font-bold text-slate-400">QR<br />PENDIENTE</div>
+          <div className="min-w-0">
+            <div className="text-lg font-black tracking-tight text-slate-400">ARCA</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pendiente de Autorización</div>
+            <div className="mt-1.5 text-[9px] leading-relaxed text-slate-400">
+              Este comprobante aún no ha sido autorizado por ARCA. No tiene validez fiscal hasta obtener el CAE correspondiente.
+            </div>
+          </div>
+          <div className="ml-auto shrink-0 text-right">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">CAE</div>
+            <div className="mt-0.5 font-mono text-sm font-black text-slate-400 tracking-wider">Pendiente</div>
+          </div>
+        </div>
+        <div className="border-t-2 border-slate-300">
+          <div className="mx-auto px-8 py-6 text-center">
+            <div className="border-2 border-slate-300 px-8 py-2 font-black tracking-widest text-slate-400 inline-block">SIN VALIDEZ FISCAL</div>
           </div>
         </div>
         <div className="relative overflow-hidden border-t-2 border-slate-900 bg-yellow-400 py-1.5 text-center text-[9px] font-black tracking-[0.18em] text-slate-900">
@@ -214,10 +282,12 @@ export default function ComprobantesTab() {
   const [search, setSearch] = useState('')
   const [dialog, setDialog] = useState(false)
   const [preview, setPreview] = useState<Doc | null>(null)
+  const [previewAsociado, setPreviewAsociado] = useState<any>(null)
   const [artSearch, setArtSearch] = useState('')
   const [showTubeSelector, setShowTubeSelector] = useState(false)
   const [camScan, setCamScan] = useState(false)
   const [camScanTarget, setCamScanTarget] = useState<'articulo' | 'tubo'>('articulo')
+  const [comprobantesAsociables, setComprobantesAsociables] = useState<any[]>([])
   const [form, setForm] = useState<any>({ tipo: 'FACTURA_B', fecha: today(), moneda: 'ARS', tipoCambio: 1, clienteId: '', consumidorFinal: false, items: [] as Item[], observaciones: '', estado: 'BORRADOR', origen: 'MANUAL', condicionVenta: 'Cuenta Corriente', saldoAnterior: 0 })
 
   async function load() {
@@ -257,15 +327,33 @@ export default function ComprobantesTab() {
         clienteDomicilio: '', clienteLocalidad: '', clienteProvincia: '', clienteTelefono: '',
         saldoAnterior: 0,
       }))
+      // Auto-sugerir Factura B para consumidor final
+      const sug = sugerirComprobante(config?.condicionIva, 'Consumidor Final')
+      if (sug) setForm((f: any) => ({ ...f, tipo: sug.key }))
       return
     }
     const c = clientes.find(x => x.id === id)
     setForm((f: any) => ({ ...f, clienteId: id, consumidorFinal: false, clienteNombre: c?.nombre || '', clienteCodigo: c?.codigoLegacy ? String(c.codigoLegacy) : '', clienteDocumentoNumero: c?.taxId || c?.numeroDocumento || '', clienteDocumentoTipo: c?.taxId ? 'C.U.I.T.' : c?.tipoDocumento || 'D.N.I.', clienteCondicionIva: c?.condicionIva || 'Consumidor Final', clienteDomicilio: c?.domicilioFiscal || [c?.calle, c?.altura].filter(Boolean).join(' '), clienteLocalidad: c?.ciudad, clienteProvincia: c?.provincia, clienteTelefono: c?.telefono }))
+    // Auto-sugerir tipo según condición fiscal
+    const condReceptor = c?.condicionIva || 'Consumidor Final'
+    const sug = sugerirComprobante(config?.condicionIva, condReceptor)
+    if (sug) setForm((f: any) => ({ ...f, tipo: sug.key }))
     cargarOrigenes(id)
     // Auto-cargar saldo
     try {
       const res = await fetch(`/api/clientes/${id}/saldo`)
       if (res.ok) { const data = await res.json(); setForm((f: any) => ({ ...f, saldoAnterior: data.saldo || 0 })) }
+    } catch { /* ignore */ }
+  }
+
+  async function cargarComprobantesAsociables(tipo: string, clienteId: string) {
+    if (!clienteId || (tipo !== 'NOTA_CREDITO_A' && tipo !== 'NOTA_CREDITO_B' && tipo !== 'NOTA_DEBITO_A' && tipo !== 'NOTA_DEBITO_B')) {
+      setComprobantesAsociables([])
+      return
+    }
+    try {
+      const res = await fetch(`/api/comprobantes?tipo=FACTURAS&search=${encodeURIComponent(clienteId)}&per_page=20`)
+      if (res.ok) setComprobantesAsociables(await res.json())
     } catch { /* ignore */ }
   }
 
@@ -276,18 +364,67 @@ export default function ComprobantesTab() {
     const opt = TIPO_OPTIONS.find(o => o.value === form.tipo) || TIPO_OPTIONS[0]
     if (!form.clienteNombre) return toast({ title: 'Seleccioná un cliente', variant: 'destructive' })
     if (!form.items.length) return toast({ title: 'Agregá ítems', variant: 'destructive' })
-    const payload = { ...form, tipoDocumento: opt.tipoDocumento, letra: opt.letra, tipo: undefined }
+    const fiscal = opt.tipoDocumento === 'FACTURA' || opt.tipoDocumento === 'NOTA_CREDITO' || opt.tipoDocumento === 'NOTA_DEBITO'
+    const errores = validarDatosComprobante({
+      tipoDocumento: opt.tipoDocumento, letra: opt.letra, fiscal,
+      clienteNombre: form.clienteNombre, clienteDocumentoTipo: form.clienteDocumentoTipo,
+      clienteDocumentoNumero: form.clienteDocumentoNumero, clienteCondicionIva: form.clienteCondicionIva,
+    })
+    if (errores.some(e => e.tipo === 'error')) {
+      return toast({ title: errores[0].mensaje, variant: 'destructive' })
+    }
+    const payload = { ...form, tipoDocumento: opt.tipoDocumento, letra: opt.letra, fiscal, tipo: undefined, estado: 'BORRADOR' }
     const res = await fetch('/api/comprobantes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     if (!res.ok) return toast({ title: 'No se pudo crear comprobante', variant: 'destructive' })
     const doc = await res.json()
     toast({ title: 'Comprobante creado', description: doc.numeroFormateado })
-    setDialog(false); setPreview(doc); setForm({ tipo: 'FACTURA_B', fecha: today(), moneda: 'ARS', tipoCambio: 1, clienteId: '', items: [], observaciones: '', estado: 'BORRADOR', origen: 'MANUAL', condicionVenta: 'Cuenta Corriente' }); load()
+    setDialog(false); setPreview(doc); setForm({ tipo: 'FACTURA_B', fecha: today(), moneda: 'ARS', tipoCambio: 1, clienteId: '', items: [], observaciones: '', estado: 'BORRADOR', origen: 'MANUAL', condicionVenta: 'Cuenta Corriente' }); setComprobantesAsociables([]); load()
   }
+
+  const [autorizando, setAutorizando] = useState<string | null>(null)
+
+  async function autorizarComprobante(id: string) {
+    setAutorizando(id)
+    try {
+      const res = await fetch(`/api/comprobantes/${id}/autorizar`, { method: 'POST' })
+      const data = await res.json()
+      if (data.state === 'MANUAL') {
+        toast({ title: 'Modo manual', description: 'Ingrese el CAE manualmente editando el comprobante' })
+      } else if (data.success && data.cae) {
+        toast({ title: 'Comprobante autorizado', description: `CAE: ${data.cae}` })
+      } else if (data.cae) {
+        toast({ title: 'CAE obtenido', description: `CAE: ${data.cae}` })
+      } else if (data.observaciones?.length) {
+        toast({ title: data.observaciones[0] || 'Aviso', variant: 'default' })
+      }
+      if (data.errors?.length) {
+        toast({ title: data.errors[0] || 'Error de autorización', variant: 'destructive' })
+      }
+      if (data.doc) setPreview(data.doc)
+      load()
+    } catch {
+      toast({ title: 'Error al autorizar', variant: 'destructive' })
+    } finally {
+      setAutorizando(null)
+    }
+  }
+
+  useEffect(() => {
+    if (preview?.comprobanteAsociadoId) {
+      fetch(`/api/comprobantes/${preview.comprobanteAsociadoId}`).then(r => r.ok && r.json()).then(setPreviewAsociado).catch(() => setPreviewAsociado(null))
+    } else {
+      setPreviewAsociado(null)
+    }
+  }, [preview?.id])
 
   const draftPreview = useMemo(() => {
     const opt = TIPO_OPTIONS.find(o => o.value === form.tipo) || TIPO_OPTIONS[0]
     const total = form.items.reduce((s: number, it: Item) => s + (Number(it.cantidad || 0) * Number(it.precioUnitario || 0)), 0)
-    return { ...form, tipoDocumento: opt.tipoDocumento, letra: opt.letra, codigoComprobante: opt.letra === 'B' ? '06' : opt.letra === 'A' && opt.tipoDocumento === 'NOTA_CREDITO' ? '03' : opt.letra === 'A' ? '01' : '00', abreviatura: opt.tipoDocumento === 'NOTA_CREDITO' ? 'Ncre' : opt.tipoDocumento === 'PRESUPUESTO' ? 'Pres' : opt.tipoDocumento === 'REMITO' ? 'Remi' : opt.tipoDocumento === 'ORDEN_INTERNA' ? 'Cint' : 'Fact', numeroFormateado: 'Vista previa', fiscal: opt.tipoDocumento === 'FACTURA' || opt.tipoDocumento === 'NOTA_CREDITO', sinValidezFiscal: !(opt.tipoDocumento === 'FACTURA' || opt.tipoDocumento === 'NOTA_CREDITO'), items: form.items.map((it: Item) => ({ ...it, subtotal: Number(it.cantidad || 0) * Number(it.precioUnitario || 0) })), total, netoGravado: total, iva21: 0, iva105: 0, netoExento: 0, netoNoGravado: 0, percepciones: 0 }
+    const esFiscal = opt.tipoDocumento === 'FACTURA' || opt.tipoDocumento === 'NOTA_CREDITO' || opt.tipoDocumento === 'NOTA_DEBITO'
+    const codigoMap: Record<string, string> = { '01': '01', '03': '03', '06': '06', '11': '11', '19': '19', '02': '02', '07': '07', '08': '08', '00': '00' }
+    const codigo = ARCA_TIPOS_COMPROBANTE[opt.value]?.codigo.toString().padStart(2, '0') || '00'
+    const abrevMap: Record<string, string> = { FACTURA: 'Fact', NOTA_CREDITO: 'Ncre', NOTA_DEBITO: 'Ndeb', PRESUPUESTO: 'Pres', REMITO: 'Remi', ORDEN_INTERNA: 'Cint' }
+    return { ...form, tipoDocumento: opt.tipoDocumento, letra: opt.letra, codigoComprobante: codigo, abreviatura: abrevMap[opt.tipoDocumento] || 'Fact', numeroFormateado: 'Vista previa', fiscal: esFiscal, sinValidezFiscal: !esFiscal, items: form.items.map((it: Item) => ({ ...it, subtotal: Number(it.cantidad || 0) * Number(it.precioUnitario || 0) })), total, netoGravado: total, iva21: 0, iva105: 0, netoExento: 0, netoNoGravado: 0, percepciones: 0 }
   }, [form])
 
   return <div className="space-y-4">
@@ -300,12 +437,18 @@ export default function ComprobantesTab() {
       <Input className="w-56" placeholder="Buscar cliente/número" value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
       <Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-4 h-4" /></Button>
     </div>
-    {loading ? <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14" />)}</div> : <div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Número</TableHead><TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Origen</TableHead><TableHead>Moneda</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader><TableBody>{docs.map(d => <TableRow key={d.id}><TableCell><Badge variant="outline">{d.tipoDocumento} {d.letra}</Badge></TableCell><TableCell className="font-mono text-xs">{d.numeroFormateado}</TableCell><TableCell>{new Date(d.fecha).toLocaleDateString('es-AR')}</TableCell><TableCell>{d.clienteNombre}</TableCell><TableCell>{d.origen}</TableCell><TableCell>{d.moneda}</TableCell><TableCell className="text-right font-mono">{fmt(d.total)}</TableCell><TableCell><Badge>{d.estado}</Badge></TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => setPreview(d)}><Eye className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="text-red-500" onClick={async () => { if(confirm('¿Eliminar comprobante?')) { await fetch(`/api/comprobantes/${d.id}`, { method: 'DELETE' }); load() } }}><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>)}</TableBody></Table></div>}
+    {loading ? <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14" />)}</div> : <div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Número</TableHead><TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Origen</TableHead><TableHead>Moneda</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader><TableBody>{docs.map(d => <TableRow key={d.id}><TableCell><Badge variant="outline">{d.tipoDocumento} {d.letra}</Badge></TableCell><TableCell className="font-mono text-xs">{d.numeroFormateado}</TableCell><TableCell>{new Date(d.fecha).toLocaleDateString('es-AR')}</TableCell><TableCell>{d.clienteNombre}</TableCell><TableCell>{d.origen}</TableCell><TableCell>{d.moneda}</TableCell>        <TableCell className="text-right font-mono">{fmt(d.total)}</TableCell><TableCell><Badge className={d.estado === 'AUTORIZADO' ? 'bg-emerald-600' : d.estado === 'RECHAZADO' ? 'bg-red-600' : d.estado === 'EN_AUTORIZACION' ? 'bg-amber-500' : ''}>{d.estado}</Badge></TableCell>            <TableCell className="text-right whitespace-nowrap">
+              {d.fiscal && d.estado === 'BORRADOR' && <Button variant="ghost" size="icon" className="text-emerald-600" title="Autorizar contra ARCA" onClick={() => autorizarComprobante(d.id)}><ShieldCheck className="w-4 h-4" /></Button>}
+              {d.fiscal && d.estado === 'EN_AUTORIZACION' && <Loader2 className="w-4 h-4 animate-spin text-amber-500 inline-block mr-1" />}
+              <Button variant="ghost" size="icon" onClick={() => setPreview(d)}><Eye className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="text-red-500" onClick={async () => { if(confirm('¿Eliminar comprobante?')) { await fetch(`/api/comprobantes/${d.id}`, { method: 'DELETE' }); load() } }}><Trash2 className="w-4 h-4" /></Button>
+            </TableCell></TableRow>)}</TableBody></Table></div>}
 
     <Dialog open={dialog} onOpenChange={setDialog}><DialogContent className="!w-[96vw] !max-w-[1400px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle>Nuevo Comprobante</DialogTitle></DialogHeader><div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><strong>Cómo usar esta pantalla:</strong> cargá los datos en la columna izquierda. La hoja de la derecha es solo una vista previa visual del comprobante; el número definitivo y los totales fiscales se asignan al presionar <strong>Guardar</strong>.</div><div className="grid grid-cols-1 2xl:grid-cols-[minmax(480px,0.8fr)_minmax(620px,1.2fr)] gap-5"><div className="min-w-0 space-y-4"><div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">1. Datos principales</div><div className="text-xs text-slate-500">Elegí tipo, fecha, moneda, cliente y condición de venta.</div></div>
-      <div className="grid grid-cols-3 gap-3"><div><Label>Tipo</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.tipo} onChange={e => setForm((f: any) => ({ ...f, tipo: e.target.value }))}>{TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div><div><Label>Fecha</Label><Input type="date" value={form.fecha} onChange={e => setForm((f: any) => ({ ...f, fecha: e.target.value }))} /></div><div><Label>Estado</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.estado} onChange={e => setForm((f: any) => ({ ...f, estado: e.target.value }))}><option>BORRADOR</option><option>PENDIENTE</option><option>EMITIDO</option><option>PAGADO</option></select></div></div>
+      <div className="grid grid-cols-3 gap-3"><div><Label>Tipo</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.tipo} onChange={e => setForm((f: any) => ({ ...f, tipo: e.target.value }))}>{TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div><div><Label>Fecha</Label><Input type="date" value={form.fecha} onChange={e => setForm((f: any) => ({ ...f, fecha: e.target.value }))} /></div><div><Label>Estado</Label><input type="text" className="w-full border rounded px-3 py-2 text-sm bg-slate-100 text-slate-500" value="BORRADOR" disabled /></div></div>
       <div className="grid grid-cols-3 gap-3"><div><Label>Moneda</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.moneda} onChange={e => setForm((f: any) => ({ ...f, moneda: e.target.value }))}><option value="ARS">ARS</option><option value="USD">USD</option></select></div><div><Label>Tipo cambio</Label><Input type="number" step="0.01" value={form.tipoCambio} onChange={e => setForm((f: any) => ({ ...f, tipoCambio: parseFloat(e.target.value) || 1 }))} /></div><div><Label>Condición venta</Label><Input value={form.condicionVenta} onChange={e => setForm((f: any) => ({ ...f, condicionVenta: e.target.value }))} /></div></div>
-      <div><Label>Cliente</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.consumidorFinal ? 'CONSUMIDOR_FINAL' : form.clienteId} onChange={e => { setCliente(e.target.value) }}><option value="">Seleccionar...</option><option value="CONSUMIDOR_FINAL">🧾 Consumidor Final</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
+      <div><Label>Cliente</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.consumidorFinal ? 'CONSUMIDOR_FINAL' : form.clienteId} onChange={e => { setCliente(e.target.value); cargarComprobantesAsociables(form.tipo, e.target.value) }}><option value="">Seleccionar...</option><option value="CONSUMIDOR_FINAL">🧾 Consumidor Final</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
+      {(form.tipo === 'NOTA_CREDITO_A' || form.tipo === 'NOTA_CREDITO_B' || form.tipo === 'NOTA_DEBITO_A' || form.tipo === 'NOTA_DEBITO_B') && <div><Label>Comprobante asociado (original)</Label><select className="w-full border rounded px-3 py-2 text-sm" value={form.comprobanteAsociadoId || ''} onChange={e => setForm((f: any) => ({ ...f, comprobanteAsociadoId: e.target.value }))}><option value="">Seleccionar...</option>{comprobantesAsociables.filter((c: any) => c.clienteId === form.clienteId || c.clienteNombre === form.clienteNombre).map((c: any) => <option key={c.id} value={c.id}>{c.numeroFormateado} · {c.clienteNombre} · ${fmt(c.total)}</option>)}</select></div>}
       <div className="grid grid-cols-2 gap-3"><Input placeholder="CUIT/DNI" value={form.clienteDocumentoNumero || ''} onChange={e => setForm((f: any) => ({ ...f, clienteDocumentoNumero: e.target.value }))} /><Input placeholder="Condición IVA" value={form.clienteCondicionIva || ''} onChange={e => setForm((f: any) => ({ ...f, clienteCondicionIva: e.target.value }))} /></div>
       <div className="grid grid-cols-2 gap-3"><Input placeholder="Domicilio" value={form.clienteDomicilio || ''} onChange={e => setForm((f: any) => ({ ...f, clienteDomicilio: e.target.value }))} /><Input placeholder="Provincia" value={form.clienteProvincia || ''} onChange={e => setForm((f: any) => ({ ...f, clienteProvincia: e.target.value }))} /></div>
       <div className="rounded-lg border bg-slate-50 p-3"><div className="text-sm font-semibold text-slate-800">2. Ítems del comprobante</div><div className="text-xs text-slate-500">Agregá artículos, gases o importá referencias desde remitos/pedidos.</div></div>      <div className="rounded-lg border p-3 space-y-2"><div className="font-semibold text-sm flex items-center gap-2"><Package className="w-4 h-4" />Agregar artículo</div><div className="flex gap-2"><Input placeholder="Buscar artículo (escanear QR/código barras)" autoFocus value={artSearch} onChange={e => setArtSearch(e.target.value)} onKeyDown={e => { if(e.key==='Enter') buscarArticulos() }} /><Button variant="outline" onClick={buscarArticulos}><Search className="w-4 h-4" /></Button><Button variant="outline" size="icon" title="Escanear con cámara" onClick={() => { setCamScanTarget('articulo'); setCamScan(true) }}><Camera className="w-4 h-4 text-orange-500" /></Button></div><div className="text-[9px] text-slate-400">Usá un lector de barras/QR o la cámara para escanear</div>{articulos.slice(0,5).map(a => <button key={a.ART_CODI} className="w-full text-left text-xs p-2 rounded hover:bg-slate-50 border" onClick={() => addItem({ codigo: String(a.ART_CODI), detalle: a.ART_DET1, cantidad: 1, unidad: a.ART_UNID || 'unidades', precioUnitario: Number(a.ART_PRE1 || 0), alicuotaIva: Number(config?.ivaDefaultArticulos || 21), articuloId: a.ART_CODI })}>{a.ART_CODI} · {a.ART_DET1} · ${fmt(a.ART_PRE1)}</button>)}</div>
@@ -317,7 +460,7 @@ export default function ComprobantesTab() {
       {/* Scanner de cámara */}
       {camScan && <CamScanner onResult={(val) => { if (camScanTarget === 'articulo') { setArtSearch(val); setTimeout(() => buscarArticulos(), 100) }; setCamScan(false) }} onClose={() => setCamScan(false)} />}
     </div><div className="min-w-0 space-y-3 2xl:sticky 2xl:top-0 2xl:self-start"><div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="font-semibold">Vista previa del comprobante</div><div className="text-xs">Esta hoja muestra cómo se verá impreso. No se guarda hasta presionar Guardar. El número real sale del numerador configurado en Tablas.</div></div><div className="overflow-x-auto rounded-lg border bg-slate-100 p-3 shadow-sm"><div className="min-w-[620px]"><DocumentoPreview doc={draftPreview} config={config} /></div></div></div></div><DialogFooter><Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button><Button onClick={save}><Save className="w-4 h-4 mr-1" />Guardar comprobante</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={!!preview} onOpenChange={o => { if(!o) setPreview(null) }}><DialogContent className="!w-[96vw] !max-w-[1000px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" />Vista previa</DialogTitle></DialogHeader>{preview && <div className="overflow-x-auto"><div className="min-w-[620px]"><DocumentoPreview doc={preview} config={config} /></div></div>}</DialogContent></Dialog>
+    <Dialog open={!!preview} onOpenChange={o => { if(!o) setPreview(null) }}><DialogContent className="!w-[96vw] !max-w-[1000px] max-h-[94vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" />Vista previa</DialogTitle></DialogHeader>{preview && <div className="space-y-3"><div className="flex items-center gap-2 flex-wrap"><Badge className={preview.estado === 'AUTORIZADO' ? 'bg-emerald-600' : preview.estado === 'RECHAZADO' ? 'bg-red-600' : preview.estado === 'EN_AUTORIZACION' ? 'bg-amber-500' : ''}>{preview.estado}</Badge>{preview.fiscal && preview.estado === 'BORRADOR' && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => autorizarComprobante(preview.id)} disabled={autorizando === preview.id}>{autorizando === preview.id ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}Autorizar contra ARCA</Button>}{preview.estado === 'AUTORIZADO' && <Badge className="bg-emerald-600">✓ Autorizado</Badge>}{preview.fiscal && !preview.cae && preview.estado === 'BORRADOR' && <Button size="sm" variant="outline" className="text-xs" onClick={async () => { const cae = prompt('Ingrese CAE manual:'); if (!cae) return; try { const res = await fetch(`/api/comprobantes/${preview.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cae }) }); if (res.ok) { toast({ title: 'CAE manual guardado' }); load(); const updated = await res.json(); setPreview(updated) } else toast({ title: 'Error al guardar CAE', variant: 'destructive' }) } catch { toast({ title: 'Error', variant: 'destructive' }) } }}>CAE manual</Button>}</div><div className="overflow-x-auto"><div className="min-w-[620px]"><DocumentoPreview doc={preview} config={config} comprobanteAsociado={previewAsociado} /></div></div></div>}</DialogContent></Dialog>
   </div>
 }
 

@@ -3,7 +3,12 @@ import { db } from '@/lib/db'
 const DOC_DEFAULTS: Record<string, { letra: string; codigo: string; abrev: string; pv: string; fiscal: boolean; sinFiscal: boolean; copias: string }> = {
   FACTURA_A: { letra: 'A', codigo: '01', abrev: 'Fact', pv: '0007', fiscal: true, sinFiscal: false, copias: 'ORIGINAL,DUPLICADO,TRIPLICADO' },
   FACTURA_B: { letra: 'B', codigo: '06', abrev: 'Fact', pv: '0014', fiscal: true, sinFiscal: false, copias: 'ORIGINAL,DUPLICADO' },
+  FACTURA_C: { letra: 'C', codigo: '11', abrev: 'Fact', pv: '0014', fiscal: true, sinFiscal: false, copias: 'ORIGINAL,DUPLICADO' },
+  FACTURA_E: { letra: 'E', codigo: '19', abrev: 'Fact', pv: '0007', fiscal: true, sinFiscal: false, copias: 'ORIGINAL,DUPLICADO' },
   NOTA_CREDITO_A: { letra: 'A', codigo: '03', abrev: 'Ncre', pv: '0003', fiscal: true, sinFiscal: false, copias: 'ORIGINAL' },
+  NOTA_CREDITO_B: { letra: 'B', codigo: '08', abrev: 'Ncre', pv: '0003', fiscal: true, sinFiscal: false, copias: 'ORIGINAL' },
+  NOTA_DEBITO_A: { letra: 'A', codigo: '02', abrev: 'Ndeb', pv: '0003', fiscal: true, sinFiscal: false, copias: 'ORIGINAL' },
+  NOTA_DEBITO_B: { letra: 'B', codigo: '07', abrev: 'Ndeb', pv: '0003', fiscal: true, sinFiscal: false, copias: 'ORIGINAL' },
   PRESUPUESTO_X: { letra: 'X', codigo: '00', abrev: 'Pres', pv: '0004', fiscal: false, sinFiscal: true, copias: 'ORIGINAL' },
   REMITO_X: { letra: 'X', codigo: '00', abrev: 'Remi', pv: '0030', fiscal: false, sinFiscal: true, copias: 'ORIGINAL,DUPLICADO' },
   ORDEN_INTERNA_X: { letra: 'X', codigo: '00', abrev: 'Cint', pv: '0009', fiscal: false, sinFiscal: true, copias: 'ORIGINAL,DUPLICADO' },
@@ -12,7 +17,12 @@ const DOC_DEFAULTS: Record<string, { letra: string; codigo: string; abrev: strin
 function docKey(tipoDocumento: string, letra: string) {
   if (tipoDocumento === 'FACTURA' && letra === 'A') return 'FACTURA_A'
   if (tipoDocumento === 'FACTURA' && letra === 'B') return 'FACTURA_B'
+  if (tipoDocumento === 'FACTURA' && letra === 'C') return 'FACTURA_C'
+  if (tipoDocumento === 'FACTURA' && letra === 'E') return 'FACTURA_E'
   if (tipoDocumento === 'NOTA_CREDITO' && letra === 'A') return 'NOTA_CREDITO_A'
+  if (tipoDocumento === 'NOTA_CREDITO' && letra === 'B') return 'NOTA_CREDITO_B'
+  if (tipoDocumento === 'NOTA_DEBITO' && letra === 'A') return 'NOTA_DEBITO_A'
+  if (tipoDocumento === 'NOTA_DEBITO' && letra === 'B') return 'NOTA_DEBITO_B'
   if (tipoDocumento === 'PRESUPUESTO') return 'PRESUPUESTO_X'
   if (tipoDocumento === 'REMITO') return 'REMITO_X'
   if (tipoDocumento === 'ORDEN_INTERNA') return 'ORDEN_INTERNA_X'
@@ -24,6 +34,7 @@ export async function ensureDefaultComprobanteConfig() {
   for (const [key, d] of Object.entries(DOC_DEFAULTS)) {
     const tipoDocumento = key.startsWith('FACTURA') ? 'FACTURA'
       : key.startsWith('NOTA_CREDITO') ? 'NOTA_CREDITO'
+      : key.startsWith('NOTA_DEBITO') ? 'NOTA_DEBITO'
       : key.startsWith('PRESUPUESTO') ? 'PRESUPUESTO'
       : key.startsWith('REMITO') ? 'REMITO'
       : 'ORDEN_INTERNA'
@@ -118,6 +129,7 @@ export async function createComprobante(input: any) {
         clienteId: input.clienteId || null, clienteCodigo: input.clienteCodigo || null, clienteNombre: input.clienteNombre || 'Consumidor Final', clienteDocumentoTipo: input.clienteDocumentoTipo || null, clienteDocumentoNumero: input.clienteDocumentoNumero || null, clienteCondicionIva: input.clienteCondicionIva || null, clienteDomicilio: input.clienteDomicilio || null, clienteLocalidad: input.clienteLocalidad || null, clienteProvincia: input.clienteProvincia || null, clientePais: input.clientePais || 'ARGENTINA', clienteTelefono: input.clienteTelefono || null,
         moneda: input.moneda || cfg.monedaDefault, tipoCambio, listaPrecio: input.listaPrecio || '1', operador: input.operador || null, condicionVenta: input.condicionVenta || 'Cuenta Corriente', origen: input.origen || 'MANUAL', origenId: input.origenId || null, remitoIds: (input.remitoIds || []).join?.(',') || input.remitoIds || '', pedidoIds: (input.pedidoIds || []).join?.(',') || input.pedidoIds || '',
         mlOrderId: input.mlOrderId || null, mlSaleNumber: input.mlSaleNumber || null, mlShipmentId: input.mlShipmentId || null, mlTrackingCode: input.mlTrackingCode || null, mlBuyerName: input.mlBuyerName || null, mlBuyerDocument: input.mlBuyerDocument || null, mlBuyerAddress: input.mlBuyerAddress || null, mpPaymentId: input.mpPaymentId || null, mpPaymentMethod: input.mpPaymentMethod || null, mpPaymentStatus: input.mpPaymentStatus || null, mpPaidAmount: input.mpPaidAmount || null,
+        comprobanteAsociadoId: input.comprobanteAsociadoId || null,
         cae: input.cae || null, caeVencimiento: input.caeVencimiento ? new Date(input.caeVencimiento) : null, codigoAutorizacion: input.codigoAutorizacion || null, qrPayload: input.qrPayload || null,
         ...totales,
         observaciones: input.observaciones || null,

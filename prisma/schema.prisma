@@ -122,6 +122,9 @@ enum EstadoDocumentoComercial {
   PAGADO
   VENCIDO
   ANULADO
+  EN_AUTORIZACION
+  AUTORIZADO
+  RECHAZADO
 }
 
 enum OrigenDocumentoComercial {
@@ -643,6 +646,27 @@ model ConfiguracionFiscal {
   updatedAt                   DateTime @updatedAt
 }
 
+model ArcaRequestLog {
+  id              String   @id @default(cuid())
+  documentoId     String?
+  tipoOperacion   String   // FECAESolicitar, FECompUltimoAutorizado, FECompConsultar, WSAA
+  requestXml      String?  @db.Text
+  responseXml     String?  @db.Text
+  requestJson     String?  @db.Text
+  responseJson    String?  @db.Text
+  resultado       String?  // A, R, O
+  cae             String?
+  codigoError     String?
+  mensajeError    String?
+  observaciones   String?  @db.Text
+  duracionMs      Int?
+  modo            String   @default("MOCK") // MANUAL, MOCK, HOMOLOGACION, PRODUCCION
+  createdAt       DateTime @default(now())
+
+  @@index([documentoId])
+  @@index([createdAt])
+}
+
 model DocumentoNumerador {
   id                String   @id @default(cuid())
   tipoDocumento     TipoDocumentoComercial
@@ -678,6 +702,7 @@ model DocumentoComercial {
   estado                   EstadoDocumentoComercial @default(BORRADOR)
   fiscal                   Boolean  @default(false)
   sinValidezFiscal         Boolean  @default(true)
+  comprobanteAsociadoId    String?  // Para NC/ND: comprobante original
 
   clienteId                String?
   clienteCodigo            String?

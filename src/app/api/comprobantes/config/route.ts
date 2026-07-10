@@ -41,7 +41,7 @@ export async function PUT(req: NextRequest) {
         ivaDefaultServicios: Number(b.ivaDefaultServicios || 21),
         permitirCaeManual: Boolean(b.permitirCaeManual),
         requerirCaeParaFiscal: Boolean(b.requerirCaeParaFiscal),
-        mostrarArcaSiCaeVacio: Boolean(b.mostrarArcaSiCaeVacio),
+        mostrarArcaSiCaeVacio: false,
         modoArca: b.modoArca || 'MANUAL',
         retencionDocumentalAnios: Number(b.retencionDocumentalAnios || 10),
       },

@@ -79,11 +79,11 @@ export default function ConfiguracionComprobantes() {
         <div><Label>IVA gases</Label><Input type="number" step="0.01" value={config.ivaDefaultGases || 21} onChange={e => setConfig((c: any) => ({ ...c, ivaDefaultGases: e.target.value }))} /></div>
         <div><Label>IVA servicios</Label><Input type="number" step="0.01" value={config.ivaDefaultServicios || 21} onChange={e => setConfig((c: any) => ({ ...c, ivaDefaultServicios: e.target.value }))} /></div>
       </div>
-      <div className="flex gap-5 flex-wrap text-sm">
+      <div className="flex gap-5 flex-wrap text-sm items-center">
         <label className="flex items-center gap-2"><input type="checkbox" checked={!!config.permitirUsd} onChange={e => setConfig((c: any) => ({ ...c, permitirUsd: e.target.checked }))} /> Permitir USD</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={!!config.permitirCaeManual} onChange={e => setConfig((c: any) => ({ ...c, permitirCaeManual: e.target.checked }))} /> CAE manual</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={!!config.requerirCaeParaFiscal} onChange={e => setConfig((c: any) => ({ ...c, requerirCaeParaFiscal: e.target.checked }))} /> Requerir CAE fiscal</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={!!config.mostrarArcaSiCaeVacio} onChange={e => setConfig((c: any) => ({ ...c, mostrarArcaSiCaeVacio: e.target.checked }))} /> Mostrar ARCA sin CAE</label>
+        <div className="flex items-center gap-2"><Label className="text-sm mb-0 whitespace-nowrap">Modo ARCA</Label><select className="border rounded px-2 py-1 text-sm" value={config.modoArca || 'MANUAL'} onChange={e => setConfig((c: any) => ({ ...c, modoArca: e.target.value }))}><option value="MANUAL">Manual (sin integración)</option><option value="MOCK">Simulación (CAE mock)</option><option value="HOMOLOGACION">Homologación ARCA</option></select></div>
       </div>
       <Button onClick={saveConfig} disabled={saving}><Save className="w-4 h-4 mr-1" />Guardar Configuración</Button>
     </div>
