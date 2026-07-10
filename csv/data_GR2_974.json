@@ -1,0 +1,38 @@
+{
+  "tabla": "data_GR2_974",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "ZON_ID",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "ZON_NOM",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "LOC_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 3,
+      "campo": "ZON_DEL",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

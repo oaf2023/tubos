@@ -1,0 +1,70 @@
+{
+  "tabla": "data_GR2_968",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "BAN_ID",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "BAN_DETA",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "BAN_UBIC",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 3,
+      "campo": "BAN_ORDE",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 4,
+      "campo": "BAN_LINK",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 5,
+      "campo": "BAN_TIPO",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 6,
+      "campo": "BAN_ANCH",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 7,
+      "campo": "BAN_ALTO",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

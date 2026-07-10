@@ -1,0 +1,54 @@
+{
+  "tabla": "data_05012015_GR2_302",
+  "registros": 25,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "ADP_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "ADP_TIIB",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "ADP_DETA",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 3,
+      "campo": "ADP_TIVA",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 4,
+      "campo": "ADP_TIMP",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 5,
+      "campo": "ADP_WEB",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

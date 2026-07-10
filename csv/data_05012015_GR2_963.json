@@ -1,0 +1,62 @@
+{
+  "tabla": "data_05012015_GR2_963",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "ART_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "ART_COD1",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "CL_NUM",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 3,
+      "campo": "CL_NOM",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 4,
+      "campo": "VOT_FECH",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 5,
+      "campo": "VOT_VOTO",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 6,
+      "campo": "VOT_EMAI",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "tabla": "data_GR2_321",
+  "registros": 10,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "ART_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "PACKWIDT",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "PACKWEIG",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 3,
+      "campo": "PACKVOLU",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 4,
+      "campo": "PACKUNIT",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 5,
+      "campo": "PACKLENG",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 6,
+      "campo": "PACKHEIG",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 7,
+      "campo": "PALLETUNI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 8,
+      "campo": "PALLETLAY",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 9,
+      "campo": "DUN_1",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 10,
+      "campo": "DUN_2",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 11,
+      "campo": "DUN_3",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 12,
+      "campo": "PDUN_1",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 13,
+      "campo": "PDUN_2",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 14,
+      "campo": "PDUN_3",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "tabla": "data_GR2_995",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "ACT_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "ACT_DETA",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

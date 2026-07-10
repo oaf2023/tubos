@@ -1,0 +1,36 @@
+﻿FER_CODI,FER_DETA,FER_AFIP,FER_COAF,FER_DESI
+1,PRE-FACTURA                   ,,0,Pfac X                        
+2,REMITO                        ,,0,Remi X                        
+3,FACTURA [A]                   ,1:Factura A (20100917 NULL)                                                               ,1,Fact A                        
+4,FACTURA [B]                   ,6:Factura B (20100917 NULL)                                                               ,6,Fact B                        
+5,FACTURA [C]                   ,,0,Fact C                        
+6,NOTA DE CREDITO [A]           ,3:Nota de Crédito A (20100917 NULL)                                                       ,3,Ncre A                        
+7,NOTA DE CREDITO [B]           ,8:Nota de Crédito B (20100917 NULL)                                                       ,8,Ncre B                        
+8,NOTA DE CREDITO [C]           ,,0,Ncre C                        
+9,NOTA DE DEBITO [A]            ,2:Nota de Débito A (20100917 NULL)                                                        ,2,Ndeb A                        
+10,NOTA DE DEBITO [B]            ,7:Nota de Débito B (20100917 NULL)                                                        ,7,Ndeb B                        
+11,NOTA DE DEBITO [C]            ,,0,Ndeb C                        
+12,FACTURA EXPORTACION           ,,0,Fexp E                        
+13,FACTURA PROFORMA              ,,0,Fpro                          
+1,D.N.I.                        ,96:DNI (20080725 NULL)                                                                    ,96,Doc 1                         
+2,C.U.I.T.                      ,80:CUIT (20080725 NULL)                                                                   ,80,Doc 2                         
+3,L.E.                          ,89:LE (20080725 NULL)                                                                     ,89,Doc 3                         
+4,L.C.                          ,90:LC (20080725 NULL)                                                                     ,90,Doc 4                         
+5,Pasaporte                     ,94:Pasaporte (20080725 NULL)                                                              ,94,Doc 5                         
+6,C.I.                          ,,0,Doc 6                         
+1," 1-TASA GENERAL        -21,00%",5:21% (20090220 NULL)                                                                     ,5,Iva 2100                      
+2," 2-TASA REDUCIDA       -10,50%",4:10.5% (20090220 NULL)                                                                   ,4,Iva 1050                      
+3," 3-TASA EXENTA         - 0,00%",3:0% (20090220 NULL)                                                                      ,3,Iva  000                      
+4," 4-TASA AMPLIADA       -27,00%",,0,Iva 2700                      
+5," 5-TASA NO INSCRIPTOS  -50,00%",,0,Iva 5000                      
+1,PERC. II BB                   ,2:Impuestos provinciales (20100917 NULL)                                                  ,2,PER_01                        
+6," 6-F.2002 - MED GRAF   - 2,50%",,0,Iva  250                      
+14,FACTURA CREDITO ELECTRONICA [A,,0,FCE_ A                        
+15,FACTURA CREDITO ELECTRONICA [B,,0,FCE_ B                        
+16,FACTURA CREDITO ELECTRONICA [C,,0,FCE_ C                        
+17,NOTA CREDITO ELECTRONICA [A]  ,,0,NCE_ A                        
+18,NOTA CREDITO ELECTRONICA [B]  ,,0,NCE_ B                        
+19,NOTA CREDITO ELECTRONICA [C]  ,,0,NCE_ C                        
+20,NOTA DEBITO ELECTRONICA [A]   ,,0,NDE_ A                        
+21,NOTA DEBITO ELECTRONICA [B]   ,,0,NDE_ B                        
+22,NOTA DEBITO ELECTRONICA [C]   ,,0,NDE_ C                        

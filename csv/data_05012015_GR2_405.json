@@ -1,0 +1,30 @@
+{
+  "tabla": "data_05012015_GR2_405",
+  "registros": 1,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "TGN_GNUM",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "TGN_GNOM",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "TGN_PART",
+      "tipo_sqlite": "REAL",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

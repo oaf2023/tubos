@@ -1,0 +1,30 @@
+{
+  "tabla": "data_GRS_302",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "SINC_FEC",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "SINC_ERR",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 2,
+      "campo": "SINC_MSJ",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

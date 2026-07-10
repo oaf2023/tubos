@@ -1,0 +1,93 @@
+﻿FE_CODI,FE_DETA,FE_COAF
+1,1:Factura A (20100917 NULL)                                                                         ,1
+1,2:Nota de Débito A (20100917 NULL)                                                                  ,2
+1,3:Nota de Crédito A (20100917 NULL)                                                                 ,3
+1,6:Factura B (20100917 NULL)                                                                         ,6
+1,7:Nota de Débito B (20100917 NULL)                                                                  ,7
+1,8:Nota de Crédito B (20100917 NULL)                                                                 ,8
+1,4:Recibos A (20100917 NULL)                                                                         ,4
+1,5:Notas de Venta al contado A (20100917 NULL)                                                       ,5
+1,9:Recibos B (20100917 NULL)                                                                         ,9
+1,10:Notas de Venta al contado B (20100917 NULL)                                                      ,10
+1,63:Liquidacion A (20100917 NULL)                                                                    ,63
+1,64:Liquidacion B (20100917 NULL)                                                                    ,64
+1,"34:Cbtes. A del Anexo I, Apartado A,inc.f),R.G.Nro. 1415 (20100917 NULL)                            ",34
+1,"35:Cbtes. B del Anexo I,Apartado A,inc. f),R.G. Nro. 1415 (20100917 NULL)                           ",35
+1,39:Otros comprobantes A que cumplan con R.G.Nro. 1415 (20100917 NULL)                               ,39
+1,40:Otros comprobantes B que cumplan con R.G.Nro. 1415 (20100917 NULL)                               ,40
+1,60:Cta de Vta y Liquido prod. A (20100917 NULL)                                                     ,60
+1,61:Cta de Vta y Liquido prod. B (20100917 NULL)                                                     ,61
+1,11:Factura C (20110330 NULL)                                                                        ,11
+1,12:Nota de Débito C (20110330 NULL)                                                                 ,12
+1,13:Nota de Crédito C (20110330 NULL)                                                                ,13
+1,15:Recibo C (20110330 NULL)                                                                         ,15
+1,49:Comprobante de Compra de Bienes Usados a Consumidor Final (20130401 NULL)                        ,49
+1,51:Factura M (20150522 NULL)                                                                        ,51
+1,52:Nota de Débito M (20150522 NULL)                                                                 ,52
+1,53:Nota de Crédito M (20150522 NULL)                                                                ,53
+1,54:Recibo M (20150522 NULL)                                                                         ,54
+2,PES:Pesos Argentinos (20090403 NULL)                                                                ,0
+3,80:CUIT (20080725 NULL)                                                                             ,80
+3,86:CUIL (20080725 NULL)                                                                             ,86
+3,87:CDI (20080725 NULL)                                                                              ,87
+3,89:LE (20080725 NULL)                                                                               ,89
+3,90:LC (20080725 NULL)                                                                               ,90
+3,91:CI Extranjera (20080725 NULL)                                                                    ,91
+3,92:en trámite (20080725 NULL)                                                                       ,92
+3,93:Acta Nacimiento (20080725 NULL)                                                                  ,93
+3,95:CI Bs. As. RNP (20080725 NULL)                                                                   ,95
+3,96:DNI (20080725 NULL)                                                                              ,96
+3,94:Pasaporte (20080725 NULL)                                                                        ,94
+3,0:CI Policía Federal (20080725 NULL)                                                                ,0
+3,1:CI Buenos Aires (20080725 NULL)                                                                   ,1
+3,2:CI Catamarca (20080725 NULL)                                                                      ,2
+3,3:CI Córdoba (20080725 NULL)                                                                        ,3
+3,4:CI Corrientes (20080728 NULL)                                                                     ,4
+3,5:CI Entre Ríos (20080728 NULL)                                                                     ,5
+3,6:CI Jujuy (20080728 NULL)                                                                          ,6
+3,7:CI Mendoza (20080728 NULL)                                                                        ,7
+3,8:CI La Rioja (20080728 NULL)                                                                       ,8
+3,9:CI Salta (20080728 NULL)                                                                          ,9
+3,10:CI San Juan (20080728 NULL)                                                                      ,10
+3,11:CI San Luis (20080728 NULL)                                                                      ,11
+3,12:CI Santa Fe (20080728 NULL)                                                                      ,12
+3,13:CI Santiago del Estero (20080728 NULL)                                                           ,13
+3,14:CI Tucumán (20080728 NULL)                                                                       ,14
+3,16:CI Chaco (20080728 NULL)                                                                         ,16
+3,17:CI Chubut (20080728 NULL)                                                                        ,17
+3,18:CI Formosa (20080728 NULL)                                                                       ,18
+3,19:CI Misiones (20080728 NULL)                                                                      ,19
+3,20:CI Neuquén (20080728 NULL)                                                                       ,20
+3,21:CI La Pampa (20080728 NULL)                                                                      ,21
+3,22:CI Río Negro (20080728 NULL)                                                                     ,22
+3,23:CI Santa Cruz (20080728 NULL)                                                                    ,23
+3,24:CI Tierra del Fuego (20080728 NULL)                                                              ,24
+3,99:Doc. (Otro) (20080728 NULL)                                                                      ,99
+4,1:Impuestos nacionales (20100917 NULL)                                                              ,1
+4,2:Impuestos provinciales (20100917 NULL)                                                            ,2
+4,3:Impuestos municipales (20100917 NULL)                                                             ,3
+4,4:Impuestos Internos (20100917 NULL)                                                                ,4
+4,99:Otro (20100917 NULL)                                                                             ,99
+5,3:0% (20090220 NULL)                                                                                ,3
+5,4:10.5% (20090220 NULL)                                                                             ,4
+5,5:21% (20090220 NULL)                                                                               ,5
+5,6:27% (20090220 NULL)                                                                               ,6
+5,8:5% (20141020 NULL)                                                                                ,8
+5,9:2.5% (20141020 NULL)                                                                              ,9
+6,1:Producto (20100917 NULL)                                                                          ,1
+6,2:Servicios (20100917 NULL)                                                                         ,2
+6,3:Productos y Servicios (20100917 NULL)                                                             ,3
+7,3:CAE (N NULL)                                                                                      ,3
+8,2:RG Empresas Promovidas - Indentificador de proyecto vinculado a Régimen de Promoción Industrial (2,2
+8,91:RG Bienes Usados 3411 - Nombre y Apellido o Denominación del vendedor del bien usado. (20130401 N,91
+8,92:RG Bienes Usados 3411 - Nacionalidad del vendedor del bien usado. (20130401 NULL)                ,92
+8,93:RG Bienes Usados 3411 - Domicilio del vendedor del bien usado. (20130401 NULL)                   ,93
+8,5:RG 3668 Impuesto al Valor Agregado - Art.12 IVA Excepciones (20141016 NULL)                       ,5
+8,61:RG 3668 Impuesto al Valor Agregado - Art.12 IVA Firmante Doc Tipo (20141016 NULL)                ,61
+8,62:RG 3668 Impuesto al Valor Agregado - Art.12 IVA Firmante Doc Nro (20141016 NULL)                 ,62
+8,7:RG 3668 Impuesto al Valor Agregado - Art.12 IVA Carácter del Firmante (20141016 NULL)             ,7
+8,10:RG 3.368 Establecimientos de educación pública de gestión privada - Actividad Comprendida (201506,10
+8,1011:RG 3.368 Establecimientos de educación pública de gestión privada - Tipo de Documento (20150605,1011
+8,1012:RG 3.368 Establecimientos de educación pública de gestión privada - Número de Documento (201506,1012
+8,11:RG 2.820 Operaciones económicas vinculadas con bienes inmuebles - Actividad Comprendida (20150605,11
+8,12:RG 3.687 Locación temporaria de inmuebles con fines turísticos - Actividad Comprendida (20150605 ,12

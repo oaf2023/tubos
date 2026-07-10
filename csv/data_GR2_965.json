@@ -1,0 +1,22 @@
+{
+  "tabla": "data_GR2_965",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "SEC_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "SEC_NOMB",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

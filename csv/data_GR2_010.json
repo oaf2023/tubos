@@ -1,0 +1,22 @@
+{
+  "tabla": "data_GR2_010",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "PAIS_COD",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "PAIS_NOM",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}

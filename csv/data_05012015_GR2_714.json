@@ -1,0 +1,22 @@
+{
+  "tabla": "data_05012015_GR2_714",
+  "registros": 0,
+  "campos": [
+    {
+      "posicion": 0,
+      "campo": "PER_CODI",
+      "tipo_sqlite": "INTEGER",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    },
+    {
+      "posicion": 1,
+      "campo": "PER_DETA",
+      "tipo_sqlite": "TEXT",
+      "nullable": false,
+      "valor_defecto": null,
+      "pk": false
+    }
+  ]
+}
