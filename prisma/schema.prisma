@@ -933,6 +933,55 @@ model Cliente {
   @@index([rubro])
 }
 
+model Proveedor {
+  id                String   @id @default(cuid())
+  codigoLegacy      Int?     @unique
+  nombre            String   @unique // Razón social (PR_NOM)
+  nombreFantasia    String?  // Nombre de fantasía (PR_FANT)
+  direccion         String?  // Dirección (PR_DIR)
+  localidad         String?  // Localidad (PR_LOC)
+  provincia         String?  // Provincia (PR_PRO)
+  codigoPostal      String?  // Código postal (PR_CP)
+  pais              String?  @default("Argentina")
+  telefono1         String?  // Teléfono 1 (PR_TE1)
+  telefono2         String?  // Teléfono 2 (PR_TE2)
+  telefono3         String?  // Teléfono 3 (PR_TE3)
+  telefono4         String?  // Teléfono 4 (PR_TE4)
+  telefono5         String?  // Teléfono 5 (PR_TE5)
+  email             String?  // Email (PR_MAI)
+  tipoDocumento     Int?     // Tipo documento (PR_TDO)
+  tipoIva           Int?     // Tipo IVA (PR_TIV)
+  numeroDocumento   String?  // Número documento (PR_DOC)
+  habilitadoCheques  Int?    // Habilitado cheques? (PR_HCR)
+  limiteCheques     Int?     // Límite cheques (PR_LCR)
+  credito           Float?   // Crédito (PR_CRE)
+  vendedor          String?  // Vendedor (PR_VEN)
+  diaVisita         Int?     // Día visita (PR_DIA)
+  descuentoVto      Float?   // Descuento vto. (PR_DVE)
+  observacion1      String?  // Observación 1 (PR_OB1)
+  observacion2      String?  // Observación 2 (PR_OB2)
+  observacion3      String?  // Observación 3 (PR_OB3)
+  fechaAlta         String?  // Fecha alta (PR_ALT)
+  contacto          String?  // Contacto (PR_CON)
+  ultimaVisita      String?  // Última visita (PR_UVE)
+  saldo             Float?   // Saldo (PR_SDO)
+  descuentoRemito   Int?     // Descuento remito (PR_DCR)
+  web               String?  // Página web (PR_WEB)
+  listaPrecios      Int?     // Lista precios (PR_LISTA)
+  condCompra        String?  // Condiciones compra (COM_COMP)
+  tipo              Int?     // Tipo (PR_TIPO)
+  tipoNombre        String?  // Tipo nombre (PR_TIPN)
+  numeroIB          String?  // Número IB (PR_NIB)
+  activo            Boolean  @default(true)
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([nombre])
+  @@index([localidad])
+  @@index([provincia])
+}
+
 model AlertConfig {
   id              String   @id @default(cuid())
   gasId           String   @unique

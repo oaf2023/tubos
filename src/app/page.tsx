@@ -92,6 +92,7 @@ const InventarioTab = dynamic(() => import('@/components/inventario-tab'), { ssr
 const ArticulosTab = dynamic(() => import('@/components/articulos-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const RutasTab = dynamic(() => import('@/components/rutas-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const CatalogoTab = dynamic(() => import('@/components/catalogo-tab'), { ssr: false, loading: () => <Skeleton className="h-[400px] rounded-xl" /> })
+const ProveedoresTab = dynamic(() => import('@/components/proveedores-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ClientesTab = dynamic(() => import('@/components/clientes-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const LaboratorioTab = dynamic(() => import('@/components/laboratorio-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
 const ConfiguracionTab = dynamic(() => import('@/components/configuracion-tab'), { ssr: false, loading: () => <Skeleton className="h-[500px] rounded-xl" /> })
@@ -241,6 +242,9 @@ export default function Home() {
             <TabsTrigger value="catalogo" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <BookOpen className="w-4 h-4" /><span>Catálogo</span>
             </TabsTrigger>
+            <TabsTrigger value="proveedores" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
+              <Factory className="w-4 h-4" /><span>Proveedores</span>
+            </TabsTrigger>
             <TabsTrigger value="clientes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
               <Users className="w-4 h-4" /><span>Clientes</span>
             </TabsTrigger>
@@ -330,6 +334,11 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="catalogo">
             <CatalogoTab />
+          </TabsContent>
+          <TabsContent value="proveedores">
+            <TabErrorBoundary name="Proveedores">
+              <ProveedoresTab />
+            </TabErrorBoundary>
           </TabsContent>
           <TabsContent value="clientes">
             <ClientesTab />
