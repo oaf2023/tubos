@@ -5,9 +5,14 @@ import { buildArcaQrPayload, buildArcaQrUrl } from '@/lib/arca/qr'
 import { getCodigoARCA } from '@/lib/arca/motor-comprobante'
 import { logAudit } from '@/lib/audit'
 import { serializeComprobante } from '@/lib/services/comprobante-service'
+import { randomUUID } from 'crypto'
+import crypto from 'crypto'
 
-export async function POST(_req: NextRequest, { params }: any) {
+export async function POST(req: NextRequest, { params }: any) {
   try {
+    const body = await req.json().catch(() => ({}))
+    const idempotencyKey = body.idempotencyKey || crypto.randomUUID()
+
     const doc = await db.documentoComercial.findUnique({
       where: { id: params.id },
       include: { items: true, tributos: true },
@@ -25,13 +30,27 @@ export async function POST(_req: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'El comprobante no es fiscal, no requiere autorización' }, { status: 400 })
     }
 
+    const existingAuth = await db.arcaComprobanteAutorizacion.findFirst({
+      where: { idempotencyKey },
+    })
+    if (existingAuth) {
+      return NextResponse.json({
+        success: existingAuth.resultado === 'A',
+        resultado: existingAuth.resultado,
+        cae: existingAuth.cae,
+        caeVencimiento: existingAuth.caeVencimiento?.toISOString().slice(0, 10) || null,
+        mensaje: 'Idempotency key reutilizada: la autorización ya fue procesada',
+        yaProcesado: true,
+      })
+    }
+
     const config = await db.configuracionFiscal.findUnique({ where: { id: 'default' } })
     if (!config) {
       return NextResponse.json({ error: 'Configuración fiscal no encontrada' }, { status: 500 })
     }
 
     if (config.permitirCaeManual && config.modoArca === 'MANUAL') {
-      await db.arcaRequestLog.create({
+      const log = await db.arcaRequestLog.create({
         data: {
           documentoId: doc.id,
           tipoOperacion: 'FECAESolicitar',
@@ -55,7 +74,8 @@ export async function POST(_req: NextRequest, { params }: any) {
       data: { estado: 'EN_AUTORIZACION' },
     })
 
-    const tipoCodigoARCA = getCodigoARCA(doc.tipoDocumento, doc.letra)
+    const emisorCuit = parseInt((config.cuit || '').replace(/\D/g, '')) || 0
+    const receptorCuit = parseInt((doc.clienteDocumentoNumero || '').replace(/\D/g, '')) || 0
 
     const alicuotas: Array<{ id: number; baseImponible: number; importe: number }> = []
     const ivas = [
@@ -65,12 +85,13 @@ export async function POST(_req: NextRequest, { params }: any) {
     for (const iva of ivas) {
       const importe = Number((doc as any)[iva.key] || 0)
       if (importe > 0) {
-        alicuotas.push({ id: iva.id, baseImponible: Math.round(importe / (iva.id === 4 ? 0.21 : iva.id === 5 ? 0.27 : iva.id === 3 ? 0.105 : iva.id === 8 ? 0.05 : 0.025) * 100) / 100, importe })
+        alicuotas.push({
+          id: iva.id,
+          baseImponible: Math.round(importe / (iva.id === 4 ? 0.21 : iva.id === 5 ? 0.27 : iva.id === 3 ? 0.105 : iva.id === 8 ? 0.05 : 0.025) * 100) / 100,
+          importe,
+        })
       }
     }
-
-    const emisorCuit = parseInt((config.cuit || '').replace(/\D/g, '')) || 0
-    const receptorCuit = parseInt((doc.clienteDocumentoNumero || '').replace(/\D/g, '')) || 0
 
     const solicitud = {
       comprobante: {
@@ -90,6 +111,9 @@ export async function POST(_req: NextRequest, { params }: any) {
         tipoCambio: Number(doc.tipoCambio || 1),
         alicuotas,
         exento: Number(doc.netoExento || 0),
+        concepto: 1,
+        periodoDesde: doc.periodoDesde?.toISOString().slice(0, 10),
+        periodoHasta: doc.periodoHasta?.toISOString().slice(0, 10),
       },
     }
 
@@ -113,7 +137,19 @@ export async function POST(_req: NextRequest, { params }: any) {
     })
 
     if (respuesta.resultado === 'A' && respuesta.cae) {
-      const qrPayload = buildArcaQrPayload(doc, config)
+      const qrPayload = buildArcaQrPayload({
+        fecha: doc.fecha,
+        puntoVenta: doc.puntoVenta,
+        tipoDocumento: doc.tipoDocumento,
+        letra: doc.letra,
+        numero: doc.numero,
+        total: Number(doc.total),
+        moneda: doc.moneda,
+        tipoCambio: Number(doc.tipoCambio),
+        clienteDocumentoTipo: doc.clienteDocumentoTipo,
+        clienteDocumentoNumero: doc.clienteDocumentoNumero,
+        cae: respuesta.cae,
+      }, config)
       const qrUrl = buildArcaQrUrl(qrPayload)
 
       const updated = await db.documentoComercial.update({
@@ -124,8 +160,27 @@ export async function POST(_req: NextRequest, { params }: any) {
           caeVencimiento: respuesta.caeVencimiento ? new Date(respuesta.caeVencimiento) : null,
           codigoAutorizacion: respuesta.cae,
           qrPayload,
+          idempotencyKey,
         },
         include: { items: true, tributos: true },
+      })
+
+      await db.arcaComprobanteAutorizacion.create({
+        data: {
+          documentoId: doc.id,
+          tipoOperacion: 'FECAESolicitar',
+          resultado: 'A',
+          cae: respuesta.cae,
+          caeVencimiento: respuesta.caeVencimiento ? new Date(respuesta.caeVencimiento) : null,
+          codigoAutorizacion: respuesta.cae,
+          responseXml: respuesta.responseXml || null,
+          requestJson: JSON.stringify(solicitud),
+          responseJson: JSON.stringify(respuesta),
+          observaciones: respuesta.observaciones?.join('\n') || null,
+          modo: config.modoArca || 'MOCK',
+          idempotencyKey,
+          duracionMs,
+        },
       })
 
       await logAudit({
@@ -137,6 +192,7 @@ export async function POST(_req: NextRequest, { params }: any) {
           cae: respuesta.cae,
           resultado: 'AUTORIZADO',
           qrUrl,
+          idempotencyKey,
         },
       })
 
@@ -147,12 +203,28 @@ export async function POST(_req: NextRequest, { params }: any) {
         caeVencimiento: respuesta.caeVencimiento,
         qrUrl,
         doc: serializeComprobante(updated),
+        idempotencyKey,
       })
     }
 
     await db.documentoComercial.update({
       where: { id: params.id },
       data: { estado: 'RECHAZADO' },
+    })
+
+    await db.arcaComprobanteAutorizacion.create({
+      data: {
+        documentoId: doc.id,
+        tipoOperacion: 'FECAESolicitar',
+        resultado: respuesta.resultado,
+        requestJson: JSON.stringify(solicitud),
+        responseJson: JSON.stringify(respuesta),
+        observaciones: respuesta.observaciones?.join('\n') || null,
+        errors: respuesta.errors?.join('\n') || null,
+        modo: config.modoArca || 'MOCK',
+        idempotencyKey,
+        duracionMs,
+      },
     })
 
     await logAudit({
@@ -164,20 +236,7 @@ export async function POST(_req: NextRequest, { params }: any) {
         resultado: 'RECHAZADO',
         observaciones: respuesta.observaciones,
         errors: respuesta.errors,
-      },
-    })
-
-    await db.arcaRequestLog.create({
-      data: {
-        documentoId: doc.id,
-        tipoOperacion: 'FECAESolicitar',
-        requestJson: JSON.stringify(solicitud),
-        responseJson: JSON.stringify(respuesta),
-        resultado: respuesta.resultado,
-        observaciones: respuesta.observaciones?.join('\n') || undefined,
-        mensajeError: respuesta.errors?.join('\n') || respuesta.errors?.join('\n') || undefined,
-        duracionMs,
-        modo: config.modoArca || 'MOCK',
+        idempotencyKey,
       },
     })
 
@@ -186,6 +245,7 @@ export async function POST(_req: NextRequest, { params }: any) {
       resultado: 'R',
       observaciones: respuesta.observaciones,
       errors: respuesta.errors,
+      idempotencyKey,
     }, { status: 422 })
   } catch (e) {
     console.error('POST /api/comprobantes/[id]/autorizar', e)

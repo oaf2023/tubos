@@ -15,6 +15,15 @@ export async function GET(_req: NextRequest, { params }: any) {
 
 export async function PUT(req: NextRequest, { params }: any) {
   try {
+    const existing = await db.documentoComercial.findUnique({ where: { id: params.id } })
+    if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    if (existing.estado === 'AUTORIZADO') {
+      return NextResponse.json({ error: 'No se puede modificar un comprobante autorizado. Use nota de crédito/débito para corregir.' }, { status: 409 })
+    }
+    if (existing.estado === 'ANULADO') {
+      return NextResponse.json({ error: 'No se puede modificar un comprobante anulado' }, { status: 400 })
+    }
+
     const body = await req.json()
     const tipoCambio = Number(body.tipoCambio || 1)
     const totales = calcularTotales(body.items || [], body.tributos || [], tipoCambio)
@@ -65,6 +74,11 @@ export async function PUT(req: NextRequest, { params }: any) {
 
 export async function DELETE(_req: NextRequest, { params }: any) {
   try {
+    const existing = await db.documentoComercial.findUnique({ where: { id: params.id } })
+    if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    if (existing.estado === 'AUTORIZADO') {
+      return NextResponse.json({ error: 'No se puede eliminar un comprobante autorizado. Debe anularlo con nota de crédito/débito.' }, { status: 409 })
+    }
     await db.documentoComercial.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (e) {

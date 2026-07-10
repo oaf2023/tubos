@@ -667,6 +667,65 @@ model ArcaRequestLog {
   @@index([createdAt])
 }
 
+model ArcaCredential {
+  id              String   @id @default(cuid())
+  alias           String   @unique // ej: "produccion", "homologacion"
+  servicio        String   @default("wsfe") // wsfe, wsmtxca, etc.
+  environment     String   @default("HOMOLOGACION") // HOMOLOGACION, PRODUCCION
+  certPem         String   @db.Text // Certificado X.509 en PEM
+  keyPem          String   @db.Text // Clave privada en PEM
+  cuit            String
+  activo            Boolean  @default(false)
+  ultimoUsado     DateTime?
+  tickets         ArcaTicket[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([alias])
+  @@index([environment])
+}
+
+model ArcaTicket {
+  id              String   @id @default(cuid())
+  credentialId    String?
+  credential      ArcaCredential? @relation(fields: [credentialId], references: [id])
+  servicio        String   @default("wsfe")
+  environment     String   // HOMOLOGACION, PRODUCCION
+  token           String   @db.Text
+  sign            String   @db.Text
+  generationTime  DateTime
+  expirationTime  DateTime
+  cuit            String
+  createdAt       DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([expirationTime])
+}
+
+model ArcaComprobanteAutorizacion {
+  id                   String   @id @default(cuid())
+  documentoId          String   @unique
+  tipoOperacion        String   // FECAESolicitar, FECAEModificar, FECAEAchicar
+  resultado            String   // A, R, O
+  cae                  String?
+  caeVencimiento       DateTime?
+  codigoAutorizacion   String?
+  requestXml           String?  @db.Text
+  responseXml          String?  @db.Text
+  requestJson          String?  @db.Text
+  responseJson         String?  @db.Text
+  observaciones        String?  @db.Text
+  errors               String?  @db.Text
+  modo                 String   // MANUAL, MOCK, HOMOLOGACION, PRODUCCION
+  idempotencyKey       String?
+  duracionMs           Int?
+  createdAt            DateTime @default(now())
+
+  @@index([documentoId])
+  @@index([cae])
+  @@index([idempotencyKey])
+}
+
 model DocumentoNumerador {
   id                String   @id @default(cuid())
   tipoDocumento     TipoDocumentoComercial
@@ -703,6 +762,7 @@ model DocumentoComercial {
   fiscal                   Boolean  @default(false)
   sinValidezFiscal         Boolean  @default(true)
   comprobanteAsociadoId    String?  // Para NC/ND: comprobante original
+  idempotencyKey           String?  @unique // Evita doble emisión si falla la red
 
   clienteId                String?
   clienteCodigo            String?

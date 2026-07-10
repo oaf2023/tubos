@@ -34,6 +34,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    if (!body.idempotencyKey) {
+      const { randomUUID } = await import('crypto')
+      body.idempotencyKey = randomUUID()
+    }
+    const existing = await db.documentoComercial.findUnique({ where: { idempotencyKey: body.idempotencyKey } })
+    if (existing) {
+      return NextResponse.json(serializeComprobante(existing), { status: 200 })
+    }
     const doc = await createComprobante(body)
     return NextResponse.json(serializeComprobante(doc), { status: 201 })
   } catch (e) {
