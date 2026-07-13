@@ -2104,3 +2104,28 @@ model AuditoriaSincronizacion {
   @@index([tipo])
   @@index([fechaInicio])
 }
+
+model Clima {
+  id               String   @id @default(cuid())
+  fecha            DateTime          // timestamp exacto de la lectura
+  fechaDate        DateTime @db.Date // solo fecha (unique compuesto)
+  momento          String            // "manana" | "tarde" | "noche"
+  fuente           String            // "local" | "SMN" | "foranea"
+  temperatura      Float?
+  sensTermica      Float?
+  humedad          Int?
+  vientoVel        Float?            // km/h
+  vientoDir        String?           // N, S, E, O, NO, etc.
+  presion          Float?            // hPa
+  codigoClima      Int?              // WMO weather code
+  descripcion      String?           // "parcialmente nublado", etc.
+  icono            String?           // código de icono
+  precipitacion    Float?            // mm (última hora)
+  rawJson          String?           // JSON crudo de la API (debug)
+  createdAt        DateTime @default(now())
+
+  @@unique([fechaDate, momento, fuente])
+  @@index([fechaDate])
+  @@index([fuente])
+  @@map("Clima")
+}
