@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import {
   LayoutGrid, Calculator, StickyNote, Navigation, Calendar,
-  ArrowLeftRight, CheckSquare, FolderOpen, X,
+  ArrowLeftRight, CheckSquare, FolderOpen, CloudSun, X,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -17,6 +17,7 @@ const MENU_ITEMS = [
   { id: 'conversor', icon: ArrowLeftRight, label: 'Conversor', color: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700' },
   { id: 'todos', icon: CheckSquare, label: 'Recordatorios', color: 'bg-rose-50 hover:bg-rose-100 text-rose-700' },
   { id: 'explorador', icon: FolderOpen, label: 'Explorador', color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' },
+  { id: 'clima-hist', icon: CloudSun, label: 'Clima Hist.', color: 'bg-sky-50 hover:bg-sky-100 text-sky-700' },
 ] as const
 
 type UtilId = typeof MENU_ITEMS[number]['id']
@@ -43,6 +44,7 @@ function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () =>
     conversor: 'Conversor',
     todos: 'Recordatorios',
     explorador: 'Explorador de Archivos',
+    'clima-hist': 'Clima Histórico',
   }
 
   const sizes: Record<string, string> = {
@@ -53,6 +55,7 @@ function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () =>
     conversor: 'sm:max-w-sm',
     todos: 'sm:max-w-md',
     explorador: 'sm:max-w-xl',
+    'clima-hist': 'sm:max-w-2xl',
   }
 
   return (
