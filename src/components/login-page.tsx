@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import FallingDistriconCards from '@/components/falling-districon-cards'
 
 interface LoginPageProps {
   onLogin: (user: any) => void
@@ -46,12 +47,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative overflow-hidden">
+      <FallingDistriconCards />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-orange-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md mx-4">
+      <div className="relative z-10 w-[calc(100%-2rem)] max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 mb-4">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -62,7 +64,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-sm text-slate-400 mt-1">ManejaDatos Districon</p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10">
+        <div className="bg-slate-900/85 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10">
           {/* Tabs */}
           <div className="flex mb-6 bg-white/5 rounded-lg p-1">
             <button

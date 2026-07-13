@@ -75,12 +75,18 @@ function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () =>
 export default function FloatingUtilities() {
   const [open, setOpen] = useState(false)
   const [activeUtil, setActiveUtil] = useState<UtilId | null>(null)
-  const [authed, setAuthed] = useState(false)
+  const [visible, setVisible] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('opencode_user')
-    setAuthed(!!saved)
+    const check = () => {
+      const saved = sessionStorage.getItem('opencode_user')
+      setVisible(!!saved)
+    }
+    check()
+    const interval = setInterval(check, 500)
+    window.addEventListener('storage', check)
+    return () => { clearInterval(interval); window.removeEventListener('storage', check) }
   }, [])
 
   useEffect(() => {
@@ -94,23 +100,7 @@ export default function FloatingUtilities() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // Escuchar cambios de usuario (login/logout)
-  useEffect(() => {
-    const check = () => {
-      const saved = sessionStorage.getItem('opencode_user')
-      setAuthed(!!saved)
-    }
-    window.addEventListener('storage', check)
-    const orig = Storage.prototype.setItem
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    Storage.prototype.setItem = function (k, v) {
-      orig.call(this, k, v)
-      if (k === 'opencode_user') check()
-    }
-    return () => { window.removeEventListener('storage', check) }
-  }, [])
-
-  if (!authed) return null
+  if (!visible) return null
 
   return (
     <>
