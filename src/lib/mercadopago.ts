@@ -1,15 +1,16 @@
 // Conector Mercado Pago Argentina
 // Modo mock por defecto (MOCK_MERCADO_PAGO=true en .env)
 
+import { getMercadoPagoCredentials } from '@/lib/mercadopago-config'
+
 const MOCK_MODE = process.env.MOCK_MERCADO_PAGO !== 'false'
 
 const API_BASE = 'https://api.mercadopago.com'
 
 async function getAccessToken(): Promise<string | null> {
   if (MOCK_MODE) return 'mock_access_token'
-  const clientSecret = process.env.MERCADOPAGO_CLIENT_SECRET
-  if (!clientSecret) return null
-  return clientSecret
+  const credentials = await getMercadoPagoCredentials()
+  return credentials?.accessToken || null
 }
 
 async function fetchMP(path: string) {

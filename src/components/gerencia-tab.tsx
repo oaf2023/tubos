@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   BarChart3, DollarSign, ShoppingCart, Package, Truck, MessageCircle,
   AlertTriangle, TrendingUp, FileText, Download, Calendar,
-  ArrowUpRight, ArrowDownRight, RefreshCw, Printer,
+  ArrowUpRight, ArrowDownRight, RefreshCw, Printer, Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts'
 import { exportPDF } from '@/lib/export-pdf'
+import MercadoPagoConfig from '@/components/mercadopago-config'
 
 
 // ─── Mock Data ──────────────────────────────────────────
@@ -301,6 +302,16 @@ export default function GerenciaTab() {
           >
             <FileText className="w-4 h-4" />Reportes
           </button>
+          <button
+            onClick={() => setActiveTab('configurar')}
+            className={`flex items-center gap-1 py-2 px-3 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
+              activeTab === 'configurar'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Settings className="w-4 h-4" />Configurar
+          </button>
         </div>
 
         {activeTab === 'dashboard' && (<>
@@ -579,6 +590,8 @@ export default function GerenciaTab() {
           </Card>
         </div>
         </>)}
+
+        {activeTab === 'configurar' && <MercadoPagoConfig />}
       </div>
     </div>
   )
