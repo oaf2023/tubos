@@ -15,7 +15,7 @@ export default function HeaderClock() {
   const dateStr = time.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
+    <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap" title="Reloj — fecha y hora actual">
       <Clock className="w-3.5 h-3.5 text-slate-400" />
       <div className="flex flex-col leading-tight">
         <span className="font-mono tabular-nums">{timeStr}</span>

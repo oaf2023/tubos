@@ -82,7 +82,7 @@ export default function HeaderWeather() {
   const Icon = getWeatherIcon(weather.desc)
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} title="Clima — temperatura y condiciones actuales">
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"

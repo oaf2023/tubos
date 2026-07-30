@@ -57,6 +57,7 @@ import HeaderConnection from '@/components/header-connection'
 import HeaderDeviceInfo from '@/components/header-device-info'
 import HeaderHelp from '@/components/header-help'
 import HeaderInstall from '@/components/header-install'
+import FallingDistriconCards from '@/components/falling-districon-cards'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -143,16 +144,17 @@ export default function Home() {
 
   if (esCliente) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-slate-50 relative overflow-hidden">
+        <FallingDistriconCards speedFactor={2.5} />
         <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-lg bg-yellow-500 flex items-center justify-center shadow-md">
                 <Factory className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-tight text-slate-900">
-                  Control Digital
+                  Control Digital de Información
                 </h1>
                 <p className="text-xs text-slate-500">Portal de Clientes</p>
               </div>
@@ -181,7 +183,7 @@ export default function Home() {
         </header>
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <Tabs defaultValue="lectura" className="w-full">
-            <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex">
+            <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex bg-yellow-50">
               <TabsTrigger value="lectura" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
                 <Smartphone className="w-4 h-4" /><span>Lectura</span>
               </TabsTrigger>
@@ -199,7 +201,7 @@ export default function Home() {
         </main>
         <footer className="mt-auto border-t border-slate-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-500">
-            Control Digital · Portal de Clientes · ManejaDatos Districon · San Nicolás de los Arroyos (Buenos Aires)
+            Control Digital de Información · Portal de Clientes · Districon · San Nicolás de los Arroyos (Buenos Aires)
           </div>
         </footer>
         <Toaster />
@@ -208,11 +210,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 relative overflow-hidden">
+      <FallingDistriconCards speedFactor={2.5} />
       <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start">
+          <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start bg-yellow-50">
             {user.nivelAcceso === 0 && user.rol?.nombre === 'gerencia' && (
               <TabsTrigger value="gerencia" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800 data-[state=active]:border-yellow-300 border border-transparent">
                 <BarChart3 className="w-4 h-4" /><span>Gerencia</span>
@@ -416,12 +419,12 @@ function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
+          <div className="w-10 h-10 rounded-lg bg-yellow-500 flex items-center justify-center shadow-md">
             <Factory className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">
-              Control Digital ManejaDatos
+              Control Digital de Información
             </h1>
             <p className="text-xs text-slate-500 hidden sm:block">
               Districon · Ferreteria Industrial · Gases para soldadura
@@ -465,7 +468,7 @@ function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-500">
-        Control Digital ManejaDatos Districon · Ferreteria Industrial · Gases para
+        Control Digital de Información Districon · Ferreteria Industrial · Gases para
         soldadura · Distribución en Argentina · Base operativa San Nicolás de los
         Arroyos (Buenos Aires)
       </div>

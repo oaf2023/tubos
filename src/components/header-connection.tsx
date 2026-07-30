@@ -85,7 +85,7 @@ export default function HeaderConnection() {
   }, [])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} title="Conexión — estado de la red">
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1 text-xs transition-colors ${

@@ -27,7 +27,7 @@ const cards: FallingCard[] = [
   { left: 97, width: 134, duration: 14.6, delay: -0.8, drift: -70, rotation: -13, variant: 'cream' },
 ]
 
-export default function FallingDistriconCards() {
+export default function FallingDistriconCards({ speedFactor = 1 }: { speedFactor?: number }) {
   return (
     <div className="districon-rain" aria-hidden="true">
       {cards.map((card, index) => (
@@ -37,8 +37,8 @@ export default function FallingDistriconCards() {
           style={{
             left: `${card.left}%`,
             width: `${card.width}px`,
-            animationDuration: `${card.duration}s`,
-            animationDelay: `${card.delay}s`,
+            animationDuration: `${card.duration * speedFactor}s`,
+            animationDelay: `${card.delay * speedFactor}s`,
             '--card-drift': `${card.drift}px`,
             '--card-rotation': `${card.rotation}deg`,
             '--card-rotation-start': `${card.rotation * -0.45}deg`,
