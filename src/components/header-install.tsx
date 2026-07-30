@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, Monitor, Smartphone, Tablet, X, CheckCircle2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
 const QR_API = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='
@@ -13,7 +14,6 @@ export default function HeaderInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [installed, setInstalled] = useState(false)
   const [tab, setTab] = useState<Platform>('pc')
-  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -35,14 +35,6 @@ export default function HeaderInstall() {
     }
   }, [])
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
   async function handleInstall() {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
@@ -62,18 +54,19 @@ export default function HeaderInstall() {
   if (installed) return null
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(true)}
         className="text-slate-400 hover:text-orange-500 transition-colors"
         title="Instalar aplicación"
       >
         <Download className="w-4 h-4" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm w-[95vw] rounded-2xl p-0 gap-0 overflow-hidden shadow-2xl border-slate-200/80" showCloseButton={false}>
+          <DialogTitle className="sr-only">Instalar aplicación</DialogTitle>
+          <div>
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Instalar aplicación</h3>
@@ -153,8 +146,8 @@ export default function HeaderInstall() {
               )}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
