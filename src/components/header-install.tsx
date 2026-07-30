@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Download, Monitor, Smartphone, Tablet, X, CheckCircle2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
 const QR_API = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='
@@ -55,15 +55,15 @@ export default function HeaderInstall() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-slate-400 hover:text-orange-500 transition-colors"
-        title="Instalar aplicación"
-      >
-        <Download className="w-4 h-4" />
-      </button>
-
       <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button
+            className="text-slate-400 hover:text-orange-500 transition-colors"
+            title="Instalar aplicación"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </DialogTrigger>
         <DialogContent className="max-w-sm w-[95vw] rounded-2xl p-0 gap-0 overflow-hidden shadow-2xl border-slate-200/80" showCloseButton={false}>
           <DialogTitle className="sr-only">Instalar aplicación</DialogTitle>
           <div>
