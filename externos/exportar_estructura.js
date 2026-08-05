@@ -1,48 +1,20 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { DatabaseSync } = require('node:sqlite')
+const { Pool } = require('pg')
 
 const SCRIPT_DIR = __dirname
 const DEFAULT_DB = path.join(SCRIPT_DIR, '..', 'prisma', 'db', 'custom.db')
-const OUT_FILE = path.join(SCRIPT_DIR, 'basededatos.html')
+const ENV_FILE = path.join(SCRIPT_DIR, '..', '.env')
+const OUT_PG = path.join(SCRIPT_DIR, 'basededatos.html')
+const OUT_SQLITE = path.join(SCRIPT_DIR, 'basededatos_local.html')
 
-const dbPath = process.argv[2] || DEFAULT_DB
-
-if (!fs.existsSync(dbPath)) {
-  console.error(`No se encuentra el archivo de datos: ${dbPath}`)
-  console.error('Uso: node externos/exportar_estructura.js [ruta/al/custom.db]')
-  process.exit(1)
+const args = process.argv.slice(2)
+let dbPath = null
+for (const a of args) {
+  if (a.startsWith('--db=')) dbPath = a.slice(5)
+  else if (!a.startsWith('--')) dbPath = a
 }
-
-const db = new DatabaseSync(dbPath, { readOnly: true })
-
-const tablesRaw = db.prepare(
-  "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-).all()
-
-const tables = tablesRaw.map((t) => {
-  const columns = db.prepare('SELECT * FROM pragma_table_info(?)').all(t.name)
-  const fks = db.prepare('SELECT * FROM pragma_foreign_key_list(?)').all(t.name)
-  const indexes = db.prepare('SELECT * FROM pragma_index_list(?)').all(t.name)
-    .filter((i) => !i.name.startsWith('sqlite_autoindex'))
-    .map((i) => {
-      const cols = db.prepare('SELECT * FROM pragma_index_info(?)').all(i.name)
-      return {
-        name: i.name,
-        unique: !!i.unique,
-        origin: i.origin,
-        columns: cols.map((c) => c.name),
-      }
-    })
-  const rowCount = Number(db.prepare(`SELECT COUNT(*) AS c FROM "${t.name}"`).get().c)
-  return { name: t.name, columns, fks, indexes, rowCount }
-})
-
-db.close()
-
-const totalCols = tables.reduce((n, t) => n + t.columns.length, 0)
-const totalFks = tables.reduce((n, t) => n + t.fks.length, 0)
-const totalIdx = tables.reduce((n, t) => n + t.indexes.length, 0)
 
 function esc(v) {
   return String(v ?? '')
@@ -53,38 +25,201 @@ function esc(v) {
     .replaceAll("'", '&#39;')
 }
 
+function leerEnv(ruta) {
+  const out = {}
+  try {
+    const txt = fs.readFileSync(ruta, 'utf8')
+    for (const line of txt.split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/)
+      if (!m || m[1].startsWith('#')) continue
+      let v = m[2].trim()
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
+      out[m[1]] = v
+    }
+  } catch { /* sin .env */ }
+  return out
+}
+
+function leerSQLite(ruta) {
+  const db = new DatabaseSync(ruta, { readOnly: true })
+  const tablesRaw = db.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+  ).all()
+
+  const tablas = tablesRaw.map((t) => {
+    const columns = db.prepare('SELECT * FROM pragma_table_info(?)').all(t.name)
+    const fks = db.prepare('SELECT * FROM pragma_foreign_key_list(?)').all(t.name)
+    const indexes = db.prepare('SELECT * FROM pragma_index_list(?)').all(t.name)
+      .filter((i) => !i.name.startsWith('sqlite_autoindex'))
+      .map((i) => {
+        const cols = db.prepare('SELECT * FROM pragma_index_info(?)').all(i.name)
+        return { name: i.name, unique: !!i.unique, columns: cols.map((c) => c.name) }
+      })
+    const rowCount = Number(db.prepare(`SELECT COUNT(*) AS c FROM "${t.name}"`).get().c)
+    return {
+      name: t.name,
+      columns: columns.map((c) => ({ name: c.name, type: c.type || '', notnull: !!c.notnull, pk: c.pk, dflt: c.dflt_value })),
+      fks: fks.map((f) => ({ from: f.from, table: f.table, to: f.to, on_delete: f.on_delete })),
+      indexes,
+      rowCount,
+    }
+  })
+
+  db.close()
+  return tablas
+}
+
+function tipoPg(c) {
+  const len = c.character_maximum_length
+  const p = c.numeric_precision
+  const s = c.numeric_scale
+  const dp = c.datetime_precision
+  const base = {
+    int2: 'smallint', int4: 'integer', int8: 'bigint',
+    float4: 'real', float8: 'double precision',
+    bool: 'boolean', text: 'text', bytea: 'bytea',
+    json: 'json', jsonb: 'jsonb', uuid: 'uuid', date: 'date',
+    time: 'time', timetz: 'time with time zone', interval: 'interval',
+    citext: 'citext',
+  }
+  const map = (t) => {
+    switch (t) {
+      case 'numeric': return p != null && !(p === 65 && s === 30) ? `numeric(${p},${s ?? 0})` : 'numeric'
+      case 'varchar': return `varchar${len ? `(${len})` : ''}`
+      case 'bpchar': return `char${len ? `(${len})` : ''}`
+      case 'timestamp': return `timestamp${dp ? `(${dp})` : ''}`
+      case 'timestamptz': return `timestamp${dp ? `(${dp})` : ''} with time zone`
+      default: return base[t] || t
+    }
+  }
+  const udt = c.udt_name
+  if (udt.startsWith('_')) return map(udt.slice(1)) + '[]'
+  return map(udt)
+}
+
+function parseIndexDef(def) {
+  const unique = /CREATE UNIQUE INDEX/i.test(def)
+  const m = def.match(/\(([^)]*)\)\s*$/)
+  const columns = m ? m[1].split(',').map((x) => x.trim()) : []
+  return { unique, columns }
+}
+
+async function leerPostgres(connStr) {
+  const pool = new Pool({ connectionString: connStr, connectionTimeoutMillis: 20000, max: 2, ssl: { rejectUnauthorized: false } })
+  try {
+    const [tabs, cols, pks, fks, idxs] = await Promise.all([
+      pool.query(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE' ORDER BY table_name",
+      ),
+      pool.query(
+        `SELECT table_name, column_name, is_nullable, column_default, udt_name, data_type,
+                character_maximum_length, numeric_precision, numeric_scale, datetime_precision
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+         ORDER BY table_name, ordinal_position`,
+      ),
+      pool.query(
+        `SELECT tc.table_name, kcu.column_name
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu
+           ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+         WHERE tc.table_schema = current_schema() AND tc.constraint_type = 'PRIMARY KEY'`,
+      ),
+      pool.query(
+        `SELECT tc.table_name, kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_column, rc.delete_rule
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu
+           ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+         JOIN information_schema.constraint_column_usage ccu
+           ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
+         JOIN information_schema.referential_constraints rc
+           ON tc.constraint_name = rc.constraint_name AND tc.table_schema = rc.constraint_schema
+         WHERE tc.table_schema = current_schema() AND tc.constraint_type = 'FOREIGN KEY'`,
+      ),
+      pool.query(
+        'SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = current_schema() ORDER BY tablename, indexname',
+      ),
+    ])
+
+    const pkSet = new Set(pks.rows.map((r) => `${r.table_name}.${r.column_name}`))
+    const colsByTable = new Map()
+    for (const c of cols.rows) {
+      if (!colsByTable.has(c.table_name)) colsByTable.set(c.table_name, [])
+      colsByTable.get(c.table_name).push(c)
+    }
+    const fksByTable = new Map()
+    for (const f of fks.rows) {
+      if (!fksByTable.has(f.table_name)) fksByTable.set(f.table_name, [])
+      fksByTable.get(f.table_name).push(f)
+    }
+    const idxByTable = new Map()
+    for (const i of idxs.rows) {
+      if (!idxByTable.has(i.tablename)) idxByTable.set(i.tablename, [])
+      const parsed = parseIndexDef(i.indexdef)
+      idxByTable.get(i.tablename).push({ name: i.indexname, unique: parsed.unique, columns: parsed.columns })
+    }
+
+    const tablas = []
+    for (const t of tabs.rows) {
+      const rowCount = Number((await pool.query(`SELECT COUNT(*) AS c FROM "${t.table_name}"`)).rows[0].c)
+      tablas.push({
+        name: t.table_name,
+        columns: (colsByTable.get(t.table_name) || []).map((c) => ({
+          name: c.column_name,
+          type: tipoPg(c),
+          notnull: c.is_nullable === 'NO',
+          pk: pkSet.has(`${t.table_name}.${c.column_name}`) ? 1 : 0,
+          dflt: c.column_default,
+        })),
+        fks: (fksByTable.get(t.table_name) || []).map((f) => ({
+          from: f.column_name, table: f.ref_table, to: f.ref_column, on_delete: f.delete_rule,
+        })),
+        indexes: idxByTable.get(t.table_name) || [],
+        rowCount,
+      })
+    }
+    return tablas
+  } finally {
+    await pool.end()
+  }
+}
+
 function badge(text, cls) {
   return `<span class="badge ${cls}">${esc(text)}</span>`
 }
 
 function fkText(fk) {
-  const from = esc(fk.from)
   const to = `${esc(fk.table)}.${esc(fk.to ?? '')}`
-  const action = fk.on_delete && fk.on_delete !== 'NO ACTION' ? ` · ${esc(fk.on_delete)}` : ''
+  const action = fk.on_delete && !['NO ACTION', 'NO_ACTION'].includes(fk.on_delete) ? ` · ${esc(fk.on_delete)}` : ''
   return `→ ${to}${action}`
 }
 
-const cards = tables.map((t) => {
-  const colRows = t.columns.map((c, i) => {
-    const fk = t.fks.find((f) => f.from === c.name)
-    return `<tr data-search="${esc(t.name)} ${esc(c.name)}">
+function generarHTML(tablas, origen, outFile) {
+  const totalCols = tablas.reduce((n, t) => n + t.columns.length, 0)
+  const totalFks = tablas.reduce((n, t) => n + t.fks.length, 0)
+  const totalIdx = tablas.reduce((n, t) => n + t.indexes.length, 0)
+
+  const cards = tablas.map((t) => {
+    const colRows = t.columns.map((c, i) => {
+      const fk = t.fks.find((f) => f.from === c.name)
+      return `<tr data-search="${esc(t.name)} ${esc(c.name)}">
       <td class="num">${i + 1}</td>
       <td class="mono">${esc(c.name)}</td>
       <td class="mono type">${esc(c.type)}</td>
       <td class="ctr">${c.pk > 0 ? badge('PK', 'pk') : ''}</td>
       <td class="ctr">${c.notnull ? badge('SÍ', 'nn') : ''}</td>
-      <td class="mono">${esc(c.dflt_value)}</td>
+      <td class="mono">${esc(c.dflt)}</td>
       <td class="mono">${fk ? fkText(fk) : ''}</td>
     </tr>`
-  }).join('')
+    }).join('')
 
-  const idxRows = t.indexes.map((i) => `<tr data-search="${esc(t.name)} ${esc(i.name)}">
+    const idxRows = t.indexes.map((i) => `<tr data-search="${esc(t.name)} ${esc(i.name)}">
     <td class="mono">${esc(i.name)}</td>
     <td class="ctr">${i.unique ? badge('ÚNICO', 'uniq') : ''}</td>
     <td class="mono">${esc(i.columns.join(', '))}</td>
   </tr>`).join('')
 
-  return `<section class="card" id="tabla-${esc(t.name)}" data-search="${esc(t.name)}">
+    return `<section class="card" id="tabla-${esc(t.name)}" data-search="${esc(t.name)}">
     <h2>${esc(t.name)} <span class="rows">${t.rowCount.toLocaleString('es-AR')} fila${t.rowCount === 1 ? '' : 's'}</span></h2>
     <div class="tblwrap">
       <table>
@@ -94,13 +229,13 @@ const cards = tables.map((t) => {
     </div>
     ${t.indexes.length ? `<div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody>${idxRows}</tbody></table></div>` : ''}
   </section>`
-}).join('')
+  }).join('')
 
-const toc = tables.map((t, i) =>
-  `<a href="#tabla-${esc(t.name)}" data-search="${esc(t.name)}"><span class="toc-num">${i + 1}</span>${esc(t.name)}</a>`,
-).join('')
+  const toc = tablas.map((t, i) =>
+    `<a href="#tabla-${esc(t.name)}" data-search="${esc(t.name)}"><span class="toc-num">${i + 1}</span>${esc(t.name)}</a>`,
+  ).join('')
 
-const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -146,9 +281,9 @@ const html = `<!DOCTYPE html>
 <body>
 <header>
   <h1>Estructura de la base de datos</h1>
-  <p class="sub">Archivo: <span class="mono">${esc(dbPath)}</span> · Generado: ${new Date().toLocaleString('es-AR')}</p>
+  <p class="sub">Fuente: <span class="mono">${esc(origen)}</span> · Generado: ${new Date().toLocaleString('es-AR')}</p>
   <div class="summary">
-    <span class="chip"><b>${tables.length}</b> tablas</span>
+    <span class="chip"><b>${tablas.length}</b> tablas</span>
     <span class="chip"><b>${totalCols}</b> campos</span>
     <span class="chip"><b>${totalIdx}</b> índices</span>
     <span class="chip"><b>${totalFks}</b> claves foráneas</span>
@@ -162,22 +297,49 @@ const html = `<!DOCTYPE html>
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
     document.querySelectorAll('.card').forEach(c => {
-      const visible = !q || (c.dataset.search || '').toLowerCase().includes(q);
-      c.classList.toggle('oculto', !visible);
+      c.classList.toggle('oculto', !q || (c.dataset.search || '').toLowerCase().includes(q));
     });
     document.querySelectorAll('.toc a').forEach(a => {
-      const visible = !q || (a.dataset.search || '').toLowerCase().includes(q);
-      a.classList.toggle('oculto', !visible);
+      a.classList.toggle('oculto', !q || (a.dataset.search || '').toLowerCase().includes(q));
     });
-    document.querySelectorAll('#toc .oculto').forEach(() => {});
   });
 </script>
 </body>
 </html>
 `
 
-fs.writeFileSync(OUT_FILE, html, 'utf8')
+  fs.writeFileSync(outFile, html, 'utf8')
+  return { tablas: tablas.length, cols: totalCols, idx: totalIdx, fks: totalFks }
+}
 
-console.log(`Archivo de datos : ${dbPath}`)
-console.log(`HTML generado    : ${OUT_FILE}`)
-console.log(`Tablas: ${tables.length} · Campos: ${totalCols} · Índices: ${totalIdx} · FKs: ${totalFks}`)
+async function main() {
+  if (dbPath) {
+    if (!fs.existsSync(dbPath)) {
+      console.error(`No se encuentra el archivo de datos: ${dbPath}`)
+      process.exit(1)
+    }
+    const tablas = leerSQLite(dbPath)
+    const r = generarHTML(tablas, dbPath, OUT_SQLITE)
+    console.log(`Modo SQLite (local)`)
+    console.log(`Origen           : ${dbPath}`)
+    console.log(`HTML generado    : ${OUT_SQLITE}`)
+    console.log(`Tablas: ${r.tablas} · Campos: ${r.cols} · Índices: ${r.idx} · FKs: ${r.fks}`)
+    return
+  }
+
+  const env = leerEnv(ENV_FILE)
+  if (!env.DATABASE_URL) {
+    console.error('No se encontró DATABASE_URL en ../.env')
+    process.exit(1)
+  }
+  const tablas = await leerPostgres(env.DATABASE_URL)
+  const r = generarHTML(tablas, 'PostgreSQL (Render)', OUT_PG)
+  console.log(`Modo PostgreSQL (Render)`)
+  console.log(`HTML generado    : ${OUT_PG}`)
+  console.log(`Tablas: ${r.tablas} · Campos: ${r.cols} · Índices: ${r.idx} · FKs: ${r.fks}`)
+}
+
+main().catch((e) => {
+  console.error('Error:', e.message)
+  process.exit(1)
+})
