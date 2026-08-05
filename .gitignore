@@ -31,6 +31,7 @@ yarn-error.log*
 
 # migration artifacts
 *.db
+*.db.bak-*
 AppDistricon/csv/
 manifiesto-ruta-*.txt
 .pnpm-debug.log*
