@@ -31,7 +31,7 @@ type Mensaje = {
   createdAt: string
 }
 
-type Contacto = { id: string; nombre: string; usuario: string }
+type Contacto = { id: string; nombre: string; usuario: string; online?: boolean }
 
 type Conversacion =
   | { key: 'general'; titulo: string; subtitulo: string; online: boolean }
@@ -60,6 +60,7 @@ export default function ChatWidget({ modo = 'usuario', token = null }: ChatWidge
   const [choferes, setChoferes] = useState<Contacto[]>([])
   const [generalNoLeidos, setGeneralNoLeidos] = useState(0)
   const [porChat, setPorChat] = useState<Record<string, number>>({})
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set())
   const [escribiendo, setEscribiendo] = useState<{ emisorNombre: string; chatKey: string }[]>([])
   const [conversacion, setConversacion] = useState<Conversacion | null>(null)
   const [texto, setTexto] = useState('')
@@ -113,6 +114,7 @@ export default function ChatWidget({ modo = 'usuario', token = null }: ChatWidge
       setYo(data.yo || null)
       setUsuarios(data.usuarios || [])
       setChoferes(data.choferes || [])
+      setOnlineIds(new Set(data.onlineIds || []))
       setGeneralNoLeidos(data.generalNoLeidos || 0)
       setPorChat(data.porChat || {})
       setEscribiendo((data.escribiendo || []).filter(
@@ -418,15 +420,20 @@ export default function ChatWidget({ modo = 'usuario', token = null }: ChatWidge
                     {usuarios.map((u) => (
                       <button
                         key={u.id}
-                        onClick={() => abrirConversacion({ key: u.id, titulo: u.nombre, subtitulo: u.usuario, online: false })}
+                        onClick={() => abrirConversacion({ key: u.id, titulo: u.nombre, subtitulo: u.online ? 'En línea' : 'Desconectado', online: !!u.online })}
                         className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-white hover:border hover:border-amber-200 hover:shadow-sm transition-all text-left"
                       >
-                        <Avatar className="bg-slate-200 text-slate-600">
-                          <AvatarFallback className="text-[10px]">{initials(u.nombre)}</AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                          <Avatar className="bg-slate-200 text-slate-600">
+                            <AvatarFallback className="text-[10px]">{initials(u.nombre)}</AvatarFallback>
+                          </Avatar>
+                          <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white ${u.online ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-700 truncate">{u.nombre}</p>
-                          <p className="text-[11px] text-slate-400 truncate">{u.usuario}</p>
+                          <p className={`text-[11px] truncate ${u.online ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {u.online ? 'En línea' : 'Desconectado'}
+                          </p>
                         </div>
                         {porChat[u.id] > 0 && (
                           <Badge className="bg-red-500 text-white">{porChat[u.id]}</Badge>
@@ -485,7 +492,12 @@ export default function ChatWidget({ modo = 'usuario', token = null }: ChatWidge
                         <div key={m.id} className={`flex ${mio ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] px-3 py-2 rounded-2xl shadow-sm text-sm ${mio ? 'bg-amber-400 text-amber-950 rounded-br-sm' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-sm'}`}>
                             {!mio && (
-                              <p className="text-[10px] font-semibold text-amber-700 mb-0.5">{m.emisorNombre}</p>
+                              <p className="text-[10px] font-semibold text-amber-700 mb-0.5 flex items-center gap-1">
+                                {onlineIds.has(m.emisorId) && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" title="En línea" />
+                                )}
+                                {m.emisorNombre}
+                              </p>
                             )}
                             {m.tipo === 'IMAGEN' && m.adjuntoUrl ? (
                               <img src={m.adjuntoUrl} alt={m.adjuntoNombre || 'Imagen'} className="max-w-[220px] rounded-lg" />

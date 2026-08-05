@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 })
     }
 
-    const [usuarios, choferesOnline, noLeidos, escribiendo] = await Promise.all([
+    const [usuarios, choferesOnline, noLeidos, escribiendo, presentes] = await Promise.all([
       db.usuario.findMany({
         where: { activo: true },
         select: { id: true, nombre: true, usuario: true },
@@ -39,11 +39,22 @@ export async function GET(request: NextRequest) {
         },
         select: { emisorId: true, emisorNombre: true, chatKey: true },
       }),
+      db.presenciaUsuario.findMany({
+        where: { ultimoHeartbeat: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
+        select: { usuarioId: true },
+      }),
     ])
+
+    const presentesSet = new Set(presentes.map((p) => p.usuarioId))
 
     const choferes = choferesOnline
       .map((s) => s.conductor)
       .filter((c) => c && c.id !== identity.emisorId)
+
+    const onlineIds = [
+      ...presentesSet,
+      ...choferes.map((c) => c.id),
+    ]
 
     const porChat = noLeidos.reduce<Record<string, number>>((acc, m) => {
       const key = m.receptorId || 'general'
@@ -55,7 +66,10 @@ export async function GET(request: NextRequest) {
       yo: identity,
       generalNoLeidos: porChat['general'] || 0,
       porChat,
-      usuarios: usuarios.filter((u) => u.id !== identity.emisorId),
+      onlineIds,
+      usuarios: usuarios
+        .filter((u) => u.id !== identity.emisorId)
+        .map((u) => ({ ...u, online: presentesSet.has(u.id) })),
       choferes,
       escribiendo: escribiendo.filter((e) => e.chatKey === 'general' || e.chatKey === identity.emisorId),
     })
