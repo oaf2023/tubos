@@ -1165,6 +1165,7 @@ model Usuario {
   rol         Rol?     @relation(fields: [rolId], references: [id])
   rutasAsignadas Ruta[] @relation("ConductorRutas") // Rutas donde es conductor
   sesiones    SesionConductor[]
+  presencias  PresenciaUsuario[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -2142,4 +2143,52 @@ model Clima {
   @@index([fechaDate])
   @@index([fuente])
   @@map("Clima")
+}
+
+// ============ CHAT / MENSAJERÍA INTERNA ============
+
+model MensajeChat {
+  id           String       @id @default(cuid())
+  emisorId     String
+  emisorNombre String
+  emisorTipo   String       // USUARIO | CHOFER
+  receptorId   String?      // null = canal general
+  receptorNombre String?
+  contenido    String       @db.Text
+  tipo         String       @default("TEXTO") // TEXTO | IMAGEN | ARCHIVO
+  adjuntoUrl   String?      @db.Text
+  adjuntoNombre String?
+  adjuntoMime  String?
+  leido        Boolean      @default(false)
+  leidoEn      DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([emisorId, createdAt])
+  @@index([receptorId, leido])
+  @@index([createdAt])
+  @@map("MensajeChat")
+}
+
+model EscribiendoChat {
+  id           String   @id @default(cuid())
+  emisorId     String
+  emisorTipo   String   // USUARIO | CHOFER
+  emisorNombre String
+  chatKey      String   // "general" o id del receptor
+  actualizadoEn DateTime @default(now()) @updatedAt
+
+  @@index([chatKey])
+  @@map("EscribiendoChat")
+}
+
+model PresenciaUsuario {
+  id             String   @id @default(cuid())
+  usuarioId      String   @unique
+  nombre         String
+  ultimoHeartbeat DateTime @default(now()) @updatedAt
+  createdAt      DateTime @default(now())
+
+  usuario        Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("PresenciaUsuario")
 }

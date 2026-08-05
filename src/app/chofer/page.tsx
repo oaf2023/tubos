@@ -6,6 +6,7 @@ import {
   Truck, Navigation, MapPin, CheckCircle, AlertTriangle,
   LogOut, RefreshCw, User, Clock, Camera, Send, XCircle,
 } from 'lucide-react'
+import ChatWidget from '@/components/chat-widget'
 
 const MapView = dynamic(() => import('@/components/map-view'), { ssr: false })
 
@@ -508,6 +509,7 @@ export default function ChoferPage() {
           </div>
         </div>
       )}
+      <ChatWidget modo="chofer" token={token} />
     </div>
   )
 }

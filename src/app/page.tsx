@@ -58,6 +58,8 @@ import HeaderDeviceInfo from '@/components/header-device-info'
 import HeaderHelp from '@/components/header-help'
 import HeaderInstall from '@/components/header-install'
 import FallingDistriconCards from '@/components/falling-districon-cards'
+import ChatWidget from '@/components/chat-widget'
+import UsuariosConectados from '@/components/usuarios-conectados'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -410,6 +412,8 @@ export default function Home() {
       </main>
       <Footer />
       <Toaster />
+      <UsuariosConectados />
+      <ChatWidget />
     </div>
   )
 }
