@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, CheckCheck, Bell } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCheck, Bell, MessageCircle } from 'lucide-react'
 
-type Aviso = { id: string; mensaje: string }
+type Item =
+  | { tipo: 'aviso'; id: string; mensaje: string }
+  | { tipo: 'mensaje'; id: string; mensaje: string; emisorNombre: string; chatKey: string; esGeneral: boolean }
 
 type AvisoLoginBannerProps = {
   usuario: string
@@ -11,7 +13,7 @@ type AvisoLoginBannerProps = {
 }
 
 export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBannerProps) {
-  const [avisos, setAvisos] = useState<Aviso[]>([])
+  const [items, setItems] = useState<Item[]>([])
   const [index, setIndex] = useState(0)
   const [cargando, setCargando] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -23,7 +25,7 @@ export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBanne
     if (timerRef.current) clearTimeout(timerRef.current)
     if (!usuarioTrim) {
       seqRef.current += 1
-      setAvisos([])
+      setItems([])
       setIndex(0)
       return
     }
@@ -32,11 +34,23 @@ export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBanne
     timerRef.current = setTimeout(async () => {
       setCargando(true)
       try {
-        const res = await fetch(`/api/avisos/consulta?usuario=${encodeURIComponent(usuarioTrim)}&tipoLogin=${tipoLogin}`)
-        if (!res.ok) return
-        const data = await res.json()
+        const qs = `usuario=${encodeURIComponent(usuarioTrim)}&tipoLogin=${tipoLogin}`
+        const [resA, resM] = await Promise.all([
+          fetch(`/api/avisos/consulta?${qs}`),
+          fetch(`/api/mensajes/consulta-login?${qs}`),
+        ])
+        const [dataA, dataM] = await Promise.all([resA.json().catch(() => ({})), resM.json().catch(() => ({}))])
         if (seqRef.current !== seq) return
-        setAvisos(data.avisos || [])
+        const avisos: Item[] = (dataA.avisos || []).map((a: { id: string; mensaje: string }) => ({ tipo: 'aviso', ...a }))
+        const mensajes: Item[] = (dataM.mensajes || []).map((m: { id: string; contenido: string; emisorNombre: string; chatKey: string; directo: boolean }) => ({
+          tipo: 'mensaje',
+          id: m.id,
+          mensaje: m.contenido || (m.directo ? 'Te envió un adjunto' : 'Adjunto en el chat general'),
+          emisorNombre: m.emisorNombre,
+          chatKey: m.chatKey,
+          esGeneral: !m.directo,
+        }))
+        setItems([...avisos, ...mensajes])
         setIndex(0)
       } catch { /* sin red */ } finally {
         if (seqRef.current === seq) setCargando(false)
@@ -46,52 +60,63 @@ export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBanne
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [usuarioTrim, tipoLogin])
 
-  const marcarLeido = useCallback(async (id: string) => {
+  const descartar = useCallback(async (item: Item) => {
     try {
-      await fetch('/api/avisos/leer', {
+      const body = item.tipo === 'aviso'
+        ? { usuario: usuarioTrim, tipoLogin, avisoId: item.id }
+        : { usuario: usuarioTrim, tipoLogin, chatKey: item.chatKey }
+      await fetch(item.tipo === 'aviso' ? '/api/avisos/leer' : '/api/mensajes/leer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario: usuarioTrim, tipoLogin, avisoId: id }),
+        body: JSON.stringify(body),
       })
     } catch { /* ignore */ }
-    setAvisos((prev) => {
-      const next = prev.filter((a) => a.id !== id)
+    setItems((prev) => {
+      const next = prev.filter((x) => x.id !== item.id)
       setIndex((i) => Math.min(i, Math.max(0, next.length - 1)))
       return next
     })
   }, [usuarioTrim, tipoLogin])
 
-  if (!usuarioTrim || avisos.length === 0 || cargando) return null
+  if (!usuarioTrim || items.length === 0 || cargando) return null
 
-  const aviso = avisos[index]
+  const item = items[index]
 
   return (
     <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-auto sm:bottom-6 sm:w-full sm:max-w-xl sm:mx-auto z-50 flex justify-center animate-in slide-in-from-bottom-4 fade-in duration-200">
-      <div className="w-full bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl shadow-lg shadow-black/30 px-3 py-2 flex items-center gap-2">
-        <Bell className="w-4 h-4 shrink-0" />
+      <div className={`w-full rounded-xl shadow-lg shadow-black/30 px-3 py-2 flex items-center gap-2 ${item.tipo === 'aviso' ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950' : 'bg-gradient-to-r from-emerald-400 to-teal-400 text-emerald-950'}`}>
+        {item.tipo === 'aviso' ? (
+          <Bell className="w-4 h-4 shrink-0" />
+        ) : (
+          <MessageCircle className="w-4 h-4 shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wide truncate">
-            Mensaje para: {usuarioTrim}
+            {item.tipo === 'aviso'
+              ? `Mensaje para: ${usuarioTrim}`
+              : item.esGeneral
+                ? `Chat general · ${item.emisorNombre}`
+                : `Mensaje de ${item.emisorNombre}`}
           </p>
-          <p className="text-xs sm:text-sm truncate" title={aviso.mensaje}>
-            {aviso.mensaje}
+          <p className="text-xs sm:text-sm truncate" title={item.mensaje}>
+            {item.mensaje}
           </p>
         </div>
 
-        {avisos.length > 1 && (
+        {items.length > 1 && (
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => setIndex((i) => (i - 1 + avisos.length) % avisos.length)}
-              className="p-1 rounded-lg hover:bg-amber-500/30 transition-colors"
-              aria-label="Aviso anterior"
+              onClick={() => setIndex((i) => (i - 1 + items.length) % items.length)}
+              className="p-1 rounded-lg hover:bg-black/10 transition-colors"
+              aria-label="Anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-[10px] font-semibold">{index + 1}/{avisos.length}</span>
+            <span className="text-[10px] font-semibold">{index + 1}/{items.length}</span>
             <button
-              onClick={() => setIndex((i) => (i + 1) % avisos.length)}
-              className="p-1 rounded-lg hover:bg-amber-500/30 transition-colors"
-              aria-label="Aviso siguiente"
+              onClick={() => setIndex((i) => (i + 1) % items.length)}
+              className="p-1 rounded-lg hover:bg-black/10 transition-colors"
+              aria-label="Siguiente"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -99,8 +124,8 @@ export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBanne
         )}
 
         <button
-          onClick={() => marcarLeido(aviso.id)}
-          className="shrink-0 flex items-center gap-1 text-[11px] font-semibold bg-amber-900/20 hover:bg-amber-900/30 rounded-lg px-2 py-1.5 transition-colors"
+          onClick={() => descartar(item)}
+          className="shrink-0 flex items-center gap-1 text-[11px] font-semibold bg-black/10 hover:bg-black/20 rounded-lg px-2 py-1.5 transition-colors"
         >
           <CheckCheck className="w-3.5 h-3.5" />
           Entendido
