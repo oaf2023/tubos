@@ -7,6 +7,7 @@ import {
   LogOut, RefreshCw, User, Clock, Camera, Send, XCircle,
 } from 'lucide-react'
 import ChatWidget from '@/components/chat-widget'
+import AvisoLoginBanner from '@/components/aviso-login-banner'
 
 const MapView = dynamic(() => import('@/components/map-view'), { ssr: false })
 
@@ -223,7 +224,8 @@ export default function ChoferPage() {
   // Pantalla de login
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center p-4">
+      <>
+        <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <Truck className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
@@ -269,6 +271,8 @@ export default function ChoferPage() {
           </form>
         </div>
       </div>
+      <AvisoLoginBanner usuario={loginUser} tipoLogin="usuario" />
+      </>
     )
   }
 

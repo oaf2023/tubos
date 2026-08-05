@@ -13,6 +13,12 @@ import {
   ClipboardList,
   Search,
   RefreshCw,
+  Megaphone,
+  Trash2,
+  Power,
+  UsersRound,
+  UserRound,
+  CheckCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -125,6 +131,9 @@ function ConfiguracionTab() {
         </TabsTrigger>
         <TabsTrigger value="auditoria" className="flex items-center gap-1.5">
           <ClipboardList className="w-4 h-4" /><span>Bitácora</span>
+        </TabsTrigger>
+        <TabsTrigger value="avisos" className="flex items-center gap-1.5">
+          <Megaphone className="w-4 h-4" /><span>Avisos</span>
         </TabsTrigger>
       </TabsList>
 
@@ -264,6 +273,9 @@ function ConfiguracionTab() {
 
       <TabsContent value="auditoria">
         <AuditoriaView />
+      </TabsContent>
+      <TabsContent value="avisos">
+        <AvisosView />
       </TabsContent>
     </Tabs>
   )
@@ -675,6 +687,237 @@ function AuditoriaView() {
                 <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
                 <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Siguiente</Button>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AvisosView() {
+  const { toast } = useToast()
+  const [avisos, setAvisos] = useState<any[]>([])
+  const [usuarios, setUsuarios] = useState<{ id: string; nombre: string; usuario: string }[]>([])
+  const [roles, setRoles] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [mensaje, setMensaje] = useState('')
+  const [destino, setDestino] = useState<'TODOS' | 'ROL' | 'USUARIO'>('TODOS')
+  const [rolSel, setRolSel] = useState('')
+  const [usuarioSel, setUsuarioSel] = useState('')
+
+  const load = useCallback(async () => {
+    try {
+      const [res, resUsr] = await Promise.all([
+        fetch('/api/avisos'),
+        fetch('/api/avisos/usuarios'),
+      ])
+      if (res.ok) {
+        const data = await res.json()
+        setAvisos(Array.isArray(data.avisos) ? data.avisos : [])
+      }
+      if (resUsr.ok) {
+        const data = await resUsr.json()
+        setUsuarios(data.usuarios || [])
+        setRoles(data.roles || [])
+      }
+    } catch { /* ignore */ } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  async function crear() {
+    if (!mensaje.trim()) {
+      toast({ title: 'Error', description: 'Escribí el mensaje del aviso', variant: 'destructive' })
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/avisos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensaje,
+          destino,
+          rolNombre: destino === 'ROL' ? rolSel : undefined,
+          usuarioId: destino === 'USUARIO' ? usuarioSel : undefined,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Error al crear aviso')
+      }
+      toast({ title: 'Aviso creado', description: 'Se mostrará en el login del destinatario' })
+      setMensaje('')
+      setRolSel('')
+      setUsuarioSel('')
+      setDestino('TODOS')
+      void load()
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'No se pudo crear el aviso', variant: 'destructive' })
+    } finally { setSaving(false) }
+  }
+
+  async function toggleActivo(aviso: any) {
+    try {
+      const res = await fetch(`/api/avisos/${aviso.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !aviso.activo }),
+      })
+      if (!res.ok) throw new Error()
+      void load()
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo actualizar el aviso', variant: 'destructive' })
+    }
+  }
+
+  async function eliminar(aviso: any) {
+    if (!window.confirm('¿Eliminar este aviso?')) return
+    try {
+      const res = await fetch(`/api/avisos/${aviso.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      void load()
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo eliminar el aviso', variant: 'destructive' })
+    }
+  }
+
+  const destinoBadge = (a: any) => {
+    if (a.destino === 'TODOS') return <Badge className="bg-blue-100 text-blue-700"><UsersRound className="w-3 h-3 mr-1" />Todos</Badge>
+    if (a.destino === 'ROL') return <Badge className="bg-amber-100 text-amber-700"><UsersRound className="w-3 h-3 mr-1" />Rol: {a.rolNombre}</Badge>
+    return <Badge className="bg-emerald-100 text-emerald-700"><UserRound className="w-3 h-3 mr-1" />Usuario</Badge>
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-orange-500" />
+            Nuevo Aviso
+          </CardTitle>
+          <CardDescription>
+            El aviso aparece como banner en la pantalla de login del destinatario, sin necesidad de ingresar al sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Mensaje</Label>
+            <textarea
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="Ej: Reunión general mañana 8:30 hs en el depósito"
+              className="mt-1 w-full rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 outline-none px-3 py-2 text-sm"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">{mensaje.length}/2000</p>
+          </div>
+
+          <div>
+            <Label>Destino</Label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {(['TODOS', 'ROL', 'USUARIO'] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDestino(d)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    destino === d
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300'
+                  }`}
+                >
+                  {d === 'TODOS' ? 'Todos' : d === 'ROL' ? 'Por rol' : 'Usuario específico'}
+                </button>
+              ))}
+            </div>
+
+            {destino === 'ROL' && (
+              <select
+                value={rolSel}
+                onChange={(e) => setRolSel(e.target.value)}
+                className="mt-2 w-full sm:max-w-xs text-sm border rounded-lg px-3 py-2 bg-white"
+              >
+                <option value="">Seleccioná un rol...</option>
+                {roles.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            )}
+            {destino === 'USUARIO' && (
+              <select
+                value={usuarioSel}
+                onChange={(e) => setUsuarioSel(e.target.value)}
+                className="mt-2 w-full sm:max-w-xs text-sm border rounded-lg px-3 py-2 bg-white"
+              >
+                <option value="">Seleccioná un usuario...</option>
+                {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre} ({u.usuario})</option>)}
+              </select>
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={crear} disabled={saving} className="bg-gradient-to-r from-orange-500 to-red-600 gap-2">
+              <Megaphone className="w-4 h-4" /> {saving ? 'Creando...' : 'Crear aviso'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-orange-500" />
+            Avisos activos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+          ) : avisos.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Megaphone className="w-8 h-8 mx-auto mb-1 text-slate-300" />
+              No hay avisos creados
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {avisos.map((a) => (
+                <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.activo ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {destinoBadge(a)}
+                      <span className="text-[11px] text-slate-400">
+                        {formatDate(a.createdAt)} · {a.creadoPor ? `por ${a.creadoPor}` : 'sistema'}
+                      </span>
+                      {!a.activo && <Badge className="bg-slate-100 text-slate-500">Desactivado</Badge>}
+                    </div>
+                    <p className="text-sm text-slate-700 mt-1">{a.mensaje}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                      <CheckCheck className="w-3 h-3" />
+                      {a.lecturas.length === 0
+                        ? 'Nadie lo leyó aún'
+                        : `${a.lecturas.length} lectura(s): ${a.lecturas.slice(0, 5).map((l: any) => l.leidoPor).join(', ')}${a.lecturas.length > 5 ? '…' : ''}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => toggleActivo(a)}
+                      className={`p-2 rounded-lg transition-colors ${a.activo ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`}
+                      title={a.activo ? 'Desactivar' : 'Activar'}
+                    >
+                      <Power className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => eliminar(a)}
+                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

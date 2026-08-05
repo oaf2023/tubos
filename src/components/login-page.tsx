@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import FallingDistriconCards from '@/components/falling-districon-cards'
+import AvisoLoginBanner from '@/components/aviso-login-banner'
 
 interface LoginPageProps {
   onLogin: (user: any) => void
@@ -150,6 +151,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           </p>
         </div>
       </div>
+
+      <AvisoLoginBanner usuario={usuario} tipoLogin={tab} />
     </div>
   )
 }

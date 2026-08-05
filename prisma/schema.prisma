@@ -2192,3 +2192,30 @@ model PresenciaUsuario {
 
   @@map("PresenciaUsuario")
 }
+
+model AvisoUsuario {
+  id        String   @id @default(cuid())
+  mensaje   String   @db.Text
+  destino   String   // TODOS | ROL | USUARIO
+  usuarioId String?  // destino=USUARIO → Usuario.id
+  rolNombre String?  // destino=ROL → nombre del rol
+  activo    Boolean  @default(true)
+  creadoPor String?
+  createdAt DateTime @default(now())
+
+  lecturas  AvisoLectura[]
+
+  @@index([activo, destino])
+  @@map("AvisoUsuario")
+}
+
+model AvisoLectura {
+  id      String   @id @default(cuid())
+  avisoId String
+  aviso   AvisoUsuario @relation(fields: [avisoId], references: [id], onDelete: Cascade)
+  leidoPor String  // "usuario:<username>" | "chofer:<username>" | "cliente:<username>"
+  leidoEn DateTime @default(now())
+
+  @@unique([avisoId, leidoPor])
+  @@map("AvisoLectura")
+}
