@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
+import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
 import { createHash } from 'crypto'
 
 const EVENT_HASH_SALT = process.env.EVENT_HASH_SALT || 'tubos-gastrack-default-salt'
@@ -41,6 +42,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tub
       await db.cylinder.update({
         where: { id: tubeId },
         data: { estado: estadoNuevo as any },
+      })
+      await registrarMovimientoPorEstadoCilindro({
+        cylinderId: tubeId,
+        gasId: cylinder.gasId,
+        estadoAnterior,
+        estadoNuevo,
+        usuario: user?.usuario || null,
+        observacion: `Evento móvil: ${accion}`,
       })
     }
 

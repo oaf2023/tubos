@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { findOrCreateSesion, cerrarSesionesVencidas } from '@/lib/rfid'
 import { getTransicion } from '@/lib/rfid-rules'
 import { logAudit } from '@/lib/audit'
+import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
 
 interface ProcessEventoInput {
   lectorId: string
@@ -80,6 +81,16 @@ export async function procesarEventoRFID(input: ProcessEventoInput): Promise<Pro
           where: { id: tag.cylinderId },
           data: { estado: transicion.estadoNuevo },
         })
+        if (tag.cylinder?.gasId) {
+          await registrarMovimientoPorEstadoCilindro({
+            cylinderId: tag.cylinderId,
+            gasId: tag.cylinder.gasId,
+            estadoAnterior,
+            estadoNuevo: transicion.estadoNuevo,
+            usuario: usuario || null,
+            observacion: `Evento RFID zona ${zona.tipo}`,
+          }, tx)
+        }
         await logAudit({
           accion: 'CAMBIO_ESTADO',
           entidad: 'Cylinder',

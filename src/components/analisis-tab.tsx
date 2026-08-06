@@ -5,11 +5,12 @@ import {
   BarChart3, TrendingUp, Users, DollarSign, Wrench, Truck,
   ShieldCheck, Radio, Download, FileSpreadsheet, RefreshCw,
   Activity, CreditCard, AlertTriangle, MapPin, Package,
+  PackageSearch, Target, Hourglass, CalendarDays, Scale, TrendingDown, Undo2, Percent,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, ScatterChart, Scatter,
-  ReferenceLine,
+  ReferenceLine, ComposedChart,
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -88,7 +89,7 @@ export default function AnalisisTab() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [pg, td, cl, fn, op, lg, cd, rf] = await Promise.all([
+      const [pg, td, cl, fn, op, lg, cd, rf, ki] = await Promise.all([
         fetch('/api/stats/analytics/panel-general').then(r => r.json()),
         fetch(`/api/stats/analytics/tendencias?meses=${periodo}`).then(r => r.json()),
         fetch('/api/stats/analytics/clientes').then(r => r.json()),
@@ -97,8 +98,9 @@ export default function AnalisisTab() {
         fetch('/api/stats/analytics/logistica').then(r => r.json()),
         fetch('/api/stats/analytics/calidad').then(r => r.json()),
         fetch('/api/stats/analytics/rfid').then(r => r.json()),
+        fetch(`/api/stats/analytics/kpis-inventario?meses=${periodo}`).then(r => r.json()),
       ])
-      setData({ panelGeneral: pg, tendencias: td, clientes: cl, financiero: fn, operaciones: op, logistica: lg, calidad: cd, rfid: rf })
+      setData({ panelGeneral: pg, tendencias: td, clientes: cl, financiero: fn, operaciones: op, logistica: lg, calidad: cd, rfid: rf, inventario: ki })
     } catch (err) { console.error(err) }
     setLoading(false)
   }, [periodo])
@@ -112,6 +114,7 @@ export default function AnalisisTab() {
   const lg = data.logistica || {}
   const cd = data.calidad || {}
   const rf = data.rfid || {}
+  const ki = data.inventario || {}
 
   return (
     <div className="space-y-6">
@@ -148,6 +151,7 @@ export default function AnalisisTab() {
           <TabsTrigger value="logistica"><Truck className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Logística</TabsTrigger>
           <TabsTrigger value="calidad"><ShieldCheck className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Calidad</TabsTrigger>
           <TabsTrigger value="rfid"><Radio className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />RFID</TabsTrigger>
+          <TabsTrigger value="inventario"><PackageSearch className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Inventario</TabsTrigger>
         </TabsList>
 
         <div className="print:block">
@@ -174,6 +178,9 @@ export default function AnalisisTab() {
           </TabsContent>
           <TabsContent value="rfid">
             {loading ? <ChartSkeleton /> : <RFID data={rf} onCSV={() => exportCSV(rf.eventosPorZona || [], 'rfid')} onPrint={exportPrint} />}
+          </TabsContent>
+          <TabsContent value="inventario">
+            {loading ? <ChartSkeleton /> : <Inventario data={ki} onCSV={() => exportCSV(ki.porGas || [], 'kpis-inventario')} onPrint={exportPrint} />}
           </TabsContent>
         </div>
       </Tabs>
@@ -777,6 +784,215 @@ function RFID({ data, onCSV, onPrint }: { data: any; onCSV: () => void; onPrint:
                 <Bar dataKey="mantenimiento" stackId="a" fill="#f59e0b" name="Mant." />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+const fmtN = (n: any, dec = 0) => n == null ? '—' : Number(n).toLocaleString('es-AR', { maximumFractionDigits: dec })
+const fmtMon = (n: any) => n == null ? '—' : `$${Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+
+function Inventario({ data, onCSV, onPrint }: { data: any; onCSV: () => void; onPrint: () => void }) {
+  const r = data.resumen || {}
+  const porGas = data.porGas || []
+  const sinObjetivo = porGas.length > 0 && porGas.every((g: any) => g.stockObjetivo === null)
+
+  const kpis = [
+    { label: 'Stock Promedio', value: fmtN(r.stockPromedioUnidades), sub: `Valor ${fmtMon(r.stockPromedioValor)}`, icon: Package, color: 'bg-blue-600' },
+    { label: 'Valor de Inventario', value: fmtMon(r.valorInventario), sub: `${fmtN(r.stockActualUnidades)} unidades actuales`, icon: DollarSign, color: 'bg-green-600' },
+    { label: 'Stock Óptimo', value: fmtN(r.stockObjetivoUnidades), sub: sinObjetivo ? 'Sin configurar' : 'Objetivo + mínimo + seguridad', icon: Target, color: 'bg-indigo-600' },
+    { label: 'Cobertura', value: r.coberturaMeses == null ? '—' : `${fmtN(r.coberturaMeses, 2)} meses`, sub: 'Stock / venta mensual', icon: Hourglass, color: 'bg-cyan-600' },
+    { label: 'Días de Inventario', value: fmtN(r.diasInventario, 1), sub: 'Valor stock / ventas × 365', icon: CalendarDays, color: 'bg-orange-600' },
+    { label: 'Rotación', value: fmtN(r.rotacion, 2), sub: `${fmtN(r.unidadesVendidasPeriodo)} uds vendidas`, icon: RefreshCw, color: 'bg-purple-600' },
+    { label: 'Contracción', value: r.contraccion == null ? '—' : `${fmtN(r.contraccion, 2)}%`, sub: 'Teórico vs conteo físico', icon: Scale, color: 'bg-red-600' },
+    { label: 'Pérdida', value: `${fmtN(r.perdida, 2)}%`, sub: 'Contracción + no suministrada', icon: TrendingDown, color: 'bg-rose-600' },
+    { label: 'Retorno (NC)', value: r.retorno == null ? '—' : `${fmtN(r.retorno, 2)}%`, sub: 'Notas de crédito / ventas', icon: Undo2, color: 'bg-amber-600' },
+    { label: 'Sales-through', value: r.salesThrough == null ? '—' : `${fmtN(r.salesThrough, 1)}%`, sub: 'Vendido / recibido', icon: Percent, color: 'bg-teal-600' },
+    { label: 'Backorders', value: r.backorders == null ? '—' : `${fmtN(r.backorders, 1)}%`, sub: `${r.pedidosPendientes ?? 0} pedidos pendientes`, icon: AlertTriangle, color: 'bg-yellow-600' },
+    { label: 'Nivel de Servicio', value: r.nivelServicio == null ? '—' : `${fmtN(r.nivelServicio, 1)}%`, sub: 'Pedidos completados', icon: ShieldCheck, color: 'bg-emerald-600' },
+  ]
+
+  const semaforo = (v: any) => {
+    if (v == null) return 'bg-slate-300'
+    if (v < 1) return 'bg-red-500'
+    if (v <= 2) return 'bg-amber-500'
+    return 'bg-green-500'
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-sm text-slate-500">KPIs de inventario (Mecalux)</p>
+        <ExportBar onCSV={onCSV} onPrint={onPrint} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+        {kpis.map(kp => <KpiCard key={kp.label} {...kp} />)}
+      </div>
+
+      <div className="grid gap-6 mb-6">
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Evolución de Stock vs Movimientos</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={data.serie || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" fontSize={11} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="entrada" stackId="a" fill="#22c55e" name="Entradas" />
+                <Bar dataKey="salida" stackId="a" fill="#ef4444" name="Salidas" />
+                <Line type="monotone" dataKey="stockFinal" stroke="#3b82f6" strokeWidth={2} name="Stock final" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Stock Actual vs Objetivo por Gas</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={[...porGas].sort((a: any, b: any) => b.stockActual - a.stockActual).slice(0, 10)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="codigo" fontSize={11} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="stockActual" fill="#3b82f6" name="Actual" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="stockObjetivo" fill="#f59e0b" name="Objetivo" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Composición de Stock por Gas</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={porGas.filter((g: any) => g.stockActual > 0)} dataKey="stockActual" nameKey="codigo" cx="50%" cy="50%" outerRadius={100} label={({ codigo }) => codigo}>
+                  {porGas.map((g: any, i: number) => <Cell key={g.gasId} fill={COL10[i % 10]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader><CardTitle className="text-lg">Stock por Gas: óptimo y cobertura</CardTitle></CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-400 border-b">
+                  <th className="py-2 pr-4">Gas</th>
+                  <th className="py-2 pr-4 text-right">Actual</th>
+                  <th className="py-2 pr-4 text-right">Óptimo</th>
+                  <th className="py-2 pr-4 text-right">Venta mensual</th>
+                  <th className="py-2 pr-4 text-right">Cobertura</th>
+                  <th className="py-2 pr-4 text-right">Rotación</th>
+                  <th className="py-2 pr-4 text-right">Contracción</th>
+                  <th className="py-2 pr-4 text-right">Valor stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...porGas].sort((a: any, b: any) => b.valorStock - a.valorStock).map((g: any) => (
+                  <tr key={g.gasId} className="border-b border-slate-100">
+                    <td className="py-2 pr-4 font-medium">{g.codigo}</td>
+                    <td className="py-2 pr-4 text-right">{fmtN(g.stockActual)}</td>
+                    <td className="py-2 pr-4 text-right">{g.stockObjetivo == null ? '—' : fmtN(g.stockObjetivo)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtN(g.ventasMensuales)}</td>
+                    <td className="py-2 pr-4 text-right">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${semaforo(g.coberturaMeses)}`} />
+                        {g.coberturaMeses == null ? '—' : `${fmtN(g.coberturaMeses, 1)} m`}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 text-right">{g.rotacion == null ? '—' : fmtN(g.rotacion, 1)}</td>
+                    <td className="py-2 pr-4 text-right">{g.contraccion == null ? '—' : `${fmtN(g.contraccion, 1)}%`}</td>
+                    <td className="py-2 pr-4 text-right">{fmtMon(g.valorStock)}</td>
+                  </tr>
+                ))}
+                {porGas.length === 0 && <tr><td colSpan={8} className="py-6 text-center text-slate-400">Sin datos</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Conteos Físicos</CardTitle></CardHeader>
+          <CardContent>
+            {(data.conteos || []).length === 0 ? (
+              <p className="text-center text-slate-400 py-8">Sin conteos en el período. Registralos desde la pestaña Inventario.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-400 border-b">
+                      <th className="py-2 pr-4">Fecha</th>
+                      <th className="py-2 pr-4 text-right">Teórico</th>
+                      <th className="py-2 pr-4 text-right">Real</th>
+                      <th className="py-2 pr-4 text-right">Diferencia</th>
+                      <th className="py-2 pr-4 text-right">Contracción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.conteos || []).map((c: any) => (
+                      <tr key={c.id} className="border-b border-slate-100">
+                        <td className="py-2 pr-4">{new Date(c.fecha).toLocaleDateString('es-AR')}</td>
+                        <td className="py-2 pr-4 text-right">{fmtN(c.teorico)}</td>
+                        <td className="py-2 pr-4 text-right">{fmtN(c.real)}</td>
+                        <td className="py-2 pr-4 text-right">{fmtN(c.diferencia)}</td>
+                        <td className="py-2 pr-4 text-right">{c.contraccion == null ? '—' : `${fmtN(c.contraccion, 2)}%`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Recepciones de Stock</CardTitle></CardHeader>
+          <CardContent>
+            {(data.recepciones || []).length === 0 ? (
+              <p className="text-center text-slate-400 py-8">Sin recepciones en el período. Registralas desde la pestaña Inventario.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-400 border-b">
+                      <th className="py-2 pr-4">Fecha</th>
+                      <th className="py-2 pr-4">Gas</th>
+                      <th className="py-2 pr-4 text-right">Cantidad</th>
+                      <th className="py-2 pr-4">Proveedor</th>
+                      <th className="py-2 pr-4">Documento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.recepciones || []).map((c: any) => (
+                      <tr key={c.id} className="border-b border-slate-100">
+                        <td className="py-2 pr-4">{new Date(c.fecha).toLocaleDateString('es-AR')}</td>
+                        <td className="py-2 pr-4 font-medium">{c.codigo}</td>
+                        <td className="py-2 pr-4 text-right">{fmtN(c.cantidad)}</td>
+                        <td className="py-2 pr-4">{c.proveedor || '—'}</td>
+                        <td className="py-2 pr-4">{c.documento || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

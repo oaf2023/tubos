@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
 
 const MAPA_ESTADOS: Record<string, string> = {
   VACIOS: 'VACIO_DEPOSITO',
@@ -52,6 +53,16 @@ export async function POST(request: NextRequest) {
           where: { id: cylinderId },
           data: { estado: estadoNuevo },
         })
+        if (cylinder.gasId) {
+          await registrarMovimientoPorEstadoCilindro({
+            cylinderId,
+            gasId: cylinder.gasId,
+            estadoAnterior,
+            estadoNuevo,
+            usuario: body.usuario || null,
+            observacion: `Lectura RFID zona ${lector.zona.nombre} (${lector.zona.tipo})`,
+          })
+        }
       }
     }
 

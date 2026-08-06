@@ -397,6 +397,9 @@ model Gas {
   stockGas             StockGas?
   movimientosStock     MovimientoStock[]
   reglaPeso            ReglaPeso?
+  configStock          ConfigStockGas?
+  conteosFisicos       ConteoFisicoItem[]
+  recepcionesStock     RecepcionStock[]
 }
 
 model Cylinder {
@@ -2218,4 +2221,61 @@ model AvisoLectura {
 
   @@unique([avisoId, leidoPor])
   @@map("AvisoLectura")
+}
+
+// ============ KPI DE INVENTARIO ============
+
+model ConfigStockGas {
+  id                   String   @id @default(cuid())
+  gasId                String   @unique
+  gas                  Gas      @relation(fields: [gasId], references: [id], onDelete: Cascade)
+  stockMinimo          Int      @default(0)
+  stockSeguridad       Int      @default(0)
+  cantidadOptimaPedido Int      @default(0)
+  updatedAt            DateTime @updatedAt
+
+  @@map("ConfigStockGas")
+}
+
+model ConteoFisico {
+  id          String            @id @default(cuid())
+  fecha       DateTime          @default(now())
+  usuario     String?
+  observacion String?
+  items       ConteoFisicoItem[]
+  createdAt   DateTime          @default(now())
+
+  @@index([fecha])
+  @@map("ConteoFisico")
+}
+
+model ConteoFisicoItem {
+  id           String        @id @default(cuid())
+  conteoId     String
+  conteo       ConteoFisico  @relation(fields: [conteoId], references: [id], onDelete: Cascade)
+  gasId        String
+  gas          Gas           @relation(fields: [gasId], references: [id], onDelete: Restrict)
+  estado       String        // LLENO, VACIO, EN_REPARTO, MANTENIMIENTO, BAJA, TOTAL
+  cantidadReal Int           @default(0)
+  createdAt    DateTime      @default(now())
+
+  @@index([conteoId])
+  @@index([gasId])
+  @@map("ConteoFisicoItem")
+}
+
+model RecepcionStock {
+  id          String   @id @default(cuid())
+  fecha       DateTime @default(now())
+  gasId       String
+  gas         Gas      @relation(fields: [gasId], references: [id], onDelete: Restrict)
+  cantidad    Int
+  proveedor   String?
+  documento   String?
+  usuario     String?
+  observacion String?
+  createdAt   DateTime @default(now())
+
+  @@index([gasId, fecha])
+  @@map("RecepcionStock")
 }

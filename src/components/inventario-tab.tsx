@@ -116,6 +116,90 @@ export default function InventarioTab() {
   const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; source: string } | null>(null)
   const [graphLoading, setGraphLoading] = useState(false)
 
+  const [conteos, setConteos] = useState<any[]>([])
+  const [recepciones, setRecepciones] = useState<any[]>([])
+  const [conteoVals, setConteoVals] = useState<Record<string, string>>({})
+  const [conteoObs, setConteoObs] = useState('')
+  const [recepForm, setRecepForm] = useState({ gasId: '', cantidad: '', proveedor: '', documento: '' })
+  const [savingInv, setSavingInv] = useState(false)
+
+  const loadStock = useCallback(async () => {
+    try {
+      const [cRes, rRes] = await Promise.all([
+        fetch('/api/inventario/conteos'),
+        fetch('/api/inventario/recepciones'),
+      ])
+      if (cRes.ok) setConteos(await cRes.json())
+      if (rRes.ok) setRecepciones(await rRes.json())
+    } catch { /* noop */ }
+  }, [])
+
+  useEffect(() => { void loadStock() }, [loadStock])
+
+  async function registrarConteo() {
+    const items = gases
+      .map((g) => ({ gasId: g.id, cantidadReal: parseInt(conteoVals[g.id] || '', 10) || 0 }))
+      .filter((i) => i.cantidadReal > 0)
+    if (items.length === 0) {
+      toast({ title: 'Faltan datos', description: 'Ingresá el conteo de al menos un gas', variant: 'destructive' })
+      return
+    }
+    setSavingInv(true)
+    try {
+      const res = await fetch('/api/inventario/conteos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, observacion: conteoObs || null }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Conteo registrado', description: 'El conteo físico quedó guardado' })
+      setConteoVals({})
+      setConteoObs('')
+      void loadStock()
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo registrar el conteo', variant: 'destructive' })
+    } finally {
+      setSavingInv(false)
+    }
+  }
+
+  async function registrarRecepcion() {
+    if (!recepForm.gasId || parseInt(recepForm.cantidad, 10) <= 0) {
+      toast({ title: 'Faltan datos', description: 'Seleccioná gas e ingresá una cantidad mayor a 0', variant: 'destructive' })
+      return
+    }
+    setSavingInv(true)
+    try {
+      const res = await fetch('/api/inventario/recepciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recepForm),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Recepción registrada', description: 'La entrada de stock quedó guardada' })
+      setRecepForm({ gasId: '', cantidad: '', proveedor: '', documento: '' })
+      void loadStock()
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo registrar la recepción', variant: 'destructive' })
+    } finally {
+      setSavingInv(false)
+    }
+  }
+
+  async function eliminarConteo(id: string) {
+    try {
+      await fetch('/api/inventario/conteos', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      void loadStock()
+    } catch { /* noop */ }
+  }
+
+  async function eliminarRecepcion(id: string) {
+    try {
+      await fetch('/api/inventario/recepciones', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      void loadStock()
+    } catch { /* noop */ }
+  }
+
   async function loadGraph(cyl: Cylinder) {
     setGraphLoading(true)
     setGraphCylinder(cyl)
@@ -548,6 +632,110 @@ export default function InventarioTab() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Conteo Físico</CardTitle>
+            <CardDescription>Registrá el stock real contado por gas (alimenta el KPI de contracción)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {gases.map((g) => (
+                <div key={g.id} className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full border border-slate-300 flex-shrink-0" style={{ background: g.colorHex }} />
+                  <span className="text-sm w-36 truncate">{g.nombre}</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={conteoVals[g.id] || ''}
+                    onChange={(e) => setConteoVals({ ...conteoVals, [g.id]: e.target.value })}
+                    placeholder="Cantidad real"
+                    className="w-28"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Input value={conteoObs} onChange={(e) => setConteoObs(e.target.value)} placeholder="Observación (opcional)" className="flex-1" />
+              <Button onClick={registrarConteo} disabled={savingInv}>
+                <Save className="w-4 h-4 mr-1" />Registrar
+              </Button>
+            </div>
+            {conteos.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-slate-500 mb-1">Últimos conteos</p>
+                <div className="space-y-1">
+                  {conteos.slice(0, 5).map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between text-xs">
+                      <span>
+                        {formatDate(c.fecha)} — {c.items.length} gas(es){c.observacion ? ` · ${c.observacion}` : ''}
+                      </span>
+                      <button onClick={() => eliminarConteo(c.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recepción de Stock</CardTitle>
+            <CardDescription>Entrada de cilindros del proveedor (genera movimiento de stock)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label className="text-xs">Gas *</Label>
+                <Select value={recepForm.gasId} onValueChange={(v) => setRecepForm({ ...recepForm, gasId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar gas" /></SelectTrigger>
+                  <SelectContent>
+                    {gases.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.nombre} ({g.codigo})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Cantidad *</Label>
+                <Input type="number" min="1" value={recepForm.cantidad} onChange={(e) => setRecepForm({ ...recepForm, cantidad: e.target.value })} placeholder="0" />
+              </div>
+              <div>
+                <Label className="text-xs">Proveedor</Label>
+                <Input value={recepForm.proveedor} onChange={(e) => setRecepForm({ ...recepForm, proveedor: e.target.value })} placeholder="Proveedor" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Documento</Label>
+                <Input value={recepForm.documento} onChange={(e) => setRecepForm({ ...recepForm, documento: e.target.value })} placeholder="Remito / factura" />
+              </div>
+            </div>
+            <Button className="mt-3" onClick={registrarRecepcion} disabled={savingInv}>
+              <Plus className="w-4 h-4 mr-1" />Registrar Recepción
+            </Button>
+            {recepciones.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-slate-500 mb-1">Últimas recepciones</p>
+                <div className="space-y-1">
+                  {recepciones.slice(0, 5).map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between text-xs">
+                      <span>
+                        {formatDate(r.fecha)} — {r.gas.codigo} × {r.cantidad}{r.proveedor ? ` · ${r.proveedor}` : ''}
+                      </span>
+                      <button onClick={() => eliminarRecepcion(r.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

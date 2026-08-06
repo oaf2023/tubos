@@ -19,6 +19,7 @@ import {
   UsersRound,
   UserRound,
   CheckCheck,
+  Boxes,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -125,6 +126,9 @@ function ConfiguracionTab() {
         </TabsTrigger>
         <TabsTrigger value="precios" className="flex items-center gap-1.5">
           <DollarSign className="w-5 h-5 sm:w-4 sm:h-4" /><span>Precios de Gases</span>
+        </TabsTrigger>
+        <TabsTrigger value="stock" className="flex items-center gap-1.5">
+          <Boxes className="w-5 h-5 sm:w-4 sm:h-4" /><span>Stock Óptimo</span>
         </TabsTrigger>
         <TabsTrigger value="empresa" className="flex items-center gap-1.5">
           <Building2 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Datos de la Empresa</span>
@@ -265,6 +269,9 @@ function ConfiguracionTab() {
 
       <TabsContent value="precios">
         <GasPricingForm />
+      </TabsContent>
+      <TabsContent value="stock">
+        <StockOptimoForm />
       </TabsContent>
 
       <TabsContent value="empresa">
@@ -920,6 +927,133 @@ function AvisosView() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function StockOptimoForm() {
+  const { toast } = useToast()
+  const [gases, setGases] = useState<Gas[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editando, setEditando] = useState<Record<string, { minimo: string; seguridad: string; optimo: string }>>({})
+  const [guardando, setGuardando] = useState<Record<string, boolean>>({})
+
+  const load = useCallback(async () => {
+    try {
+      const [gasRes, cfgRes] = await Promise.all([fetch('/api/gases'), fetch('/api/stock/config')])
+      const gasData = await gasRes.json()
+      const cfgData = await cfgRes.json()
+      const list = Array.isArray(gasData) ? gasData : []
+      const cfgs = Array.isArray(cfgData) ? cfgData : []
+      setGases(list)
+      const ed: Record<string, { minimo: string; seguridad: string; optimo: string }> = {}
+      for (const g of list) {
+        const c = cfgs.find((x: any) => x.gasId === g.id)
+        ed[g.id] = {
+          minimo: c?.stockMinimo?.toString() ?? '',
+          seguridad: c?.stockSeguridad?.toString() ?? '',
+          optimo: c?.cantidadOptimaPedido?.toString() ?? '',
+        }
+      }
+      setEditando(ed)
+    } catch {
+      toast({ title: 'Error', description: 'No se pudieron cargar los gases', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => { void load() }, [load])
+
+  async function guardar(gasId: string) {
+    const vals = editando[gasId]
+    if (!vals) return
+    setGuardando((s) => ({ ...s, [gasId]: true }))
+    try {
+      const res = await fetch('/api/stock/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gasId, ...vals }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Guardado', description: 'Stock óptimo actualizado' })
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar', variant: 'destructive' })
+    } finally {
+      setGuardando((s) => ({ ...s, [gasId]: false }))
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Parámetros de Stock por Gas</CardTitle>
+          <CardDescription>
+            Estos valores alimentan los KPIs de inventario (stock óptimo = cantidad óptima de pedido + mínimo + seguridad).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gas</TableHead>
+                  <TableHead className="w-28">Stock mínimo</TableHead>
+                  <TableHead className="w-28">Stock seguridad</TableHead>
+                  <TableHead className="w-32">Cantidad óptima pedido</TableHead>
+                  <TableHead className="w-28">Objetivo</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {gases.map((g) => {
+                  const vals = editando[g.id] || { minimo: '', seguridad: '', optimo: '' }
+                  const objetivo = ([vals.minimo, vals.seguridad, vals.optimo] as string[])
+                    .map((v) => parseInt(v, 10) || 0)
+                    .reduce((a, b) => a + b, 0)
+                  return (
+                    <TableRow key={g.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full border border-slate-300 flex-shrink-0" style={{ background: g.colorHex }} />
+                          <div>
+                            <div className="text-sm font-medium">{g.nombre}</div>
+                            <div className="text-[10px] text-slate-400">{g.codigo}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" min="0" value={vals.minimo} onChange={(e) => setEditando({ ...editando, [g.id]: { ...vals, minimo: e.target.value } })} placeholder="0" />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" min="0" value={vals.seguridad} onChange={(e) => setEditando({ ...editando, [g.id]: { ...vals, seguridad: e.target.value } })} placeholder="0" />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" min="0" value={vals.optimo} onChange={(e) => setEditando({ ...editando, [g.id]: { ...vals, optimo: e.target.value } })} placeholder="0" />
+                      </TableCell>
+                      <TableCell className="font-semibold tabular-nums">{objetivo}</TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" disabled={guardando[g.id]} onClick={() => guardar(g.id)}>
+                          <Save className="w-4 h-4 mr-1" />{guardando[g.id] ? 'Guardando…' : 'Guardar'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

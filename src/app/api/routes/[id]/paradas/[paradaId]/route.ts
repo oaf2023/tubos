@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { registrarMovimientoStock } from '@/lib/stock-log'
 
 async function getFirstGasId(tx?: typeof db): Promise<string | null> {
   const client = tx || db
@@ -62,6 +63,15 @@ export async function PUT(
               : undefined,
           },
         })
+
+        if (defaultGasId && p.demandaTubos) {
+          await registrarMovimientoStock({
+            gasId: defaultGasId,
+            tipo: p.tipoOperacion === 'RETIRO' ? 'ENTRADA' : 'SALIDA',
+            cantidad: p.demandaTubos,
+            observacion: `Parada #${p.orden} ${p.tipoOperacion} (${p.nombre})`,
+          }, tx)
+        }
       }
 
       if (body.estado === 'ENTREGADO') {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { validarCilindro } from '@/lib/cabina-engine'
 import { logAudit } from '@/lib/audit'
+import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
 
 export async function POST(req: NextRequest) {
   try {
@@ -79,10 +80,24 @@ export async function POST(req: NextRequest) {
 
     // Aplicar cambio de estado si se solicita
     if (aplicarCambio && resultado.estadoSugerido && resultado.cylinderId) {
+      const cilindro = await db.cylinder.findUnique({
+        where: { id: resultado.cylinderId },
+        select: { gasId: true },
+      })
       await db.cylinder.update({
         where: { id: resultado.cylinderId },
         data: { estado: resultado.estadoSugerido },
       })
+      if (cilindro?.gasId) {
+        await registrarMovimientoPorEstadoCilindro({
+          cylinderId: resultado.cylinderId,
+          gasId: cilindro.gasId,
+          estadoAnterior: resultado.estadoActual,
+          estadoNuevo: resultado.estadoSugerido,
+          usuario: usuario || 'cabina',
+          observacion: `Validación cabina ${cabina.nombre} (${resultado.diagnostico})`,
+        })
+      }
       await logAudit({
         accion: 'CAMBIO_ESTADO',
         entidad: 'Cylinder',

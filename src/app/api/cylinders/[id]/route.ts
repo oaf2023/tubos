@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { syncCylinderToGraph } from '@/lib/neo4j'
+import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
 
 // GET /api/cylinders/[id] - detalle completo de un tubo con movimientos
 export async function GET(
@@ -124,8 +125,17 @@ export async function PUT(
 
     // Auditoría: registrar cambios relevantes
     const cambios: string[] = []
-    if (body.estado && body.estado !== anterior.estado)
+    if (body.estado && body.estado !== anterior.estado) {
       cambios.push(`Estado: ${anterior.estado} → ${body.estado}`)
+      await registrarMovimientoPorEstadoCilindro({
+        cylinderId: id,
+        gasId: updated.gasId,
+        estadoAnterior: anterior.estado,
+        estadoNuevo: body.estado,
+        usuario: body.usuario || null,
+        observacion: 'Cambio de estado manual',
+      })
+    }
     if (body.ubicacionNombre && body.ubicacionNombre !== anterior.ubicacionNombre)
       cambios.push(`Ubicación: ${anterior.ubicacionNombre} → ${body.ubicacionNombre}`)
     if (body.cliente !== undefined && body.cliente !== anterior.cliente)
