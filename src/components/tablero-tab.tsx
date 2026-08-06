@@ -196,7 +196,7 @@ export default function TableroTab() {
           ].map(t => (
             <TabsTrigger key={t.value} value={t.value}
               className="flex items-center gap-1.5 py-2 px-3 text-xs data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:shadow-none rounded-lg border border-transparent data-[state=active]:border-orange-200">
-              <t.icon className="w-3.5 h-3.5" />
+              <t.icon className="w-5 h-5 sm:w-4 sm:h-4" />
               {t.label}
             </TabsTrigger>
           ))}

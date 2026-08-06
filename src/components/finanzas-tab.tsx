@@ -107,11 +107,11 @@ export default function FinanzasTab() {
     <Tabs defaultValue="panel" className="w-full">
       <div className="flex items-center justify-between mb-4 print:hidden">
         <TabsList className="overflow-x-auto">
-          <TabsTrigger value="panel"><BarChart3 className="w-4 h-4 mr-1" />Panel General</TabsTrigger>
-          <TabsTrigger value="ingresos"><TrendingUp className="w-4 h-4 mr-1" />Ingresos</TabsTrigger>
-          <TabsTrigger value="gastos"><Wrench className="w-4 h-4 mr-1" />Gastos</TabsTrigger>
-          <TabsTrigger value="comparativa"><PieIcon className="w-4 h-4 mr-1" />Comparativa</TabsTrigger>
-          <TabsTrigger value="detalle"><Receipt className="w-4 h-4 mr-1" />Detalle</TabsTrigger>
+          <TabsTrigger value="panel"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Panel General</TabsTrigger>
+          <TabsTrigger value="ingresos"><TrendingUp className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Ingresos</TabsTrigger>
+          <TabsTrigger value="gastos"><Wrench className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Gastos</TabsTrigger>
+          <TabsTrigger value="comparativa"><PieIcon className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Comparativa</TabsTrigger>
+          <TabsTrigger value="detalle"><Receipt className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Detalle</TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-2">
           <Select value={meses} onValueChange={setMeses}>

@@ -512,17 +512,17 @@ export default function LecturaTab({ user }: { user?: any }) {
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)}>
         <TabsList className="bg-slate-100">
           <TabsTrigger value="scanner" className="flex items-center gap-1">
-            <QrCode className="w-4 h-4" /><span>Escanear</span>
+            <QrCode className="w-5 h-5 sm:w-4 sm:h-4" /><span>Escanear</span>
           </TabsTrigger>
           <TabsTrigger value="carrito" className="flex items-center gap-1">
-            <ShoppingCart className="w-4 h-4" /><span>Carrito {cart.length > 0 && <Badge className="ml-1 bg-orange-500 text-white text-[10px] px-1.5">{cart.length}</Badge>}</span>
+            <ShoppingCart className="w-5 h-5 sm:w-4 sm:h-4" /><span>Carrito {cart.length > 0 && <Badge className="ml-1 bg-orange-500 text-white text-[10px] px-1.5">{cart.length}</Badge>}</span>
           </TabsTrigger>
           <TabsTrigger value="pedidos" className="flex items-center gap-1">
-            <ListOrdered className="w-4 h-4" /><span>Pedidos</span>
+            <ListOrdered className="w-5 h-5 sm:w-4 sm:h-4" /><span>Pedidos</span>
           </TabsTrigger>
           {esUsuario && (
             <TabsTrigger value="tokens" className="flex items-center gap-1">
-              <Tags className="w-4 h-4" /><span>Tokens</span>
+              <Tags className="w-5 h-5 sm:w-4 sm:h-4" /><span>Tokens</span>
             </TabsTrigger>
           )}
         </TabsList>

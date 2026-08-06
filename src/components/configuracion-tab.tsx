@@ -121,19 +121,19 @@ function ConfiguracionTab() {
     <Tabs defaultValue="alertas" className="w-full">
       <TabsList className="mb-4">
         <TabsTrigger value="alertas" className="flex items-center gap-1.5">
-          <Bell className="w-4 h-4" /><span>Alertas por Gas</span>
+          <Bell className="w-5 h-5 sm:w-4 sm:h-4" /><span>Alertas por Gas</span>
         </TabsTrigger>
         <TabsTrigger value="precios" className="flex items-center gap-1.5">
-          <DollarSign className="w-4 h-4" /><span>Precios de Gases</span>
+          <DollarSign className="w-5 h-5 sm:w-4 sm:h-4" /><span>Precios de Gases</span>
         </TabsTrigger>
         <TabsTrigger value="empresa" className="flex items-center gap-1.5">
-          <Building2 className="w-4 h-4" /><span>Datos de la Empresa</span>
+          <Building2 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Datos de la Empresa</span>
         </TabsTrigger>
         <TabsTrigger value="auditoria" className="flex items-center gap-1.5">
-          <ClipboardList className="w-4 h-4" /><span>Bitácora</span>
+          <ClipboardList className="w-5 h-5 sm:w-4 sm:h-4" /><span>Bitácora</span>
         </TabsTrigger>
         <TabsTrigger value="avisos" className="flex items-center gap-1.5">
-          <Megaphone className="w-4 h-4" /><span>Avisos</span>
+          <Megaphone className="w-5 h-5 sm:w-4 sm:h-4" /><span>Avisos</span>
         </TabsTrigger>
       </TabsList>
 

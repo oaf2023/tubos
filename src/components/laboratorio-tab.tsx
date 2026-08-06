@@ -981,10 +981,10 @@ export default function LaboratorioTab() {
     <Tabs defaultValue="costo-km" className="w-full">
       <TabsList className="mb-6 h-auto">
         <TabsTrigger value="costo-km" className="flex items-center gap-2 py-2">
-          <Truck className="w-4 h-4" /> Costo x KM
+          <Truck className="w-5 h-5 sm:w-4 sm:h-4" /> Costo x KM
         </TabsTrigger>
         <TabsTrigger value="trazabilidad" className="flex items-center gap-2 py-2">
-          <History className="w-4 h-4" /> Trazabilidad
+          <History className="w-5 h-5 sm:w-4 sm:h-4" /> Trazabilidad
         </TabsTrigger>
       </TabsList>
 

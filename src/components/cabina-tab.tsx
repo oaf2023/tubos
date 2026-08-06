@@ -101,12 +101,12 @@ export default function CabinaTab() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full overflow-x-auto gap-1 mb-4">
-          <TabsTrigger value="dashboard" className="flex items-center gap-1"><Gauge className="w-4 h-4" />Dashboard</TabsTrigger>
-          <TabsTrigger value="cabinas" className="flex items-center gap-1"><ScanLine className="w-4 h-4" />Cabinas</TabsTrigger>
-          <TabsTrigger value="validacion" className="flex items-center gap-1"><ListTodo className="w-4 h-4" />Validaciones</TabsTrigger>
-          <TabsTrigger value="reglas" className="flex items-center gap-1"><Scale className="w-4 h-4" />Reglas de Peso</TabsTrigger>
-          <TabsTrigger value="alertas" className="flex items-center gap-1"><AlertTriangle className="w-4 h-4" />Alertas</TabsTrigger>
-          <TabsTrigger value="sensores" className="flex items-center gap-1"><Cpu className="w-4 h-4" />Sensores</TabsTrigger>
+          <TabsTrigger value="dashboard" className="flex items-center gap-1"><Gauge className="w-5 h-5 sm:w-4 sm:h-4" />Dashboard</TabsTrigger>
+          <TabsTrigger value="cabinas" className="flex items-center gap-1"><ScanLine className="w-5 h-5 sm:w-4 sm:h-4" />Cabinas</TabsTrigger>
+          <TabsTrigger value="validacion" className="flex items-center gap-1"><ListTodo className="w-5 h-5 sm:w-4 sm:h-4" />Validaciones</TabsTrigger>
+          <TabsTrigger value="reglas" className="flex items-center gap-1"><Scale className="w-5 h-5 sm:w-4 sm:h-4" />Reglas de Peso</TabsTrigger>
+          <TabsTrigger value="alertas" className="flex items-center gap-1"><AlertTriangle className="w-5 h-5 sm:w-4 sm:h-4" />Alertas</TabsTrigger>
+          <TabsTrigger value="sensores" className="flex items-center gap-1"><Cpu className="w-5 h-5 sm:w-4 sm:h-4" />Sensores</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">

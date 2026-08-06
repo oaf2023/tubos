@@ -47,12 +47,12 @@ export default function DepositoTab() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full overflow-x-auto gap-1 mb-4">
-          <TabsTrigger value="resumen" className="flex items-center gap-1"><BarChart3 className="w-4 h-4" />Stock Real</TabsTrigger>
-          <TabsTrigger value="dashboard" className="flex items-center gap-1"><Warehouse className="w-4 h-4" />Dashboard RFID</TabsTrigger>
-          <TabsTrigger value="zonas" className="flex items-center gap-1"><Radio className="w-4 h-4" />Zonas</TabsTrigger>
-          <TabsTrigger value="lectores" className="flex items-center gap-1"><CircleDot className="w-4 h-4" />Lectores</TabsTrigger>
-          <TabsTrigger value="tags" className="flex items-center gap-1"><Tags className="w-4 h-4" />Tags RFID</TabsTrigger>
-          <TabsTrigger value="eventos" className="flex items-center gap-1"><History className="w-4 h-4" />Eventos</TabsTrigger>
+          <TabsTrigger value="resumen" className="flex items-center gap-1"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" />Stock Real</TabsTrigger>
+          <TabsTrigger value="dashboard" className="flex items-center gap-1"><Warehouse className="w-5 h-5 sm:w-4 sm:h-4" />Dashboard RFID</TabsTrigger>
+          <TabsTrigger value="zonas" className="flex items-center gap-1"><Radio className="w-5 h-5 sm:w-4 sm:h-4" />Zonas</TabsTrigger>
+          <TabsTrigger value="lectores" className="flex items-center gap-1"><CircleDot className="w-5 h-5 sm:w-4 sm:h-4" />Lectores</TabsTrigger>
+          <TabsTrigger value="tags" className="flex items-center gap-1"><Tags className="w-5 h-5 sm:w-4 sm:h-4" />Tags RFID</TabsTrigger>
+          <TabsTrigger value="eventos" className="flex items-center gap-1"><History className="w-5 h-5 sm:w-4 sm:h-4" />Eventos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen">

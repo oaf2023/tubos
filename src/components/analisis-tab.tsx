@@ -140,14 +140,14 @@ export default function AnalisisTab() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full overflow-x-auto gap-1 mb-4 print:hidden">
-          <TabsTrigger value="panel-general"><Activity className="w-4 h-4 mr-1" />Panel General</TabsTrigger>
-          <TabsTrigger value="tendencias"><TrendingUp className="w-4 h-4 mr-1" />Tendencias</TabsTrigger>
-          <TabsTrigger value="clientes"><Users className="w-4 h-4 mr-1" />Clientes</TabsTrigger>
-          <TabsTrigger value="financiero"><DollarSign className="w-4 h-4 mr-1" />Financiero</TabsTrigger>
-          <TabsTrigger value="operaciones"><Wrench className="w-4 h-4 mr-1" />Operaciones</TabsTrigger>
-          <TabsTrigger value="logistica"><Truck className="w-4 h-4 mr-1" />Logística</TabsTrigger>
-          <TabsTrigger value="calidad"><ShieldCheck className="w-4 h-4 mr-1" />Calidad</TabsTrigger>
-          <TabsTrigger value="rfid"><Radio className="w-4 h-4 mr-1" />RFID</TabsTrigger>
+          <TabsTrigger value="panel-general"><Activity className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Panel General</TabsTrigger>
+          <TabsTrigger value="tendencias"><TrendingUp className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Tendencias</TabsTrigger>
+          <TabsTrigger value="clientes"><Users className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Clientes</TabsTrigger>
+          <TabsTrigger value="financiero"><DollarSign className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Financiero</TabsTrigger>
+          <TabsTrigger value="operaciones"><Wrench className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Operaciones</TabsTrigger>
+          <TabsTrigger value="logistica"><Truck className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Logística</TabsTrigger>
+          <TabsTrigger value="calidad"><ShieldCheck className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />Calidad</TabsTrigger>
+          <TabsTrigger value="rfid"><Radio className="w-5 h-5 sm:w-4 sm:h-4 mr-1" />RFID</TabsTrigger>
         </TabsList>
 
         <div className="print:block">

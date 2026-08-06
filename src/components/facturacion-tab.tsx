@@ -516,10 +516,10 @@ export default function FacturacionTab() {
       <div className="flex items-center justify-between mb-4">
         <TabsList>
           <TabsTrigger value="actuales" className="flex items-center gap-1.5">
-            <Receipt className="w-3.5 h-3.5" /> Actuales
+            <Receipt className="w-5 h-5 sm:w-4 sm:h-4" /> Actuales
           </TabsTrigger>
           <TabsTrigger value="historicos" className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Históricos
+            <Clock className="w-5 h-5 sm:w-4 sm:h-4" /> Históricos
           </TabsTrigger>
         </TabsList>
       </div>

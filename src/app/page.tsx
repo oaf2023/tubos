@@ -46,6 +46,9 @@ import {
   Layers,
   Gauge,
   FileBarChart,
+  Boxes,
+  Table2,
+  PieChart,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -187,10 +190,10 @@ export default function Home() {
           <Tabs defaultValue="lectura" className="w-full">
             <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex bg-yellow-50">
               <TabsTrigger value="lectura" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-                <Smartphone className="w-4 h-4" /><span>Lectura</span>
+                <Smartphone className="w-5 h-5 sm:w-4 sm:h-4" /><span>Lectura</span>
               </TabsTrigger>
               <TabsTrigger value="pedidos-cliente" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-                <ShoppingCart className="w-4 h-4" /><span>Pedidos</span>
+                <ShoppingCart className="w-5 h-5 sm:w-4 sm:h-4" /><span>Pedidos</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="lectura">
@@ -220,92 +223,92 @@ export default function Home() {
           <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start bg-yellow-50">
             {user.nivelAcceso === 0 && user.rol?.nombre === 'gerencia' && (
               <TabsTrigger value="gerencia" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800 data-[state=active]:border-yellow-300 border border-transparent">
-                <BarChart3 className="w-4 h-4" /><span>Gerencia</span>
+                <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Gerencia</span>
               </TabsTrigger>
             )}
             <TabsTrigger value="dashboard" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Activity className="w-4 h-4" /><span>Dashboard</span>
+              <Activity className="w-5 h-5 sm:w-4 sm:h-4" /><span>Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="dashboard-gases" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Gauge className="w-4 h-4" /><span>Dashboard Gases</span>
+              <Gauge className="w-5 h-5 sm:w-4 sm:h-4" /><span>Dashboard Gases</span>
             </TabsTrigger>
             <TabsTrigger value="dashboard-articulos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <FileBarChart className="w-4 h-4" /><span>Dashboard Artículos</span>
+              <FileBarChart className="w-5 h-5 sm:w-4 sm:h-4" /><span>Dashboard Artículos</span>
             </TabsTrigger>
             <TabsTrigger value="mapa" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <MapIcon className="w-4 h-4" /><span>Mapa</span>
+              <MapIcon className="w-5 h-5 sm:w-4 sm:h-4" /><span>Mapa</span>
             </TabsTrigger>
             <TabsTrigger value="inventario" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Package className="w-4 h-4" /><span>Inventario Gases</span>
+              <Package className="w-5 h-5 sm:w-4 sm:h-4" /><span>Inventario Gases</span>
             </TabsTrigger>
             <TabsTrigger value="articulos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Layers className="w-4 h-4" /><span>Inventario Artículos</span>
+              <Layers className="w-5 h-5 sm:w-4 sm:h-4" /><span>Inventario Artículos</span>
             </TabsTrigger>
             <TabsTrigger value="rutas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <RouteIcon className="w-4 h-4" /><span>Rutas</span>
+              <RouteIcon className="w-5 h-5 sm:w-4 sm:h-4" /><span>Rutas</span>
             </TabsTrigger>
             <TabsTrigger value="catalogo" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <BookOpen className="w-4 h-4" /><span>Catálogo</span>
+              <BookOpen className="w-5 h-5 sm:w-4 sm:h-4" /><span>Catálogo</span>
             </TabsTrigger>
             <TabsTrigger value="proveedores" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Factory className="w-4 h-4" /><span>Proveedores</span>
+              <Factory className="w-5 h-5 sm:w-4 sm:h-4" /><span>Proveedores</span>
             </TabsTrigger>
             <TabsTrigger value="clientes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Users className="w-4 h-4" /><span>Clientes</span>
+              <Users className="w-5 h-5 sm:w-4 sm:h-4" /><span>Clientes</span>
             </TabsTrigger>
             <TabsTrigger value="laboratorio" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Beaker className="w-4 h-4" /><span>Laboratorio</span>
+              <Beaker className="w-5 h-5 sm:w-4 sm:h-4" /><span>Laboratorio</span>
             </TabsTrigger>
             <TabsTrigger value="configuracion" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Settings2 className="w-4 h-4" /><span>Configuración</span>
+              <Settings2 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Configuración</span>
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <ShoppingCart className="w-4 h-4" /><span>Pedidos</span>
+              <ShoppingCart className="w-5 h-5 sm:w-4 sm:h-4" /><span>Pedidos</span>
             </TabsTrigger>
             <TabsTrigger value="facturacion" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Receipt className="w-4 h-4" /><span>Consulta de Fact.</span>
+              <Receipt className="w-5 h-5 sm:w-4 sm:h-4" /><span>Consulta de Fact.</span>
             </TabsTrigger>
             <TabsTrigger value="comprobantes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <FileText className="w-4 h-4" /><span>Comprobantes</span>
+              <FileText className="w-5 h-5 sm:w-4 sm:h-4" /><span>Comprobantes</span>
             </TabsTrigger>
             <TabsTrigger value="remitos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <ClipboardList className="w-4 h-4" /><span>Entrega/Remitos</span>
+              <ClipboardList className="w-5 h-5 sm:w-4 sm:h-4" /><span>Entrega/Remitos</span>
             </TabsTrigger>
             <TabsTrigger value="mantenimiento" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Wrench className="w-4 h-4" /><span>Mantenimiento</span>
+              <Wrench className="w-5 h-5 sm:w-4 sm:h-4" /><span>Mantenimiento</span>
             </TabsTrigger>
              <TabsTrigger value="tablas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <FileText className="w-4 h-4" /><span>Tablas</span>
+              <Table2 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Tablas</span>
             </TabsTrigger>
             <TabsTrigger value="reportes" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Printer className="w-4 h-4" /><span>Reportes</span>
+              <Printer className="w-5 h-5 sm:w-4 sm:h-4" /><span>Reportes</span>
             </TabsTrigger>
             <TabsTrigger value="observaciones" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Eye className="w-4 h-4" /><span>Observaciones</span>
+              <Eye className="w-5 h-5 sm:w-4 sm:h-4" /><span>Observaciones</span>
             </TabsTrigger>
             <TabsTrigger value="vehiculos" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Truck className="w-4 h-4" /><span>Vehículos</span>
+              <Truck className="w-5 h-5 sm:w-4 sm:h-4" /><span>Vehículos</span>
             </TabsTrigger>
             <TabsTrigger value="logistica" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Package className="w-4 h-4" /><span>Logística</span>
+              <Boxes className="w-5 h-5 sm:w-4 sm:h-4" /><span>Logística</span>
             </TabsTrigger>
             <TabsTrigger value="deposito" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Warehouse className="w-4 h-4" /><span>Depósito</span>
+              <Warehouse className="w-5 h-5 sm:w-4 sm:h-4" /><span>Depósito</span>
             </TabsTrigger>
             <TabsTrigger value="lectura" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Smartphone className="w-4 h-4" /><span>Lectura</span>
+              <Smartphone className="w-5 h-5 sm:w-4 sm:h-4" /><span>Lectura</span>
             </TabsTrigger>
             <TabsTrigger value="cabina" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <ScanLine className="w-4 h-4" /><span>Cabina</span>
+              <ScanLine className="w-5 h-5 sm:w-4 sm:h-4" /><span>Cabina</span>
             </TabsTrigger>
             <TabsTrigger value="finanzas" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <Wallet className="w-4 h-4" /><span>Finanzas</span>
+              <Wallet className="w-5 h-5 sm:w-4 sm:h-4" /><span>Finanzas</span>
             </TabsTrigger>
             <TabsTrigger value="analisis" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <BarChart3 className="w-4 h-4" /><span>Análisis</span>
+              <PieChart className="w-5 h-5 sm:w-4 sm:h-4" /><span>Análisis</span>
             </TabsTrigger>
             <TabsTrigger value="tablero" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
-              <TrendingUp className="w-4 h-4" /><span>Tablero</span>
+              <TrendingUp className="w-5 h-5 sm:w-4 sm:h-4" /><span>Tablero</span>
             </TabsTrigger>
           </TabsList>
 
