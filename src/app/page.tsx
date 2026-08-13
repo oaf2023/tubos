@@ -61,7 +61,6 @@ import HeaderConnection from '@/components/header-connection'
 import HeaderDeviceInfo from '@/components/header-device-info'
 import HeaderHelp from '@/components/header-help'
 import HeaderInstall from '@/components/header-install'
-import FallingDistriconCards from '@/components/falling-districon-cards'
 import ChatWidget from '@/components/chat-widget'
 import UsuariosConectados from '@/components/usuarios-conectados'
 
@@ -151,7 +150,6 @@ export default function Home() {
   if (esCliente) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-50 relative overflow-hidden">
-        <FallingDistriconCards speedFactor={2.5} />
         <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -218,7 +216,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 relative overflow-hidden">
-      <FallingDistriconCards speedFactor={2.5} />
       <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="dashboard" className="w-full">
