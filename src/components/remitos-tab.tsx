@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { Cylinder as CylinderType, Gas } from '@/lib/tab-types'
 import { formatDate, SgaBadge, ESTADO_LABELS, ESTADO_COLORS } from '@/lib/tab-constants'
 import TubeSelector from '@/components/tube-selector'
+import ScannerInput from '@/components/scanner-input'
 
 interface RemitoItemData {
   id?: string
@@ -44,8 +45,8 @@ interface RemitoItemData {
 interface Remito {
   id: string
   numero: number
-  clienteId: string
-  cliente: string
+  clienteId: string | null
+  cliente: string | null
   fecha: string
   tipo: string
   estado: string
@@ -53,6 +54,13 @@ interface Remito {
   observaciones?: string
   facturaId?: string | null
   items: RemitoItemData[]
+}
+
+interface LoteTube {
+  id: string
+  numeroSerie: string
+  gasId: string
+  gas: { id: string; codigo: string; colorHex: string }
 }
 
 export default function RemitosTab() {
@@ -79,6 +87,19 @@ export default function RemitosTab() {
   const [observaciones, setObservaciones] = useState('')
   const [items, setItems] = useState<any[]>([])
   const [useTubeSelector, setUseTubeSelector] = useState(true)
+
+  // Carga por lote
+  const [showLote, setShowLote] = useState(false)
+  const [loteClientId, setLoteClientId] = useState('')
+  const [loteTecnico, setLoteTecnico] = useState('')
+  const [loteObs, setLoteObs] = useState('')
+  const [loteTubes, setLoteTubes] = useState<LoteTube[]>([])
+  const [loteSaving, setLoteSaving] = useState(false)
+
+  // Asignar cliente posterior
+  const [asignarRemito, setAsignarRemito] = useState<Remito | null>(null)
+  const [asignarClienteId, setAsignarClienteId] = useState('')
+  const [asignando, setAsignando] = useState(false)
 
   function resetForm() {
     setClienteId(''); setTipo('ENTREGA'); setTecnico(''); setObservaciones('')
@@ -126,8 +147,78 @@ export default function RemitosTab() {
     } catch { toast({ title: 'Error', variant: 'destructive' }) }
   }
 
+  async function handleLoteScan(valor: string) {
+    const serie = valor.trim()
+    if (!serie) return
+    if (loteTubes.some((t) => t.numeroSerie.toLowerCase() === serie.toLowerCase())) {
+      toast({ title: 'Ya está en el lote', description: serie })
+      return
+    }
+    try {
+      const res = await fetch(`/api/cylinders?serie=${encodeURIComponent(serie)}&estado=LLENO`)
+      if (!res.ok) return
+      const data = await res.json()
+      const hit = Array.isArray(data) ? data.find((c: any) => c.numeroSerie.toLowerCase() === serie.toLowerCase()) : undefined
+      if (hit) {
+        setLoteTubes((prev) => [...prev, { id: hit.id, numeroSerie: hit.numeroSerie, gasId: hit.gasId, gas: hit.gas }])
+        toast({ title: 'Tubo agregado al lote', description: serie })
+      } else {
+        toast({ title: 'Tubo no disponible', description: `${serie} no existe o no está lleno`, variant: 'destructive' })
+      }
+    } catch { toast({ title: 'Error al buscar tubo', variant: 'destructive' }) }
+  }
+
+  async function guardarLote() {
+    if (loteTubes.length === 0) { toast({ title: 'Error', description: 'Escanéá al menos un tubo', variant: 'destructive' }); return }
+    const cliente = clientes.find((c: any) => c.id === loteClientId)
+    const payload = {
+      clienteId: loteClientId || null,
+      cliente: cliente?.nombre || null,
+      tipo: 'ENTREGA',
+      tecnico: loteTecnico,
+      observaciones: loteObs || 'Carga por lote',
+      items: loteTubes.map((t) => ({ cylinderId: t.id, numeroSerie: t.numeroSerie, gasId: t.gasId, gasCodigo: t.gas.codigo, tipoOperacion: 'ALQUILER', cantidad: 1 })),
+    }
+    try {
+      setLoteSaving(true)
+      const res = await fetch('/api/remitos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      if (!res.ok) throw new Error('POST falló')
+      toast({ title: 'OK', description: loteClientId ? 'Remito por lote creado' : 'Remito general creado (sin cliente)' })
+      setShowLote(false)
+      setLoteTubes([]); setLoteClientId(''); setLoteTecnico(''); setLoteObs('')
+      load()
+    } catch { toast({ title: 'Error', description: 'No se pudo guardar el lote', variant: 'destructive' }) } finally { setLoteSaving(false) }
+  }
+
+  async function asignarCliente() {
+    if (!asignarRemito) return
+    if (!asignarClienteId) { toast({ title: 'Error', description: 'Elegí un cliente', variant: 'destructive' }); return }
+    const cliente = clientes.find((c: any) => c.id === asignarClienteId)
+    try {
+      setAsignando(true)
+      const getRes = await fetch(`/api/remitos/${asignarRemito.id}`)
+      const actual = await getRes.json()
+      const res = await fetch(`/api/remitos/${asignarRemito.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clienteId: asignarClienteId,
+          cliente: cliente?.nombre || '',
+          items: (actual.items || []).map((i: any) => ({
+            cylinderId: i.cylinderId, numeroSerie: i.numeroSerie, gasId: i.gasId, gasCodigo: i.gasCodigo,
+            tipoOperacion: i.tipoOperacion, cantidad: i.cantidad, fechaDevolucion: i.fechaDevolucion, diasAlquiler: i.diasAlquiler,
+            precioUnitario: i.precioUnitario, subtotal: i.subtotal,
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error('PUT falló')
+      toast({ title: 'OK', description: `Remito asignado a ${cliente?.nombre}` })
+      setAsignarRemito(null); setAsignarClienteId(''); load()
+    } catch { toast({ title: 'Error', description: 'No se pudo asignar el cliente', variant: 'destructive' }) } finally { setAsignando(false) }
+  }
+
   function openEdit(r: Remito) {
-    setClienteId(r.clienteId); setTipo(r.tipo); setTecnico(r.tecnico || ''); setObservaciones(r.observaciones || '')
+    setClienteId(r.clienteId || ''); setTipo(r.tipo); setTecnico(r.tecnico || ''); setObservaciones(r.observaciones || '')
     setItems(r.items.map((i) => ({ ...i, cylinderId: i.cylinderId || '', numeroSerie: i.numeroSerie || '' })))
     setEditingId(r.id); setShowForm(true)
   }
@@ -153,6 +244,7 @@ export default function RemitosTab() {
           </select>
         </div>
         <Button onClick={() => { resetForm(); setShowForm(true) }}><Plus className="w-4 h-4 mr-1" />Nuevo Remito</Button>
+        <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50" onClick={() => setShowLote(true)}><PackagePlus className="w-4 h-4 mr-1" />Carga por lote</Button>
       </div>
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -179,7 +271,7 @@ export default function RemitosTab() {
               {filtrados.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">#{r.numero}</TableCell>
-                  <TableCell>{r.cliente}</TableCell>
+                  <TableCell>{r.cliente ? r.cliente : <Badge variant="outline" className="text-amber-700 border-amber-300">Sin asignar</Badge>}</TableCell>
                   <TableCell className="text-sm text-slate-500">{new Date(r.fecha).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={r.tipo === 'DEVOLUCION' ? 'secondary' : r.tipo === 'CAMBIO' ? 'outline' : 'default'}>{r.tipo}</Badge>
@@ -198,7 +290,7 @@ export default function RemitosTab() {
                   </TableCell>
                   <TableCell>{r.items?.length || 0}</TableCell>
                   <TableCell className="text-right">
-                    {!r.facturaId && (
+                    {!r.facturaId && r.clienteId && (
                       <Button variant="outline" size="sm" className="mr-1 h-7 text-xs text-orange-600 border-orange-300" onClick={() => {
                         setFacturarRemito(r)
                         const precios: Record<string, number> = {}
@@ -209,6 +301,11 @@ export default function RemitosTab() {
                         setFacturaDialog(true)
                       }}>
                         <Receipt className="w-3 h-3 mr-1" /> Facturar
+                      </Button>
+                    )}
+                    {!r.clienteId && (
+                      <Button variant="outline" size="sm" className="mr-1 h-7 text-xs border-slate-300" onClick={() => { setAsignarRemito(r); setAsignarClienteId('') }}>
+                        <UserCheck className="w-3 h-3 mr-1" /> Asignar cliente
                       </Button>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><Edit3 className="w-4 h-4" /></Button>
@@ -348,6 +445,79 @@ export default function RemitosTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
             <Button onClick={guardar}>{editingId ? 'Actualizar' : 'Crear Remito'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo Carga por lote */}
+      <Dialog open={showLote} onOpenChange={(o) => { if (!o) { setShowLote(false); setLoteTubes([]); setLoteClientId(''); setLoteTecnico(''); setLoteObs('') } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><PackagePlus className="w-5 h-5 text-orange-500" />Carga por lote</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+              Escaneá o ingresá los números de serie de los tubos. Se crea un remito general que podés asignar a un cliente ahora o después.
+            </div>
+            <ScannerInput onScan={handleLoteScan} placeholder="Escanear serie de tubo..." />
+            {loteTubes.length > 0 && (
+              <div>
+                <Label className="text-xs text-slate-500">Tubos del lote ({loteTubes.length})</Label>
+                <div className="mt-1 max-h-44 overflow-y-auto flex flex-wrap gap-1.5 border rounded-lg p-2">
+                  {loteTubes.map((t) => (
+                    <Badge key={t.id} variant="outline" className="text-[10px]">
+                      <span className="w-2 h-2 rounded-full mr-1 flex-shrink-0" style={{ background: t.gas.colorHex }} />
+                      {t.numeroSerie} · {t.gas.codigo}
+                      <button className="ml-1.5 hover:text-red-500" onClick={() => setLoteTubes(loteTubes.filter((x) => x.id !== t.id))}><X className="w-3 h-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente (opcional)</Label>
+                <select className="w-full border rounded px-3 py-2 text-sm" value={loteClientId} onChange={(e) => setLoteClientId(e.target.value)}>
+                  <option value="">Sin asignar</option>
+                    {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label>Técnico</Label>
+                <Input value={loteTecnico} onChange={(e) => setLoteTecnico(e.target.value)} placeholder="Nombre del técnico" />
+              </div>
+            </div>
+            <div>
+              <Label>Observaciones</Label>
+              <Input value={loteObs} onChange={(e) => setLoteObs(e.target.value)} placeholder="Referencia del lote" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLote(false)}>Cancelar</Button>
+            <Button onClick={guardarLote} disabled={loteSaving || loteTubes.length === 0}><Save className="w-4 h-4 mr-1" />Guardar remito</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo Asignar cliente a remito general */}
+      <Dialog open={!!asignarRemito} onOpenChange={(o) => { if (!o) setAsignarRemito(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><UserCheck className="w-5 h-5 text-orange-500" />Asignar cliente</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="text-xs text-slate-500">Remito N° <strong>#{asignarRemito?.numero}</strong> con <strong>{asignarRemito?.items?.length || 0}</strong> tubo(s).</div>
+            <div>
+              <Label>Cliente</Label>
+              <select className="w-full border rounded px-3 py-2 text-sm" value={asignarClienteId} onChange={(e) => setAsignarClienteId(e.target.value)}>
+                <option value="">Seleccionar...</option>
+                {clientes.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAsignarRemito(null)}>Cancelar</Button>
+            <Button onClick={asignarCliente} disabled={asignando || !asignarClienteId}><UserCheck className="w-4 h-4 mr-1" />Asignar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

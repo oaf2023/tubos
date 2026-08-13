@@ -536,8 +536,8 @@ model Location {
 model Remito {
   id            String       @id @default(cuid())
   numero        Int          @default(0) // Número de remito autoincremental
-  clienteId     String
-  cliente       String       // Nombre denormalizado
+  clienteId     String?      // Nullable: remito general (carga por lote) sin cliente asignado
+  cliente       String?      // Nombre denormalizado
   fecha         DateTime     @default(now())
   tipo          TipoRemito       // ENTREGA, DEVOLUCION, CAMBIO
   estado        EstadoRemito     @default(PENDIENTE) // PENDIENTE, COMPLETADO, PARCIAL

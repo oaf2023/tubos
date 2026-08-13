@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(req: NextRequest, { params }: any) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     const remito = await db.remito.findUnique({ where: { id }, include: { items: true } })
     if (!remito) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     return NextResponse.json(remito)
@@ -13,17 +13,19 @@ export async function GET(req: NextRequest, { params }: any) {
   }
 }
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await req.json()
-    const { estado, tecnico, observaciones, items } = body
+    const { estado, tecnico, observaciones, clienteId, cliente, items } = body
 
     await db.remitoItem.deleteMany({ where: { remitoId: id } })
 
     const remito = await db.remito.update({
       where: { id },
       data: {
+        clienteId: clienteId !== undefined ? (clienteId || null) : undefined,
+        cliente: cliente !== undefined ? (cliente || null) : undefined,
         estado: estado ?? undefined,
         tecnico: tecnico ?? undefined,
         observaciones: observaciones ?? undefined,
@@ -51,9 +53,9 @@ export async function PUT(req: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: any) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     await db.remito.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (e) {

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import ScannerInput from '@/components/scanner-input'
+import { useToast } from '@/hooks/use-toast'
 
 interface TubeOption {
   id: string
@@ -28,6 +30,7 @@ interface TubeSelectorProps {
 }
 
 export default function TubeSelector({ onSelect, selected = [], clientId, gasId, multiple = true }: TubeSelectorProps) {
+  const { toast } = useToast()
   const [tubes, setTubes] = useState<TubeOption[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -70,6 +73,34 @@ export default function TubeSelector({ onSelect, selected = [], clientId, gasId,
     onSelect(tubes.filter((t) => next.has(t.id)))
   }
 
+  async function handleScan(valor: string) {
+    const serie = valor.trim()
+    if (!serie) return
+    const local = tubes.find((t) => t.numeroSerie.toLowerCase() === serie.toLowerCase())
+    if (local) {
+      toggleTube(local)
+      toast({ title: 'Tubo agregado', description: serie })
+      return
+    }
+    try {
+      const params = new URLSearchParams()
+      params.set('serie', serie)
+      params.set('estado', 'LLENO')
+      if (clientId) params.set('clienteId', clientId)
+      const res = await fetch(`/api/cylinders?${params}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const hit = Array.isArray(data) ? data.find((t: any) => t.numeroSerie.toLowerCase() === serie.toLowerCase()) : undefined
+      if (hit) {
+        setTubes((prev) => (prev.some((t) => t.id === hit.id) ? prev : [...prev, hit]))
+        toggleTube(hit)
+        toast({ title: 'Tubo agregado', description: serie })
+      } else {
+        toast({ title: 'Tubo no disponible', description: `${serie} no existe o no está lleno`, variant: 'destructive' })
+      }
+    } catch { /* ignore */ }
+  }
+
   const filtered = tubes.filter((t) =>
     !search || t.numeroSerie.toLowerCase().includes(search.toLowerCase()) ||
     t.gas.codigo.toLowerCase().includes(search.toLowerCase())
@@ -77,6 +108,7 @@ export default function TubeSelector({ onSelect, selected = [], clientId, gasId,
 
   return (
     <div className="space-y-2">
+      <ScannerInput onScan={handleScan} placeholder="Escanear serie de tubo..." />
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
         <Input

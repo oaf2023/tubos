@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(_req: NextRequest, { params }: any) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     const comprobante = await db.comprobanteHistorico.findUnique({
       where: { id },
       include: { items: { orderBy: { createdAt: 'asc' } } },
@@ -15,3 +15,5 @@ export async function GET(_req: NextRequest, { params }: any) {
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }
+
+

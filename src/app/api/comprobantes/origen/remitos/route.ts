@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const clienteId = new URL(req.url).searchParams.get('clienteId') || undefined
     const data = await db.remito.findMany({
-      where: clienteId ? { clienteId } : {},
+      where: clienteId ? { clienteId } : { clienteId: { not: null } },
       include: { items: true },
       orderBy: { fecha: 'desc' },
       take: 100,

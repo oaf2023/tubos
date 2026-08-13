@@ -3,13 +3,14 @@ import { db } from '@/lib/db'
 import { requireGerenciaNivel0 } from '@/lib/api-auth'
 import { serializeComprobante } from '@/lib/services/comprobante-service'
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const forbidden = requireGerenciaNivel0(req)
   if (forbidden) return forbidden
   try {
+    const { id } = await params
     const b = await req.json()
     const updated = await db.documentoNumerador.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         tipoDocumento: b.tipoDocumento,
         letra: b.letra,
@@ -30,14 +31,16 @@ export async function PUT(req: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: any) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const forbidden = requireGerenciaNivel0(req)
   if (forbidden) return forbidden
   try {
-    await db.documentoNumerador.delete({ where: { id: params.id } })
+    const { id } = await params
+    await db.documentoNumerador.delete({ where: { id: id } })
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('DELETE /api/comprobantes/numeradores/[id]', e)
     return NextResponse.json({ error: 'Error al eliminar numerador' }, { status: 500 })
   }
 }
+

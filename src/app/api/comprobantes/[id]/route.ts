@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calcularTotales, serializeComprobante } from '@/lib/services/comprobante-service'
 
-export async function GET(_req: NextRequest, { params }: any) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const doc = await db.documentoComercial.findUnique({ where: { id: params.id }, include: { items: true, tributos: true } })
+    const { id } = await params
+    const doc = await db.documentoComercial.findUnique({ where: { id: id }, include: { items: true, tributos: true } })
     if (!doc) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     return NextResponse.json(serializeComprobante(doc))
   } catch (e) {
@@ -13,9 +14,10 @@ export async function GET(_req: NextRequest, { params }: any) {
   }
 }
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const existing = await db.documentoComercial.findUnique({ where: { id: params.id } })
+    const { id } = await params
+    const existing = await db.documentoComercial.findUnique({ where: { id: id } })
     if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     if (existing.estado === 'AUTORIZADO') {
       return NextResponse.json({ error: 'No se puede modificar un comprobante autorizado. Use nota de crédito/débito para corregir.' }, { status: 409 })
@@ -27,10 +29,10 @@ export async function PUT(req: NextRequest, { params }: any) {
     const body = await req.json()
     const tipoCambio = Number(body.tipoCambio || 1)
     const totales = calcularTotales(body.items || [], body.tributos || [], tipoCambio)
-    await db.documentoComercialItem.deleteMany({ where: { documentoId: params.id } })
-    await db.documentoComercialTributo.deleteMany({ where: { documentoId: params.id } })
+    await db.documentoComercialItem.deleteMany({ where: { documentoId: id } })
+    await db.documentoComercialTributo.deleteMany({ where: { documentoId: id } })
     const doc = await db.documentoComercial.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         fecha: body.fecha ? new Date(body.fecha) : undefined,
         fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
@@ -72,17 +74,22 @@ export async function PUT(req: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: any) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const existing = await db.documentoComercial.findUnique({ where: { id: params.id } })
+    const { id } = await params
+    const existing = await db.documentoComercial.findUnique({ where: { id: id } })
     if (!existing) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     if (existing.estado === 'AUTORIZADO') {
       return NextResponse.json({ error: 'No se puede eliminar un comprobante autorizado. Debe anularlo con nota de crédito/débito.' }, { status: 409 })
     }
-    await db.documentoComercial.delete({ where: { id: params.id } })
+    await db.documentoComercial.delete({ where: { id: id } })
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('DELETE /api/comprobantes/[id]', e)
     return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
   }
 }
+
+
+
+

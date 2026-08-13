@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(_req: NextRequest, { params }: any) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const doc = await db.documentoComercial.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: { items: true, tributos: true },
     })
     if (!doc) {
@@ -12,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: any) {
     }
 
     const logs = await db.arcaRequestLog.findMany({
-      where: { documentoId: params.id },
+      where: { documentoId: id },
       orderBy: { createdAt: 'desc' },
       take: 10,
     })
@@ -41,3 +42,5 @@ export async function GET(_req: NextRequest, { params }: any) {
     return NextResponse.json({ error: 'Error al consultar estado ARCA' }, { status: 500 })
   }
 }
+
+

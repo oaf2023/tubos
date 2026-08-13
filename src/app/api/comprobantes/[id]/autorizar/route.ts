@@ -8,13 +8,14 @@ import { serializeComprobante } from '@/lib/services/comprobante-service'
 import { randomUUID } from 'crypto'
 import crypto from 'crypto'
 
-export async function POST(req: NextRequest, { params }: any) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await req.json().catch(() => ({}))
     const idempotencyKey = body.idempotencyKey || crypto.randomUUID()
 
     const doc = await db.documentoComercial.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: { items: true, tributos: true },
     })
     if (!doc) {
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest, { params }: any) {
     }
 
     await db.documentoComercial.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { estado: 'EN_AUTORIZACION' },
     })
 
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest, { params }: any) {
       const qrUrl = buildArcaQrUrl(qrPayload)
 
       const updated = await db.documentoComercial.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           estado: 'AUTORIZADO',
           cae: respuesta.cae,
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest, { params }: any) {
     }
 
     await db.documentoComercial.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { estado: 'RECHAZADO' },
     })
 
@@ -252,3 +253,5 @@ export async function POST(req: NextRequest, { params }: any) {
     return NextResponse.json({ error: 'Error al autorizar comprobante' }, { status: 500 })
   }
 }
+
+

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(req: NextRequest, { params }: any) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     const factura = await db.factura.findUnique({ where: { id }, include: { items: true } })
     if (!factura) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     return NextResponse.json(factura)
@@ -13,9 +13,9 @@ export async function GET(req: NextRequest, { params }: any) {
   }
 }
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await req.json()
     const {
       estado, fechaVencimiento, fechaDesde, fechaHasta, tipoPeriodo,
@@ -93,9 +93,9 @@ export async function PUT(req: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: any) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
     // Desmarcar remitos asociados antes de eliminar
     const factura = await db.factura.findUnique({ where: { id }, select: { remitoIds: true } })
     if (factura?.remitoIds) {
@@ -114,3 +114,5 @@ export async function DELETE(req: NextRequest, { params }: any) {
     return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
   }
 }
+
+

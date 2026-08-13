@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { limpiarCacheTA } from '@/lib/arca/wsaa'
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await req.json()
     const data: any = {}
     if (body.alias !== undefined) data.alias = body.alias
@@ -15,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: any) {
     if (body.activo !== undefined) data.activo = body.activo
 
     const credential = await db.arcaCredential.update({
-      where: { id: params.id },
+      where: { id: id },
       data,
     })
     limpiarCacheTA()
@@ -26,9 +27,10 @@ export async function PUT(req: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: any) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await db.arcaCredential.delete({ where: { id: params.id } })
+    const { id } = await params
+    await db.arcaCredential.delete({ where: { id: id } })
     limpiarCacheTA()
     return NextResponse.json({ success: true })
   } catch (e) {
@@ -36,3 +38,6 @@ export async function DELETE(_req: NextRequest, { params }: any) {
     return NextResponse.json({ error: 'Error al eliminar credencial' }, { status: 500 })
   }
 }
+
+
+

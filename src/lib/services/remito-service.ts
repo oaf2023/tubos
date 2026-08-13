@@ -12,8 +12,8 @@ interface RemitoItemInput {
 }
 
 interface CreateRemitoInput {
-  clienteId: string
-  cliente: string
+  clienteId?: string | null
+  cliente?: string | null
   tipo?: string
   tecnico?: string
   observaciones?: string
@@ -28,8 +28,8 @@ export async function createRemito(input: CreateRemitoInput) {
     return tx.remito.create({
       data: {
         numero,
-        clienteId: input.clienteId,
-        cliente: input.cliente,
+        clienteId: input.clienteId || null,
+        cliente: input.cliente || null,
         tipo: (input.tipo || 'ENTREGA') as any,
         estado: 'PENDIENTE',
         tecnico: input.tecnico || null,
