@@ -27,6 +27,10 @@ export default function LogisticaTab() {
   const [occupied, setOccupied] = useState<Record<number, any>>({})
   const [occupiedIds, setOccupiedIds] = useState<Set<string>>(new Set())
   const [selectedPos, setSelectedPos] = useState<number | null>(null)
+  const [sesionDialog, setSesionDialog] = useState(false)
+  const [remitosLog, setRemitosLog] = useState<any[]>([])
+  const [remitosSel, setRemitosSel] = useState<string[]>([])
+  const [sesionRemitoNums, setSesionRemitoNums] = useState<string>('')
 
   // Tube search
   const [tubosDisponibles, setTubosDisponibles] = useState<any[]>([])
@@ -90,17 +94,31 @@ export default function LogisticaTab() {
       const res = await fetch(`/api/vehiculos/${selectedVeh.id}/carga-tubos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'ACTIVA' }),
+        body: JSON.stringify({ estado: 'ACTIVA', remitoIds: remitosSel.length > 0 ? remitosSel : undefined }),
       })
       if (!res.ok) throw new Error()
       const sesion = await res.json()
       setSesionActiva(sesion)
+      setSesionRemitoNums(remitosLog.filter((r) => remitosSel.includes(r.id)).map((r) => `#${r.numero}`).join(', '))
+      setRemitosSel([])
+      setSesionDialog(false)
       setOccupied({})
       setOccupiedIds(new Set())
       setSelectedPos(null)
       setMode('cargar')
       toast({ title: 'Sesión de carga iniciada' })
     } catch { toast({ title: 'Error al iniciar sesión', variant: 'destructive' }) }
+  }
+
+  async function abrirNuevaCarga() {
+    setSesionDialog(true)
+    setRemitosSel([])
+    try {
+      const res = await fetch('/api/remitos?paraDescarga=1')
+      const json = await res.json()
+      const list = Array.isArray(json) ? json : json?.data || []
+      setRemitosLog(list.filter((r: any) => r.estado !== 'FIRMADO'))
+    } catch { setRemitosLog([]) }
   }
 
   // Load active session
@@ -395,6 +413,9 @@ export default function LogisticaTab() {
               {mode === 'cargar' && sesionActiva && (
                 <><hr className="my-1" />
                 <p><span className="font-semibold">Cargados:</span> {totalCargados}/{maxTubos}</p>
+                {sesionRemitoNums && (
+                  <p className="text-[10px] text-blue-600"><span className="font-semibold">Remitos:</span> {sesionRemitoNums}</p>
+                )}
                 <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${(totalCargados / maxTubos) * 100}%` }} />
                 </div></>
@@ -408,7 +429,7 @@ export default function LogisticaTab() {
 
           {/* Cargar mode buttons */}
           {mode === 'cargar' && !sesionActiva && selectedVeh && (
-            <Button onClick={startSession} className="w-full bg-blue-600 hover:bg-blue-700 gap-1" size="sm">
+            <Button onClick={abrirNuevaCarga} className="w-full bg-blue-600 hover:bg-blue-700 gap-1" size="sm">
               <Package className="w-4 h-4" />Nueva Carga
             </Button>
           )}
@@ -697,6 +718,55 @@ export default function LogisticaTab() {
           </Card>
         )}
       </div>
+
+      {sesionDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-5 space-y-4 border shadow-xl max-h-[85vh] overflow-y-auto">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-blue-600" />
+              Nueva sesión de carga — {selectedVeh?.patente}
+            </h3>
+            <p className="text-xs text-slate-500">
+              Vinculá remitos de entrega pendientes a esta carga (opcional). El conductor los verá en la app de
+              descarga verificada.
+            </p>
+            {remitosLog.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">No hay remitos de entrega pendientes</p>
+            ) : (
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {remitosLog.map((r) => {
+                  const d = (r.items || []).filter((i: any) => i.descargado).length
+                  return (
+                    <label
+                      key={r.id}
+                      className={`flex items-center gap-2 p-2 rounded border text-xs cursor-pointer ${remitosSel.includes(r.id) ? 'bg-blue-50 border-blue-400' : 'hover:bg-slate-50'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="accent-blue-600"
+                        checked={remitosSel.includes(r.id)}
+                        onChange={(e) => {
+                          setRemitosSel((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))
+                        }}
+                      />
+                      <span className="font-semibold">Remito #{r.numero}</span>
+                      <span className="text-slate-500 truncate flex-1">{r.cliente || 'Sin cliente'}</span>
+                      <span className="text-[10px] text-slate-400">{d}/{r.items?.length || 0}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setSesionDialog(false)}>Cancelar</Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 gap-1" onClick={startSession}>
+                <Package className="w-4 h-4" /> Iniciar sesión
+                {remitosSel.length > 0 && ` con ${remitosSel.length} remito(s)`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

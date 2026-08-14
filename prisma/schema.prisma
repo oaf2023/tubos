@@ -89,6 +89,7 @@ enum EstadoRemito {
   PENDIENTE
   COMPLETADO
   PARCIAL
+  FIRMADO
 }
 
 enum TipoOperacionItemRemito {
@@ -555,6 +556,18 @@ model Remito {
   facturaId     String?      // Factura que facturó este remito
   factura       Factura?     @relation("FacturaRemitos", fields: [facturaId], references: [id])
   items         RemitoItem[]
+  novedades     NovedadRemito[]
+
+  // ============ DESCARGA EN DESTINO ============
+  // Verificación + descarga tubo a tubo + firma del cliente (imagen siempre guardada)
+
+  // ============ FIRMA DEL CLIENTE ============
+  firmaCliente         String?  // Imagen de la firma (data URL PNG o URL de foto del papel)
+  firmaNombreCliente   String?  // Nombre de quien firmó
+  firmaFecha           DateTime? // Cuándo se firmó
+  firmaMetodo          TipoFirma? // PANTALLA_CLIENTE, PANTALLA_CHOFER, PAPEL_FOTO, PAPEL_ADMIN
+  firmaCapturadaPor    String?  // Operador que registró la firma (chofer/admin)
+  firmaToken           String?  @unique // Token público para que el cliente firme en su teléfono
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -581,6 +594,14 @@ model RemitoItem {
   precioUnitario  Decimal?
   subtotal        Decimal?
   createdAt       DateTime @default(now())
+
+  // ============ DESCARGA EN DESTINO ============
+  descargado          Boolean  @default(false) // Marca tubo por tubo al descargar en destino
+  fechaDescarga       DateTime? // Cuándo se descargó en destino
+  descargadoPor       String?  // Operador que descargó
+  novedad             String?  // TipoNovedad detectada al verificar
+  novedadDetalle      String?  // Aclaración libre de la novedad
+  metodoResolucion    String?  // MetodoResolucion: cómo se resolvió (descargar igual, no descargar, reasignar...)
 }
 
 enum MotivoDevolucion {
@@ -589,6 +610,45 @@ enum MotivoDevolucion {
   DANIADO
   NO_PAGO
   OTRO
+}
+
+// ============ DESCARGA EN DESTINO ============
+enum TipoNovedad {
+  TUBO_OTRO_REMITO
+  TUBO_OTRO_CLIENTE
+  GAS_INCORRECTO
+  TUBO_DANIADO
+  PH_VENCIDA
+  FALTANTE
+  SOBRANTE
+  OTRO
+}
+
+enum MetodoResolucion {
+  DESCARGAR_CON_NOVEDAD
+  NO_DESCARGAR
+  REASIGNAR
+  DEVOLVER_A_DEPOSITO
+}
+
+enum TipoFirma {
+  PANTALLA_CLIENTE // Cliente firmó en su teléfono (página pública)
+  PANTALLA_CHOFER  // Cliente firmó en la pantalla del dispositivo del chofer
+  PAPEL_FOTO       // Cliente firmó en papel y el chofer lo fotografió
+  PAPEL_ADMIN      // Firma en papel cargada por el admin (foto/scan)
+}
+
+model NovedadRemito {
+  id               String   @id @default(cuid())
+  remitoId         String
+  remito           Remito   @relation(fields: [remitoId], references: [id], onDelete: Cascade)
+  tipo             String   // TipoNovedad
+  detalle          String?  // Aclaración libre
+  metodoResolucion String?  // MetodoResolucion
+  usuarioNombre    String?  // Quién la registró
+  createdAt        DateTime @default(now())
+
+  @@index([remitoId])
 }
 
 // ============ FACTURACIÓN ============
@@ -1267,6 +1327,7 @@ model CargaVehiculo {
   vehiculo    Vehiculo             @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   fecha       DateTime             @default(now())
   estado      EstadoCargaVehiculo @default(ACTIVA) // ACTIVA, COMPLETADA, CANCELADA
+  remitoIds   String?              // Remitos asociados a esta carga (IDs separados por coma)
   createdAt   DateTime             @default(now())
   items       CargaVehiculoItem[]
 }

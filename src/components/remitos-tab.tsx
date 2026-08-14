@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck, History, Flag } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck, History, Flag, QrCode, PenLine, FileImage } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,6 +43,9 @@ interface RemitoItemData {
   diasAlquiler?: number
   precioUnitario?: number
   subtotal?: number
+  descargado?: boolean
+  novedad?: string | null
+  descargadoPor?: string | null
 }
 
 interface Remito {
@@ -56,6 +59,10 @@ interface Remito {
   tecnico?: string
   observaciones?: string
   facturaId?: string | null
+  firmaToken?: string | null
+  firmaCliente?: string | null
+  firmaNombreCliente?: string | null
+  firmaMetodo?: string | null
   items: RemitoItemData[]
 }
 
@@ -108,6 +115,13 @@ export default function RemitosTab() {
   const [detalleTubos, setDetalleTubos] = useState<Remito | null>(null)
   const [histId, setHistId] = useState<string | null>(null)
   const [histNombre, setHistNombre] = useState('')
+  const [firmaAdmin, setFirmaAdmin] = useState<Remito | null>(null)
+  const [firmaAdminNombre, setFirmaAdminNombre] = useState('')
+  const [firmaAdminFoto, setFirmaAdminFoto] = useState<string | null>(null)
+  const [firmaAdminSubiendo, setFirmaAdminSubiendo] = useState(false)
+  const [verFirma, setVerFirma] = useState<Remito | null>(null)
+  const [qrRemito, setQrRemito] = useState<Remito | null>(null)
+  const [qrImg, setQrImg] = useState<string | null>(null)
 
   function resetForm() {
     setClienteId(''); setTipo('ENTREGA'); setTecnico(''); setObservaciones('')
@@ -122,7 +136,7 @@ export default function RemitosTab() {
       const [rRes, cRes, gRes, cylRes] = await Promise.all([
         fetch('/api/remitos'), fetch('/api/clientes'), fetch('/api/gases'), fetch('/api/cylinders'),
       ])
-      const rData = await rRes.json(); setRemitos(Array.isArray(rData) ? rData : [])
+      const rData = await rRes.json(); setRemitos(Array.isArray(rData) ? rData : rData?.data || [])
       const cData = await cRes.json(); setClientes(Array.isArray(cData) ? cData : [])
       const gData = await gRes.json(); setGases(Array.isArray(gData) ? gData : [])
       const cylData = await cylRes.json(); setCylinders(Array.isArray(cylData) ? cylData : [])
@@ -265,6 +279,7 @@ export default function RemitosTab() {
             <option value="PENDIENTE">Pendiente</option>
             <option value="COMPLETADO">Completado</option>
             <option value="PARCIAL">Parcial</option>
+            <option value="FIRMADO">Firmado</option>
           </select>
         </div>
         <Button onClick={() => { resetForm(); setShowForm(true) }}><Plus className="w-4 h-4 mr-1" />Nuevo Remito</Button>
@@ -301,7 +316,10 @@ export default function RemitosTab() {
                     <Badge variant={r.tipo === 'DEVOLUCION' ? 'secondary' : r.tipo === 'CAMBIO' ? 'outline' : 'default'}>{r.tipo}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={r.estado === 'COMPLETADO' ? 'default' : r.estado === 'PARCIAL' ? 'secondary' : 'outline'}>{r.estado}</Badge>
+                    <Badge className={r.estado === 'FIRMADO' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : r.estado === 'COMPLETADO' ? 'default' : r.estado === 'PARCIAL' ? 'secondary' : 'outline'}>
+                      {r.estado === 'FIRMADO' && <PenLine className="w-3 h-3 mr-1" />}
+                      {r.estado}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {r.facturaId ? (
@@ -312,7 +330,17 @@ export default function RemitosTab() {
                       <span className="text-xs text-slate-400">—</span>
                     )}
                   </TableCell>
-                  <TableCell>{r.items?.length || 0}</TableCell>
+                  <TableCell>
+                    <span className="text-xs">
+                      {r.items.length}
+                      {r.items.length > 0 && r.items.some((i) => i.descargado) && (
+                        <span className="text-emerald-600 ml-1">
+                          ({r.items.filter((i) => i.descargado).length} desc.)
+                        </span>
+                      )}
+                      {r.items.some((i) => i.novedad) && <Flag className="w-3 h-3 inline ml-1 text-amber-500" />}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     {!r.facturaId && r.clienteId && (
                       <Button variant="outline" size="sm" className="mr-1 h-7 text-xs text-orange-600 border-orange-300" onClick={() => {
@@ -330,6 +358,28 @@ export default function RemitosTab() {
                     {!r.clienteId && (
                       <Button variant="outline" size="sm" className="mr-1 h-7 text-xs border-slate-300" onClick={() => { setAsignarRemito(r); setAsignarClienteId('') }}>
                         <UserCheck className="w-3 h-3 mr-1" /> Asignar cliente
+                      </Button>
+                    )}
+                    {r.tipo === 'ENTREGA' && !r.firmaCliente && r.estado === 'COMPLETADO' && (
+                      <Button variant="outline" size="sm" className="mr-1 h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => { setFirmaAdmin(r); setFirmaAdminNombre(''); setFirmaAdminFoto(null) }}>
+                        <FileImage className="w-3 h-3 mr-1" /> Cargar firma
+                      </Button>
+                    )}
+                    {r.firmaCliente && (
+                      <Button variant="ghost" size="sm" title={`Ver firma de ${r.firmaNombreCliente || ''}`} onClick={() => setVerFirma(r)}>
+                        <PenLine className="w-4 h-4 text-emerald-600" />
+                      </Button>
+                    )}
+                    {r.firmaToken && (
+                      <Button variant="ghost" size="sm" title="Enlace y QR de firma" onClick={async () => {
+                        setQrRemito(r)
+                        setQrImg(null)
+                        try {
+                          const mod = await import('qrcode')
+                          setQrImg(await mod.default.toDataURL(`${window.location.origin}/firmar/${r.firmaToken}`, { width: 240 }))
+                        } catch { /* ignore */ }
+                      }}>
+                        <QrCode className="w-4 h-4 text-slate-500" />
                       </Button>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => { setDetalleTubos(r) }} title="Historial de tubos del remito">
@@ -743,6 +793,162 @@ export default function RemitosTab() {
               <Save className="w-4 h-4 mr-1" /> {facturando ? 'Creando...' : 'Crear Factura'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ver firma */}
+      <Dialog open={!!verFirma} onOpenChange={(o) => { if (!o) setVerFirma(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenLine className="w-5 h-5 text-emerald-600" />
+              Firma del remito #{verFirma?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          {verFirma && (
+            <div className="space-y-3">
+              <div className="text-sm">
+                Firmante: <b>{verFirma.firmaNombreCliente || '—'}</b>
+                <span className="ml-3 text-xs text-slate-500">Método: {verFirma.firmaMetodo || '—'}</span>
+              </div>
+              {verFirma.firmaCliente ? (
+                <img
+                  src={verFirma.firmaCliente}
+                  alt="Firma del cliente"
+                  className="w-full bg-white border rounded-lg p-3"
+                  style={{ minHeight: 120, objectFit: 'contain' }}
+                />
+              ) : (
+                <p className="text-xs text-slate-400">No hay imagen de firma registrada.</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Enlace / QR de firma */}
+      <Dialog open={!!qrRemito} onOpenChange={(o) => { if (!o) { setQrRemito(null); setQrImg(null) } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-slate-600" />
+              Firma del cliente — Remito #{qrRemito?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          {qrRemito && qrRemito.firmaToken && (
+            <div className="space-y-3 text-center">
+              <p className="text-xs text-slate-500">
+                Enviá este enlace al celular del cliente para que firme, o imprimí el QR.
+              </p>
+              {qrImg && <img src={qrImg} alt="QR de firma" className="mx-auto w-44 h-44 bg-white rounded-lg p-2" />}
+              <p className="text-[10px] text-slate-400 break-all">
+                {window.location.origin}/firmar/{qrRemito.firmaToken}
+              </p>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`${window.location.origin}/firmar/${qrRemito.firmaToken}`)
+                    toast({ title: 'Enlace copiado' })
+                  } catch { /* ignore */ }
+                }}
+              >
+                Copiar enlace
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cargar firma (papel firmado / admin) */}
+      <Dialog open={!!firmaAdmin} onOpenChange={(o) => { if (!o) { setFirmaAdmin(null); setFirmaAdminFoto(null) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileImage className="w-5 h-5 text-emerald-600" />
+              Cargar firma en papel — Remito #{firmaAdmin?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          {firmaAdmin && (
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500">
+                El cliente firmó el remito en papel: subí la foto de la firma firmada.
+              </p>
+              <div>
+                <Label className="text-xs">Foto de la firma</Label>
+                {firmaAdminFoto ? (
+                  <div className="space-y-2 mt-1">
+                    <img src={firmaAdminFoto} alt="Firma en papel" className="w-full max-h-52 object-cover border rounded-lg" />
+                    <Button variant="outline" size="sm" onClick={() => setFirmaAdminFoto(null)}>Elegir otra foto</Button>
+                  </div>
+                ) : (
+                  <label className="mt-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 cursor-pointer hover:bg-slate-50">
+                    <FileImage className="w-6 h-6 text-slate-400" />
+                    <span className="text-xs text-slate-500">Tocar para elegir la foto</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = () => setFirmaAdminFoto(reader.result as string)
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs">Nombre del firmante</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="Nombre y apellido"
+                  value={firmaAdminNombre}
+                  onChange={(e) => setFirmaAdminNombre(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setFirmaAdmin(null); setFirmaAdminFoto(null) }}>Cancelar</Button>
+                <Button
+                  disabled={firmaAdminSubiendo || !firmaAdminFoto || !firmaAdminNombre.trim()}
+                  onClick={async () => {
+                    setFirmaAdminSubiendo(true)
+                    try {
+                      const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: firmaAdminFoto }),
+                      })
+                      const uploadData = await uploadRes.json()
+                      if (!uploadRes.ok) throw new Error()
+                      const res = await fetch(`/api/remitos/${firmaAdmin.id}/firma`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          firma: uploadData.url,
+                          nombre: firmaAdminNombre.trim(),
+                          tipoFirma: 'PAPEL_ADMIN',
+                        }),
+                      })
+                      const json = await res.json()
+                      if (!res.ok) throw new Error(json.error || 'Error al guardar la firma')
+                      toast({ title: 'Firma cargada', description: `Remito #${firmaAdmin.numero} firmado` })
+                      setFirmaAdmin(null)
+                      setFirmaAdminFoto(null)
+                      load()
+                    } catch (e) {
+                      toast({ title: 'Error', description: e instanceof Error ? e.message : 'No se pudo guardar la firma', variant: 'destructive' })
+                    }
+                    setFirmaAdminSubiendo(false)
+                  }}
+                >
+                  <Save className="w-4 h-4 mr-1" /> {firmaAdminSubiendo ? 'Guardando...' : 'Guardar firma'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

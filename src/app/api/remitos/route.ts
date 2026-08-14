@@ -4,9 +4,19 @@ import { jsonResponse } from '@/lib/api-response'
 import { createRemito } from '@/lib/services/remito-service'
 import { getRequestUser } from '@/lib/api-auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url)
+    const estado = searchParams.get('estado')
+    const paraDescarga = searchParams.get('paraDescarga')
+    const where: any = {}
+    if (estado) where.estado = estado
+    if (paraDescarga === '1') {
+      where.tipo = 'ENTREGA'
+      where.estado = { in: ['PENDIENTE', 'PARCIAL', 'COMPLETADO'] }
+    }
     const remitos = await db.remito.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: { items: true },
     })

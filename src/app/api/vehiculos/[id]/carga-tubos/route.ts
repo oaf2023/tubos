@@ -20,9 +20,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params
     const body = await request.json()
-    const sesion = await db.cargaVehiculo.create({
-      data: { vehiculoId: id, ...body },
-    })
+    const data: any = { vehiculoId: id }
+    if (body.estado) data.estado = body.estado
+    if (Array.isArray(body.remitoIds)) data.remitoIds = body.remitoIds.join(',')
+    else if (body.remitoIds) data.remitoIds = body.remitoIds
+    const sesion = await db.cargaVehiculo.create({ data })
     return NextResponse.json(sesion, { status: 201 })
   } catch (e) {
     console.error('POST carga-tubos', e)

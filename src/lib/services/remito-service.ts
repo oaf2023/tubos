@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { registrarMovimientoTubo, motivoDevolucionAEstado } from '@/lib/trazabilidad'
+import { randomBytes } from 'crypto'
 
 interface RemitoItemInput {
   id?: string | null
@@ -39,6 +40,7 @@ export async function createRemito(input: CreateRemitoInput) {
         estado: 'PENDIENTE',
         tecnico: input.tecnico || input.usuario?.nombre || input.usuario?.usuario || null,
         observaciones: input.observaciones || null,
+        firmaToken: (input.tipo === 'ENTREGA' || input.tipo === 'CAMBIO') ? randomBytes(16).toString('hex') : null,
       },
     })
 
