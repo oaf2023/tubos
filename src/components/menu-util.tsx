@@ -106,7 +106,7 @@ export default function MenuUtil() {
 
   return (
     <>
-      <div className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-50" ref={menuRef}>
+      <div className="fixed bottom-40 right-4 sm:bottom-40 sm:right-6 z-50" ref={menuRef}>
         <button
           onClick={() => setOpen(o => !o)}
           className={`
