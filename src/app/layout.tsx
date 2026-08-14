@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import PWARegister from "@/components/pwa-register";
 import FloatingUtilities from "@/components/floating-utilities";
+import MenuUtil from "@/components/menu-util";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,6 +79,7 @@ export default function RootLayout({
         <Toaster />
         <PWARegister />
         <FloatingUtilities />
+        <MenuUtil />
       </body>
     </html>
   );
