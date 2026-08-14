@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck, History, Flag, QrCode, PenLine, FileImage } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck, History, Flag, QrCode, PenLine, FileImage, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -76,6 +76,8 @@ interface LoteTube {
 export default function RemitosTab() {
   const { toast } = useToast()
   const [remitos, setRemitos] = useState<Remito[]>([])
+  const [fiscales, setFiscales] = useState<any[]>([])
+  const [fiscalDetalle, setFiscalDetalle] = useState<any | null>(null)
   const [clientes, setClientes] = useState<any[]>([])
   const [gases, setGases] = useState<Gas[]>([])
   const [cylinders, setCylinders] = useState<CylinderType[]>([])
@@ -133,13 +135,14 @@ export default function RemitosTab() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [rRes, cRes, gRes, cylRes] = await Promise.all([
-        fetch('/api/remitos'), fetch('/api/clientes'), fetch('/api/gases'), fetch('/api/cylinders'),
+      const [rRes, cRes, gRes, cylRes, fRes] = await Promise.all([
+        fetch('/api/remitos'), fetch('/api/clientes'), fetch('/api/gases'), fetch('/api/cylinders'), fetch('/api/comprobantes?tipo=REMITOS'),
       ])
       const rData = await rRes.json(); setRemitos(Array.isArray(rData) ? rData : rData?.data || [])
       const cData = await cRes.json(); setClientes(Array.isArray(cData) ? cData : [])
       const gData = await gRes.json(); setGases(Array.isArray(gData) ? gData : [])
       const cylData = await cylRes.json(); setCylinders(Array.isArray(cylData) ? cylData : [])
+      const fData = await fRes.json().catch(() => []); setFiscales(Array.isArray(fData) ? fData : [])
     } catch { toast({ title: 'Error', description: 'No se pudieron cargar los datos', variant: 'destructive' }) }
     setLoading(false)
   }, [toast])
@@ -289,7 +292,7 @@ export default function RemitosTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3].map((i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
-      ) : filtrados.length === 0 ? (
+      ) : filtrados.length === 0 && !(filtroTipo === 'all' && fiscales.length > 0) ? (
         <div className="text-center py-12 text-slate-400">No hay remitos registrados</div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
@@ -387,6 +390,26 @@ export default function RemitosTab() {
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><Edit3 className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => eliminar(r.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtroTipo === 'all' && fiscales.map((f) => (
+                <TableRow key={`fisc-${f.id}`} className="bg-slate-50">
+                  <TableCell className="font-medium font-mono text-xs">{f.numeroFormateado}</TableCell>
+                  <TableCell>{f.clienteNombre || '—'}</TableCell>
+                  <TableCell className="text-sm text-slate-500">{f.fecha ? new Date(f.fecha).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="border-slate-300 bg-slate-100 text-slate-600"><FileText className="w-3 h-3 mr-1" />REMITO X</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={f.estado === 'AUTORIZADO' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : f.estado === 'RECHAZADO' ? 'bg-red-100 text-red-700 border-red-300' : f.estado === 'EN_AUTORIZACION' ? 'bg-amber-100 text-amber-700 border-amber-300' : 'outline'}>
+                      {f.estado}
+                    </Badge>
+                  </TableCell>
+                  <TableCell><span className="text-xs text-slate-400">Comprobante</span></TableCell>
+                  <TableCell><span className="text-xs">{f.items?.length || 0}</span></TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => setFiscalDetalle(f)} title="Ver detalle del comprobante"><Eye className="w-4 h-4 text-slate-500" /></Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -947,6 +970,32 @@ export default function RemitosTab() {
                   <Save className="w-4 h-4 mr-1" /> {firmaAdminSubiendo ? 'Guardando...' : 'Guardar firma'}
                 </Button>
               </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!fiscalDetalle} onOpenChange={(o) => { if (!o) setFiscalDetalle(null) }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-slate-500" />Comprobante Remito X {fiscalDetalle?.numeroFormateado}</DialogTitle></DialogHeader>
+          {fiscalDetalle && (
+            <div className="space-y-3">
+              <div className="text-sm space-y-1">
+                <p><span className="text-slate-500">Cliente:</span> <b>{fiscalDetalle.clienteNombre || '—'}</b></p>
+                <p><span className="text-slate-500">Fecha:</span> {fiscalDetalle.fecha ? new Date(fiscalDetalle.fecha).toLocaleDateString('es-AR') : '—'}</p>
+                <p><span className="text-slate-500">Moneda:</span> {fiscalDetalle.moneda || '—'} <span className="text-slate-500">· Total:</span> <b>${Number(fiscalDetalle.total || 0).toLocaleString('es-AR')}</b></p>
+                <p><span className="text-slate-500">Estado:</span> <Badge className={fiscalDetalle.estado === 'AUTORIZADO' ? 'bg-emerald-600' : fiscalDetalle.estado === 'RECHAZADO' ? 'bg-red-600' : fiscalDetalle.estado === 'EN_AUTORIZACION' ? 'bg-amber-500' : ''}>{fiscalDetalle.estado}</Badge>{fiscalDetalle.cae && <span className="ml-2 text-xs text-slate-500">CAE: {fiscalDetalle.cae}</span>}</p>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Detalle</TableHead><TableHead className="text-right">Cant.</TableHead><TableHead className="text-right">Precio</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {(fiscalDetalle.items || []).map((it: any, i: number) => (
+                      <TableRow key={i}><TableCell className="font-mono text-xs">{it.codigo || '—'}</TableCell><TableCell className="text-xs">{it.detalle}</TableCell><TableCell className="text-right text-xs">{it.cantidad}</TableCell><TableCell className="text-right font-mono text-xs">{Number(it.precioUnitario || 0).toLocaleString('es-AR')}</TableCell></TableRow>
+                    ))}
+                    {(fiscalDetalle.items || []).length === 0 && <TableRow><TableCell colSpan={4} className="py-6 text-center text-slate-400 text-sm">Sin ítems</TableCell></TableRow>}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </DialogContent>
