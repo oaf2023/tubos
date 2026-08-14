@@ -44,16 +44,16 @@
 <body>
 <header>
   <h1>Estructura de la base de datos</h1>
-  <p class="sub">Fuente: <span class="mono">PostgreSQL (Render)</span> · Generado: 5/8/2026, 04:26:51</p>
+  <p class="sub">Fuente: <span class="mono">PostgreSQL (Render)</span> · Generado: 14/8/2026, 11:19:29</p>
   <div class="summary">
-    <span class="chip"><b>89</b> tablas</span>
-    <span class="chip"><b>1160</b> campos</span>
-    <span class="chip"><b>241</b> índices</span>
-    <span class="chip"><b>71</b> claves foráneas</span>
+    <span class="chip"><b>94</b> tablas</span>
+    <span class="chip"><b>1214</b> campos</span>
+    <span class="chip"><b>255</b> índices</span>
+    <span class="chip"><b>76</b> claves foráneas</span>
   </div>
   <input id="buscar" type="search" placeholder="Buscar tabla o campo... (ej: usuario, id)">
 </header>
-<nav class="toc" id="toc"><a href="#tabla-AlertConfig" data-search="AlertConfig"><span class="toc-num">1</span>AlertConfig</a><a href="#tabla-Alerta" data-search="Alerta"><span class="toc-num">2</span>Alerta</a><a href="#tabla-ArcaComprobanteAutorizacion" data-search="ArcaComprobanteAutorizacion"><span class="toc-num">3</span>ArcaComprobanteAutorizacion</a><a href="#tabla-ArcaCredential" data-search="ArcaCredential"><span class="toc-num">4</span>ArcaCredential</a><a href="#tabla-ArcaRequestLog" data-search="ArcaRequestLog"><span class="toc-num">5</span>ArcaRequestLog</a><a href="#tabla-ArcaTicket" data-search="ArcaTicket"><span class="toc-num">6</span>ArcaTicket</a><a href="#tabla-Articulo" data-search="Articulo"><span class="toc-num">7</span>Articulo</a><a href="#tabla-AuditLog" data-search="AuditLog"><span class="toc-num">8</span>AuditLog</a><a href="#tabla-AuditoriaSincronizacion" data-search="AuditoriaSincronizacion"><span class="toc-num">9</span>AuditoriaSincronizacion</a><a href="#tabla-AvisoLectura" data-search="AvisoLectura"><span class="toc-num">10</span>AvisoLectura</a><a href="#tabla-AvisoUsuario" data-search="AvisoUsuario"><span class="toc-num">11</span>AvisoUsuario</a><a href="#tabla-Cabina" data-search="Cabina"><span class="toc-num">12</span>Cabina</a><a href="#tabla-CargaCombustible" data-search="CargaCombustible"><span class="toc-num">13</span>CargaCombustible</a><a href="#tabla-CargaVehiculo" data-search="CargaVehiculo"><span class="toc-num">14</span>CargaVehiculo</a><a href="#tabla-CargaVehiculoItem" data-search="CargaVehiculoItem"><span class="toc-num">15</span>CargaVehiculoItem</a><a href="#tabla-Cliente" data-search="Cliente"><span class="toc-num">16</span>Cliente</a><a href="#tabla-ClienteAcceso" data-search="ClienteAcceso"><span class="toc-num">17</span>ClienteAcceso</a><a href="#tabla-Clima" data-search="Clima"><span class="toc-num">18</span>Clima</a><a href="#tabla-ComprobanteHistorico" data-search="ComprobanteHistorico"><span class="toc-num">19</span>ComprobanteHistorico</a><a href="#tabla-ComprobanteItemHistorico" data-search="ComprobanteItemHistorico"><span class="toc-num">20</span>ComprobanteItemHistorico</a><a href="#tabla-ConciliacionOperacion" data-search="ConciliacionOperacion"><span class="toc-num">21</span>ConciliacionOperacion</a><a href="#tabla-ConfiguracionFiscal" data-search="ConfiguracionFiscal"><span class="toc-num">22</span>ConfiguracionFiscal</a><a href="#tabla-CuentaCorrienteMovimiento" data-search="CuentaCorrienteMovimiento"><span class="toc-num">23</span>CuentaCorrienteMovimiento</a><a href="#tabla-Cylinder" data-search="Cylinder"><span class="toc-num">24</span>Cylinder</a><a href="#tabla-CylinderMovimiento" data-search="CylinderMovimiento"><span class="toc-num">25</span>CylinderMovimiento</a><a href="#tabla-DocumentoComercial" data-search="DocumentoComercial"><span class="toc-num">26</span>DocumentoComercial</a><a href="#tabla-DocumentoComercialItem" data-search="DocumentoComercialItem"><span class="toc-num">27</span>DocumentoComercialItem</a><a href="#tabla-DocumentoComercialTributo" data-search="DocumentoComercialTributo"><span class="toc-num">28</span>DocumentoComercialTributo</a><a href="#tabla-DocumentoNumerador" data-search="DocumentoNumerador"><span class="toc-num">29</span>DocumentoNumerador</a><a href="#tabla-DocumentoVehiculo" data-search="DocumentoVehiculo"><span class="toc-num">30</span>DocumentoVehiculo</a><a href="#tabla-EscribiendoChat" data-search="EscribiendoChat"><span class="toc-num">31</span>EscribiendoChat</a><a href="#tabla-EventoRFID" data-search="EventoRFID"><span class="toc-num">32</span>EventoRFID</a><a href="#tabla-EventoTrazabilidad" data-search="EventoTrazabilidad"><span class="toc-num">33</span>EventoTrazabilidad</a><a href="#tabla-EventoTubo" data-search="EventoTubo"><span class="toc-num">34</span>EventoTubo</a><a href="#tabla-EvidenciaFoto" data-search="EvidenciaFoto"><span class="toc-num">35</span>EvidenciaFoto</a><a href="#tabla-Factura" data-search="Factura"><span class="toc-num">36</span>Factura</a><a href="#tabla-FacturaItem" data-search="FacturaItem"><span class="toc-num">37</span>FacturaItem</a><a href="#tabla-Gas" data-search="Gas"><span class="toc-num">38</span>Gas</a><a href="#tabla-Geocerca" data-search="Geocerca"><span class="toc-num">39</span>Geocerca</a><a href="#tabla-IdempotencyKey" data-search="IdempotencyKey"><span class="toc-num">40</span>IdempotencyKey</a><a href="#tabla-IdentificadorTubo" data-search="IdentificadorTubo"><span class="toc-num">41</span>IdentificadorTubo</a><a href="#tabla-LectorIoT" data-search="LectorIoT"><span class="toc-num">42</span>LectorIoT</a><a href="#tabla-LecturaPeso" data-search="LecturaPeso"><span class="toc-num">43</span>LecturaPeso</a><a href="#tabla-Location" data-search="Location"><span class="toc-num">44</span>Location</a><a href="#tabla-Mantenimiento" data-search="Mantenimiento"><span class="toc-num">45</span>Mantenimiento</a><a href="#tabla-MantenimientoVehiculo" data-search="MantenimientoVehiculo"><span class="toc-num">46</span>MantenimientoVehiculo</a><a href="#tabla-MensajeChat" data-search="MensajeChat"><span class="toc-num">47</span>MensajeChat</a><a href="#tabla-MercadoPagoConfig" data-search="MercadoPagoConfig"><span class="toc-num">48</span>MercadoPagoConfig</a><a href="#tabla-MlClaimReturn" data-search="MlClaimReturn"><span class="toc-num">49</span>MlClaimReturn</a><a href="#tabla-MlItem" data-search="MlItem"><span class="toc-num">50</span>MlItem</a><a href="#tabla-MlOrder" data-search="MlOrder"><span class="toc-num">51</span>MlOrder</a><a href="#tabla-MlOrderItem" data-search="MlOrderItem"><span class="toc-num">52</span>MlOrderItem</a><a href="#tabla-MlQuestion" data-search="MlQuestion"><span class="toc-num">53</span>MlQuestion</a><a href="#tabla-MlShipment" data-search="MlShipment"><span class="toc-num">54</span>MlShipment</a><a href="#tabla-MovimientoStock" data-search="MovimientoStock"><span class="toc-num">55</span>MovimientoStock</a><a href="#tabla-MpAccountMovement" data-search="MpAccountMovement"><span class="toc-num">56</span>MpAccountMovement</a><a href="#tabla-MpPayment" data-search="MpPayment"><span class="toc-num">57</span>MpPayment</a><a href="#tabla-MpReleaseReport" data-search="MpReleaseReport"><span class="toc-num">58</span>MpReleaseReport</a><a href="#tabla-Observacion" data-search="Observacion"><span class="toc-num">59</span>Observacion</a><a href="#tabla-ObservacionArchivo" data-search="ObservacionArchivo"><span class="toc-num">60</span>ObservacionArchivo</a><a href="#tabla-Pedido" data-search="Pedido"><span class="toc-num">61</span>Pedido</a><a href="#tabla-PedidoCilindro" data-search="PedidoCilindro"><span class="toc-num">62</span>PedidoCilindro</a><a href="#tabla-PedidoItem" data-search="PedidoItem"><span class="toc-num">63</span>PedidoItem</a><a href="#tabla-PedidoLectura" data-search="PedidoLectura"><span class="toc-num">64</span>PedidoLectura</a><a href="#tabla-PedidoLecturaItem" data-search="PedidoLecturaItem"><span class="toc-num">65</span>PedidoLecturaItem</a><a href="#tabla-PresenciaUsuario" data-search="PresenciaUsuario"><span class="toc-num">66</span>PresenciaUsuario</a><a href="#tabla-Proveedor" data-search="Proveedor"><span class="toc-num">67</span>Proveedor</a><a href="#tabla-ReglaPeso" data-search="ReglaPeso"><span class="toc-num">68</span>ReglaPeso</a><a href="#tabla-Remito" data-search="Remito"><span class="toc-num">69</span>Remito</a><a href="#tabla-RemitoItem" data-search="RemitoItem"><span class="toc-num">70</span>RemitoItem</a><a href="#tabla-Reparto" data-search="Reparto"><span class="toc-num">71</span>Reparto</a><a href="#tabla-Rol" data-search="Rol"><span class="toc-num">72</span>Rol</a><a href="#tabla-RouteCache" data-search="RouteCache"><span class="toc-num">73</span>RouteCache</a><a href="#tabla-RouteCalcLog" data-search="RouteCalcLog"><span class="toc-num">74</span>RouteCalcLog</a><a href="#tabla-Ruta" data-search="Ruta"><span class="toc-num">75</span>Ruta</a><a href="#tabla-RutaParada" data-search="RutaParada"><span class="toc-num">76</span>RutaParada</a><a href="#tabla-SellerAccount" data-search="SellerAccount"><span class="toc-num">77</span>SellerAccount</a><a href="#tabla-SensorCabina" data-search="SensorCabina"><span class="toc-num">78</span>SensorCabina</a><a href="#tabla-SesionConductor" data-search="SesionConductor"><span class="toc-num">79</span>SesionConductor</a><a href="#tabla-SesionLecturaRFID" data-search="SesionLecturaRFID"><span class="toc-num">80</span>SesionLecturaRFID</a><a href="#tabla-StockGas" data-search="StockGas"><span class="toc-num">81</span>StockGas</a><a href="#tabla-TagRFID" data-search="TagRFID"><span class="toc-num">82</span>TagRFID</a><a href="#tabla-TipoOperacionPedido" data-search="TipoOperacionPedido"><span class="toc-num">83</span>TipoOperacionPedido</a><a href="#tabla-TrafficHistory" data-search="TrafficHistory"><span class="toc-num">84</span>TrafficHistory</a><a href="#tabla-UbicacionGPS" data-search="UbicacionGPS"><span class="toc-num">85</span>UbicacionGPS</a><a href="#tabla-Usuario" data-search="Usuario"><span class="toc-num">86</span>Usuario</a><a href="#tabla-ValidacionCabina" data-search="ValidacionCabina"><span class="toc-num">87</span>ValidacionCabina</a><a href="#tabla-Vehiculo" data-search="Vehiculo"><span class="toc-num">88</span>Vehiculo</a><a href="#tabla-ZonaLectura" data-search="ZonaLectura"><span class="toc-num">89</span>ZonaLectura</a></nav>
+<nav class="toc" id="toc"><a href="#tabla-AlertConfig" data-search="AlertConfig"><span class="toc-num">1</span>AlertConfig</a><a href="#tabla-Alerta" data-search="Alerta"><span class="toc-num">2</span>Alerta</a><a href="#tabla-ArcaComprobanteAutorizacion" data-search="ArcaComprobanteAutorizacion"><span class="toc-num">3</span>ArcaComprobanteAutorizacion</a><a href="#tabla-ArcaCredential" data-search="ArcaCredential"><span class="toc-num">4</span>ArcaCredential</a><a href="#tabla-ArcaRequestLog" data-search="ArcaRequestLog"><span class="toc-num">5</span>ArcaRequestLog</a><a href="#tabla-ArcaTicket" data-search="ArcaTicket"><span class="toc-num">6</span>ArcaTicket</a><a href="#tabla-Articulo" data-search="Articulo"><span class="toc-num">7</span>Articulo</a><a href="#tabla-AuditLog" data-search="AuditLog"><span class="toc-num">8</span>AuditLog</a><a href="#tabla-AuditoriaSincronizacion" data-search="AuditoriaSincronizacion"><span class="toc-num">9</span>AuditoriaSincronizacion</a><a href="#tabla-AvisoLectura" data-search="AvisoLectura"><span class="toc-num">10</span>AvisoLectura</a><a href="#tabla-AvisoUsuario" data-search="AvisoUsuario"><span class="toc-num">11</span>AvisoUsuario</a><a href="#tabla-Cabina" data-search="Cabina"><span class="toc-num">12</span>Cabina</a><a href="#tabla-CargaCombustible" data-search="CargaCombustible"><span class="toc-num">13</span>CargaCombustible</a><a href="#tabla-CargaVehiculo" data-search="CargaVehiculo"><span class="toc-num">14</span>CargaVehiculo</a><a href="#tabla-CargaVehiculoItem" data-search="CargaVehiculoItem"><span class="toc-num">15</span>CargaVehiculoItem</a><a href="#tabla-Cliente" data-search="Cliente"><span class="toc-num">16</span>Cliente</a><a href="#tabla-ClienteAcceso" data-search="ClienteAcceso"><span class="toc-num">17</span>ClienteAcceso</a><a href="#tabla-Clima" data-search="Clima"><span class="toc-num">18</span>Clima</a><a href="#tabla-ComprobanteHistorico" data-search="ComprobanteHistorico"><span class="toc-num">19</span>ComprobanteHistorico</a><a href="#tabla-ComprobanteItemHistorico" data-search="ComprobanteItemHistorico"><span class="toc-num">20</span>ComprobanteItemHistorico</a><a href="#tabla-ConciliacionOperacion" data-search="ConciliacionOperacion"><span class="toc-num">21</span>ConciliacionOperacion</a><a href="#tabla-ConfigStockGas" data-search="ConfigStockGas"><span class="toc-num">22</span>ConfigStockGas</a><a href="#tabla-ConfiguracionFiscal" data-search="ConfiguracionFiscal"><span class="toc-num">23</span>ConfiguracionFiscal</a><a href="#tabla-ConteoFisico" data-search="ConteoFisico"><span class="toc-num">24</span>ConteoFisico</a><a href="#tabla-ConteoFisicoItem" data-search="ConteoFisicoItem"><span class="toc-num">25</span>ConteoFisicoItem</a><a href="#tabla-CuentaCorrienteMovimiento" data-search="CuentaCorrienteMovimiento"><span class="toc-num">26</span>CuentaCorrienteMovimiento</a><a href="#tabla-Cylinder" data-search="Cylinder"><span class="toc-num">27</span>Cylinder</a><a href="#tabla-CylinderMovimiento" data-search="CylinderMovimiento"><span class="toc-num">28</span>CylinderMovimiento</a><a href="#tabla-DocumentoComercial" data-search="DocumentoComercial"><span class="toc-num">29</span>DocumentoComercial</a><a href="#tabla-DocumentoComercialItem" data-search="DocumentoComercialItem"><span class="toc-num">30</span>DocumentoComercialItem</a><a href="#tabla-DocumentoComercialTributo" data-search="DocumentoComercialTributo"><span class="toc-num">31</span>DocumentoComercialTributo</a><a href="#tabla-DocumentoNumerador" data-search="DocumentoNumerador"><span class="toc-num">32</span>DocumentoNumerador</a><a href="#tabla-DocumentoVehiculo" data-search="DocumentoVehiculo"><span class="toc-num">33</span>DocumentoVehiculo</a><a href="#tabla-EscribiendoChat" data-search="EscribiendoChat"><span class="toc-num">34</span>EscribiendoChat</a><a href="#tabla-EventoRFID" data-search="EventoRFID"><span class="toc-num">35</span>EventoRFID</a><a href="#tabla-EventoTrazabilidad" data-search="EventoTrazabilidad"><span class="toc-num">36</span>EventoTrazabilidad</a><a href="#tabla-EventoTubo" data-search="EventoTubo"><span class="toc-num">37</span>EventoTubo</a><a href="#tabla-EvidenciaFoto" data-search="EvidenciaFoto"><span class="toc-num">38</span>EvidenciaFoto</a><a href="#tabla-Factura" data-search="Factura"><span class="toc-num">39</span>Factura</a><a href="#tabla-FacturaItem" data-search="FacturaItem"><span class="toc-num">40</span>FacturaItem</a><a href="#tabla-Gas" data-search="Gas"><span class="toc-num">41</span>Gas</a><a href="#tabla-Geocerca" data-search="Geocerca"><span class="toc-num">42</span>Geocerca</a><a href="#tabla-IdempotencyKey" data-search="IdempotencyKey"><span class="toc-num">43</span>IdempotencyKey</a><a href="#tabla-IdentificadorTubo" data-search="IdentificadorTubo"><span class="toc-num">44</span>IdentificadorTubo</a><a href="#tabla-LectorIoT" data-search="LectorIoT"><span class="toc-num">45</span>LectorIoT</a><a href="#tabla-LecturaPeso" data-search="LecturaPeso"><span class="toc-num">46</span>LecturaPeso</a><a href="#tabla-Location" data-search="Location"><span class="toc-num">47</span>Location</a><a href="#tabla-Mantenimiento" data-search="Mantenimiento"><span class="toc-num">48</span>Mantenimiento</a><a href="#tabla-MantenimientoVehiculo" data-search="MantenimientoVehiculo"><span class="toc-num">49</span>MantenimientoVehiculo</a><a href="#tabla-MensajeChat" data-search="MensajeChat"><span class="toc-num">50</span>MensajeChat</a><a href="#tabla-MercadoPagoConfig" data-search="MercadoPagoConfig"><span class="toc-num">51</span>MercadoPagoConfig</a><a href="#tabla-MlClaimReturn" data-search="MlClaimReturn"><span class="toc-num">52</span>MlClaimReturn</a><a href="#tabla-MlItem" data-search="MlItem"><span class="toc-num">53</span>MlItem</a><a href="#tabla-MlOrder" data-search="MlOrder"><span class="toc-num">54</span>MlOrder</a><a href="#tabla-MlOrderItem" data-search="MlOrderItem"><span class="toc-num">55</span>MlOrderItem</a><a href="#tabla-MlQuestion" data-search="MlQuestion"><span class="toc-num">56</span>MlQuestion</a><a href="#tabla-MlShipment" data-search="MlShipment"><span class="toc-num">57</span>MlShipment</a><a href="#tabla-MovimientoStock" data-search="MovimientoStock"><span class="toc-num">58</span>MovimientoStock</a><a href="#tabla-MpAccountMovement" data-search="MpAccountMovement"><span class="toc-num">59</span>MpAccountMovement</a><a href="#tabla-MpPayment" data-search="MpPayment"><span class="toc-num">60</span>MpPayment</a><a href="#tabla-MpReleaseReport" data-search="MpReleaseReport"><span class="toc-num">61</span>MpReleaseReport</a><a href="#tabla-NovedadRemito" data-search="NovedadRemito"><span class="toc-num">62</span>NovedadRemito</a><a href="#tabla-Observacion" data-search="Observacion"><span class="toc-num">63</span>Observacion</a><a href="#tabla-ObservacionArchivo" data-search="ObservacionArchivo"><span class="toc-num">64</span>ObservacionArchivo</a><a href="#tabla-Pedido" data-search="Pedido"><span class="toc-num">65</span>Pedido</a><a href="#tabla-PedidoCilindro" data-search="PedidoCilindro"><span class="toc-num">66</span>PedidoCilindro</a><a href="#tabla-PedidoItem" data-search="PedidoItem"><span class="toc-num">67</span>PedidoItem</a><a href="#tabla-PedidoLectura" data-search="PedidoLectura"><span class="toc-num">68</span>PedidoLectura</a><a href="#tabla-PedidoLecturaItem" data-search="PedidoLecturaItem"><span class="toc-num">69</span>PedidoLecturaItem</a><a href="#tabla-PresenciaUsuario" data-search="PresenciaUsuario"><span class="toc-num">70</span>PresenciaUsuario</a><a href="#tabla-Proveedor" data-search="Proveedor"><span class="toc-num">71</span>Proveedor</a><a href="#tabla-RecepcionStock" data-search="RecepcionStock"><span class="toc-num">72</span>RecepcionStock</a><a href="#tabla-ReglaPeso" data-search="ReglaPeso"><span class="toc-num">73</span>ReglaPeso</a><a href="#tabla-Remito" data-search="Remito"><span class="toc-num">74</span>Remito</a><a href="#tabla-RemitoItem" data-search="RemitoItem"><span class="toc-num">75</span>RemitoItem</a><a href="#tabla-Reparto" data-search="Reparto"><span class="toc-num">76</span>Reparto</a><a href="#tabla-Rol" data-search="Rol"><span class="toc-num">77</span>Rol</a><a href="#tabla-RouteCache" data-search="RouteCache"><span class="toc-num">78</span>RouteCache</a><a href="#tabla-RouteCalcLog" data-search="RouteCalcLog"><span class="toc-num">79</span>RouteCalcLog</a><a href="#tabla-Ruta" data-search="Ruta"><span class="toc-num">80</span>Ruta</a><a href="#tabla-RutaParada" data-search="RutaParada"><span class="toc-num">81</span>RutaParada</a><a href="#tabla-SellerAccount" data-search="SellerAccount"><span class="toc-num">82</span>SellerAccount</a><a href="#tabla-SensorCabina" data-search="SensorCabina"><span class="toc-num">83</span>SensorCabina</a><a href="#tabla-SesionConductor" data-search="SesionConductor"><span class="toc-num">84</span>SesionConductor</a><a href="#tabla-SesionLecturaRFID" data-search="SesionLecturaRFID"><span class="toc-num">85</span>SesionLecturaRFID</a><a href="#tabla-StockGas" data-search="StockGas"><span class="toc-num">86</span>StockGas</a><a href="#tabla-TagRFID" data-search="TagRFID"><span class="toc-num">87</span>TagRFID</a><a href="#tabla-TipoOperacionPedido" data-search="TipoOperacionPedido"><span class="toc-num">88</span>TipoOperacionPedido</a><a href="#tabla-TrafficHistory" data-search="TrafficHistory"><span class="toc-num">89</span>TrafficHistory</a><a href="#tabla-UbicacionGPS" data-search="UbicacionGPS"><span class="toc-num">90</span>UbicacionGPS</a><a href="#tabla-Usuario" data-search="Usuario"><span class="toc-num">91</span>Usuario</a><a href="#tabla-ValidacionCabina" data-search="ValidacionCabina"><span class="toc-num">92</span>ValidacionCabina</a><a href="#tabla-Vehiculo" data-search="Vehiculo"><span class="toc-num">93</span>Vehiculo</a><a href="#tabla-ZonaLectura" data-search="ZonaLectura"><span class="toc-num">94</span>ZonaLectura</a></nav>
 <main><section class="card" id="tabla-AlertConfig" data-search="AlertConfig">
     <h2>AlertConfig <span class="rows">9 filas</span></h2>
     <div class="tblwrap">
@@ -1030,7 +1030,7 @@
     <td class="mono">&quot;ART_CODI&quot;</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-AuditLog" data-search="AuditLog">
-    <h2>AuditLog <span class="rows">190 filas</span></h2>
+    <h2>AuditLog <span class="rows">224 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -1539,6 +1539,14 @@
       <td class="ctr"></td>
       <td class="ctr"><span class="badge nn">SÍ</span></td>
       <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr><tr data-search="CargaVehiculo remitoIds">
+      <td class="num">6</td>
+      <td class="mono">remitoIds</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
       <td class="mono"></td>
     </tr></tbody>
       </table>
@@ -2743,6 +2751,71 @@
     <td class="ctr"></td>
     <td class="mono">status</td>
   </tr></tbody></table></div>
+  </section><section class="card" id="tabla-ConfigStockGas" data-search="ConfigStockGas">
+    <h2>ConfigStockGas <span class="rows">0 filas</span></h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
+        <tbody><tr data-search="ConfigStockGas id">
+      <td class="num">1</td>
+      <td class="mono">id</td>
+      <td class="mono type">text</td>
+      <td class="ctr"><span class="badge pk">PK</span></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConfigStockGas gasId">
+      <td class="num">2</td>
+      <td class="mono">gasId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono">→ Gas.id · CASCADE</td>
+    </tr><tr data-search="ConfigStockGas stockMinimo">
+      <td class="num">3</td>
+      <td class="mono">stockMinimo</td>
+      <td class="mono type">integer</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">0</td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConfigStockGas stockSeguridad">
+      <td class="num">4</td>
+      <td class="mono">stockSeguridad</td>
+      <td class="mono type">integer</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">0</td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConfigStockGas cantidadOptimaPedido">
+      <td class="num">5</td>
+      <td class="mono">cantidadOptimaPedido</td>
+      <td class="mono type">integer</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">0</td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConfigStockGas updatedAt">
+      <td class="num">6</td>
+      <td class="mono">updatedAt</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr></tbody>
+      </table>
+    </div>
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="ConfigStockGas ConfigStockGas_gasId_key">
+    <td class="mono">ConfigStockGas_gasId_key</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">&quot;gasId&quot;</td>
+  </tr><tr data-search="ConfigStockGas ConfigStockGas_pkey">
+    <td class="mono">ConfigStockGas_pkey</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">id</td>
+  </tr></tbody></table></div>
   </section><section class="card" id="tabla-ConfiguracionFiscal" data-search="ConfiguracionFiscal">
     <h2>ConfiguracionFiscal <span class="rows">1 fila</span></h2>
     <div class="tblwrap">
@@ -2945,6 +3018,132 @@
     </div>
     <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="ConfiguracionFiscal ConfiguracionFiscal_pkey">
     <td class="mono">ConfiguracionFiscal_pkey</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">id</td>
+  </tr></tbody></table></div>
+  </section><section class="card" id="tabla-ConteoFisico" data-search="ConteoFisico">
+    <h2>ConteoFisico <span class="rows">0 filas</span></h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
+        <tbody><tr data-search="ConteoFisico id">
+      <td class="num">1</td>
+      <td class="mono">id</td>
+      <td class="mono type">text</td>
+      <td class="ctr"><span class="badge pk">PK</span></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisico fecha">
+      <td class="num">2</td>
+      <td class="mono">fecha</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisico usuario">
+      <td class="num">3</td>
+      <td class="mono">usuario</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisico observacion">
+      <td class="num">4</td>
+      <td class="mono">observacion</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisico createdAt">
+      <td class="num">5</td>
+      <td class="mono">createdAt</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr></tbody>
+      </table>
+    </div>
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="ConteoFisico ConteoFisico_fecha_idx">
+    <td class="mono">ConteoFisico_fecha_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">fecha</td>
+  </tr><tr data-search="ConteoFisico ConteoFisico_pkey">
+    <td class="mono">ConteoFisico_pkey</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">id</td>
+  </tr></tbody></table></div>
+  </section><section class="card" id="tabla-ConteoFisicoItem" data-search="ConteoFisicoItem">
+    <h2>ConteoFisicoItem <span class="rows">0 filas</span></h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
+        <tbody><tr data-search="ConteoFisicoItem id">
+      <td class="num">1</td>
+      <td class="mono">id</td>
+      <td class="mono type">text</td>
+      <td class="ctr"><span class="badge pk">PK</span></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisicoItem conteoId">
+      <td class="num">2</td>
+      <td class="mono">conteoId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono">→ ConteoFisico.id · CASCADE</td>
+    </tr><tr data-search="ConteoFisicoItem gasId">
+      <td class="num">3</td>
+      <td class="mono">gasId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono">→ Gas.id · RESTRICT</td>
+    </tr><tr data-search="ConteoFisicoItem estado">
+      <td class="num">4</td>
+      <td class="mono">estado</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisicoItem cantidadReal">
+      <td class="num">5</td>
+      <td class="mono">cantidadReal</td>
+      <td class="mono type">integer</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">0</td>
+      <td class="mono"></td>
+    </tr><tr data-search="ConteoFisicoItem createdAt">
+      <td class="num">6</td>
+      <td class="mono">createdAt</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr></tbody>
+      </table>
+    </div>
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="ConteoFisicoItem ConteoFisicoItem_conteoId_idx">
+    <td class="mono">ConteoFisicoItem_conteoId_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;conteoId&quot;</td>
+  </tr><tr data-search="ConteoFisicoItem ConteoFisicoItem_gasId_idx">
+    <td class="mono">ConteoFisicoItem_gasId_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;gasId&quot;</td>
+  </tr><tr data-search="ConteoFisicoItem ConteoFisicoItem_pkey">
+    <td class="mono">ConteoFisicoItem_pkey</td>
     <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
     <td class="mono">id</td>
   </tr></tbody></table></div>
@@ -3438,6 +3637,14 @@
       <td class="ctr"><span class="badge nn">SÍ</span></td>
       <td class="mono">false</td>
       <td class="mono"></td>
+    </tr><tr data-search="Cylinder ultimoMovimiento">
+      <td class="num">44</td>
+      <td class="mono">ultimoMovimiento</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
     </tr></tbody>
       </table>
     </div>
@@ -3471,7 +3678,7 @@
     <td class="mono">provincia</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-CylinderMovimiento" data-search="CylinderMovimiento">
-    <h2>CylinderMovimiento <span class="rows">105 filas</span></h2>
+    <h2>CylinderMovimiento <span class="rows">106 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -3563,13 +3770,37 @@
       <td class="ctr"></td>
       <td class="mono"></td>
       <td class="mono"></td>
+    </tr><tr data-search="CylinderMovimiento documentoId">
+      <td class="num">12</td>
+      <td class="mono">documentoId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="CylinderMovimiento remitoId">
+      <td class="num">13</td>
+      <td class="mono">remitoId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
     </tr></tbody>
       </table>
     </div>
-    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="CylinderMovimiento CylinderMovimiento_pkey">
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="CylinderMovimiento CylinderMovimiento_documentoId_idx">
+    <td class="mono">CylinderMovimiento_documentoId_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;documentoId&quot;</td>
+  </tr><tr data-search="CylinderMovimiento CylinderMovimiento_pkey">
     <td class="mono">CylinderMovimiento_pkey</td>
     <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
     <td class="mono">id</td>
+  </tr><tr data-search="CylinderMovimiento CylinderMovimiento_remitoId_idx">
+    <td class="mono">CylinderMovimiento_remitoId_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;remitoId&quot;</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-DocumentoComercial" data-search="DocumentoComercial">
     <h2>DocumentoComercial <span class="rows">2 filas</span></h2>
@@ -4115,6 +4346,22 @@
     </tr><tr data-search="DocumentoComercial idempotencyKey">
       <td class="num">68</td>
       <td class="mono">idempotencyKey</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="DocumentoComercial usuarioId">
+      <td class="num">69</td>
+      <td class="mono">usuarioId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="DocumentoComercial usuarioNombre">
+      <td class="num">70</td>
+      <td class="mono">usuarioNombre</td>
       <td class="mono type">text</td>
       <td class="ctr"></td>
       <td class="ctr"></td>
@@ -4844,7 +5091,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-EventoTubo" data-search="EventoTubo">
-    <h2>EventoTubo <span class="rows">0 filas</span></h2>
+    <h2>EventoTubo <span class="rows">1 fila</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -4987,6 +5234,14 @@
     </tr><tr data-search="EventoTubo readSource">
       <td class="num">18</td>
       <td class="mono">readSource</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="EventoTubo autorizadoPor">
+      <td class="num">19</td>
+      <td class="mono">autorizadoPor</td>
       <td class="mono type">text</td>
       <td class="ctr"></td>
       <td class="ctr"></td>
@@ -6241,7 +6496,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-MensajeChat" data-search="MensajeChat">
-    <h2>MensajeChat <span class="rows">1 fila</span></h2>
+    <h2>MensajeChat <span class="rows">5 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -7097,7 +7352,7 @@
     <td class="mono">status</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-MovimientoStock" data-search="MovimientoStock">
-    <h2>MovimientoStock <span class="rows">0 filas</span></h2>
+    <h2>MovimientoStock <span class="rows">1.418 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -7480,6 +7735,79 @@
     <td class="ctr"></td>
     <td class="mono">&quot;sourceId&quot;</td>
   </tr></tbody></table></div>
+  </section><section class="card" id="tabla-NovedadRemito" data-search="NovedadRemito">
+    <h2>NovedadRemito <span class="rows">0 filas</span></h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
+        <tbody><tr data-search="NovedadRemito id">
+      <td class="num">1</td>
+      <td class="mono">id</td>
+      <td class="mono type">text</td>
+      <td class="ctr"><span class="badge pk">PK</span></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="NovedadRemito remitoId">
+      <td class="num">2</td>
+      <td class="mono">remitoId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono">→ Remito.id · CASCADE</td>
+    </tr><tr data-search="NovedadRemito tipo">
+      <td class="num">3</td>
+      <td class="mono">tipo</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="NovedadRemito detalle">
+      <td class="num">4</td>
+      <td class="mono">detalle</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="NovedadRemito metodoResolucion">
+      <td class="num">5</td>
+      <td class="mono">metodoResolucion</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="NovedadRemito usuarioNombre">
+      <td class="num">6</td>
+      <td class="mono">usuarioNombre</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="NovedadRemito createdAt">
+      <td class="num">7</td>
+      <td class="mono">createdAt</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr></tbody>
+      </table>
+    </div>
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="NovedadRemito NovedadRemito_pkey">
+    <td class="mono">NovedadRemito_pkey</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">id</td>
+  </tr><tr data-search="NovedadRemito NovedadRemito_remitoId_idx">
+    <td class="mono">NovedadRemito_remitoId_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;remitoId&quot;</td>
+  </tr></tbody></table></div>
   </section><section class="card" id="tabla-Observacion" data-search="Observacion">
     <h2>Observacion <span class="rows">0 filas</span></h2>
     <div class="tblwrap">
@@ -7627,7 +7955,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-Pedido" data-search="Pedido">
-    <h2>Pedido <span class="rows">3 filas</span></h2>
+    <h2>Pedido <span class="rows">4 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -7837,7 +8165,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-PedidoItem" data-search="PedidoItem">
-    <h2>PedidoItem <span class="rows">3 filas</span></h2>
+    <h2>PedidoItem <span class="rows">4 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -8557,6 +8885,95 @@
     <td class="ctr"></td>
     <td class="mono">provincia</td>
   </tr></tbody></table></div>
+  </section><section class="card" id="tabla-RecepcionStock" data-search="RecepcionStock">
+    <h2>RecepcionStock <span class="rows">0 filas</span></h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
+        <tbody><tr data-search="RecepcionStock id">
+      <td class="num">1</td>
+      <td class="mono">id</td>
+      <td class="mono type">text</td>
+      <td class="ctr"><span class="badge pk">PK</span></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock fecha">
+      <td class="num">2</td>
+      <td class="mono">fecha</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock gasId">
+      <td class="num">3</td>
+      <td class="mono">gasId</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono">→ Gas.id · RESTRICT</td>
+    </tr><tr data-search="RecepcionStock cantidad">
+      <td class="num">4</td>
+      <td class="mono">cantidad</td>
+      <td class="mono type">integer</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock proveedor">
+      <td class="num">5</td>
+      <td class="mono">proveedor</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock documento">
+      <td class="num">6</td>
+      <td class="mono">documento</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock usuario">
+      <td class="num">7</td>
+      <td class="mono">usuario</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock observacion">
+      <td class="num">8</td>
+      <td class="mono">observacion</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RecepcionStock createdAt">
+      <td class="num">9</td>
+      <td class="mono">createdAt</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr></tbody>
+      </table>
+    </div>
+    <div class="tblwrap"><table><thead><tr><th>Índice</th><th>Único</th><th>Columnas</th></tr></thead><tbody><tr data-search="RecepcionStock RecepcionStock_gasId_fecha_idx">
+    <td class="mono">RecepcionStock_gasId_fecha_idx</td>
+    <td class="ctr"></td>
+    <td class="mono">&quot;gasId&quot;, fecha</td>
+  </tr><tr data-search="RecepcionStock RecepcionStock_pkey">
+    <td class="mono">RecepcionStock_pkey</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">id</td>
+  </tr></tbody></table></div>
   </section><section class="card" id="tabla-ReglaPeso" data-search="ReglaPeso">
     <h2>ReglaPeso <span class="rows">9 filas</span></h2>
     <div class="tblwrap">
@@ -8631,7 +9048,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-Remito" data-search="Remito">
-    <h2>Remito <span class="rows">1 fila</span></h2>
+    <h2>Remito <span class="rows">3 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -8656,7 +9073,7 @@
       <td class="mono">clienteId</td>
       <td class="mono type">text</td>
       <td class="ctr"></td>
-      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="ctr"></td>
       <td class="mono"></td>
       <td class="mono"></td>
     </tr><tr data-search="Remito cliente">
@@ -8664,7 +9081,7 @@
       <td class="mono">cliente</td>
       <td class="mono type">text</td>
       <td class="ctr"></td>
-      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="ctr"></td>
       <td class="mono"></td>
       <td class="mono"></td>
     </tr><tr data-search="Remito fecha">
@@ -8731,6 +9148,54 @@
       <td class="ctr"></td>
       <td class="mono"></td>
       <td class="mono">→ Factura.id · SET NULL</td>
+    </tr><tr data-search="Remito firmaCapturadaPor">
+      <td class="num">13</td>
+      <td class="mono">firmaCapturadaPor</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="Remito firmaCliente">
+      <td class="num">14</td>
+      <td class="mono">firmaCliente</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="Remito firmaFecha">
+      <td class="num">15</td>
+      <td class="mono">firmaFecha</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="Remito firmaMetodo">
+      <td class="num">16</td>
+      <td class="mono">firmaMetodo</td>
+      <td class="mono type">TipoFirma</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="Remito firmaNombreCliente">
+      <td class="num">17</td>
+      <td class="mono">firmaNombreCliente</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="Remito firmaToken">
+      <td class="num">18</td>
+      <td class="mono">firmaToken</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
     </tr></tbody>
       </table>
     </div>
@@ -8750,13 +9215,17 @@
     <td class="mono">Remito_fecha_idx</td>
     <td class="ctr"></td>
     <td class="mono">fecha</td>
+  </tr><tr data-search="Remito Remito_firmaToken_key">
+    <td class="mono">Remito_firmaToken_key</td>
+    <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
+    <td class="mono">&quot;firmaToken&quot;</td>
   </tr><tr data-search="Remito Remito_pkey">
     <td class="mono">Remito_pkey</td>
     <td class="ctr"><span class="badge uniq">ÚNICO</span></td>
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-RemitoItem" data-search="RemitoItem">
-    <h2>RemitoItem <span class="rows">1 fila</span></h2>
+    <h2>RemitoItem <span class="rows">3 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
@@ -8863,6 +9332,70 @@
       <td class="ctr"></td>
       <td class="ctr"><span class="badge nn">SÍ</span></td>
       <td class="mono">CURRENT_TIMESTAMP</td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem devolucionRegistradaPor">
+      <td class="num">14</td>
+      <td class="mono">devolucionRegistradaPor</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem motivoDevolucion">
+      <td class="num">15</td>
+      <td class="mono">motivoDevolucion</td>
+      <td class="mono type">MotivoDevolucion</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem descargado">
+      <td class="num">16</td>
+      <td class="mono">descargado</td>
+      <td class="mono type">boolean</td>
+      <td class="ctr"></td>
+      <td class="ctr"><span class="badge nn">SÍ</span></td>
+      <td class="mono">false</td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem descargadoPor">
+      <td class="num">17</td>
+      <td class="mono">descargadoPor</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem fechaDescarga">
+      <td class="num">18</td>
+      <td class="mono">fechaDescarga</td>
+      <td class="mono type">timestamp(3)</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem metodoResolucion">
+      <td class="num">19</td>
+      <td class="mono">metodoResolucion</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem novedad">
+      <td class="num">20</td>
+      <td class="mono">novedad</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
+      <td class="mono"></td>
+    </tr><tr data-search="RemitoItem novedadDetalle">
+      <td class="num">21</td>
+      <td class="mono">novedadDetalle</td>
+      <td class="mono type">text</td>
+      <td class="ctr"></td>
+      <td class="ctr"></td>
+      <td class="mono"></td>
       <td class="mono"></td>
     </tr></tbody>
       </table>
@@ -10055,7 +10588,7 @@
     <td class="mono">id</td>
   </tr></tbody></table></div>
   </section><section class="card" id="tabla-StockGas" data-search="StockGas">
-    <h2>StockGas <span class="rows">0 filas</span></h2>
+    <h2>StockGas <span class="rows">17 filas</span></h2>
     <div class="tblwrap">
       <table>
         <thead><tr><th>#</th><th>Campo</th><th>Tipo</th><th>PK</th><th>NOT NULL</th><th>Default</th><th>FK</th></tr></thead>
