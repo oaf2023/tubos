@@ -13,6 +13,7 @@ import {
   Edit3,
   Building2,
   Receipt,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,6 +47,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { Gas, Cylinder, Cliente } from '@/lib/tab-types'
 import { formatDate, SgaBadge, ESTADO_LABELS, ESTADO_COLORS, daysUntil } from '@/lib/tab-constants'
 import { ESTADOS } from '@/lib/catalogo'
+import HistorialTubo from '@/components/historial-tubo'
 
 interface PedidoItem {
   id: string
@@ -113,8 +115,10 @@ export default function PedidosTab() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [viewPedido, setViewPedido] = useState<Pedido | null>(null)
-  const [scannerPedidoId, setScannerPedidoId] = useState<string | null>(null)
-  const [scannerInput, setScannerInput] = useState('')
+const [scannerPedidoId, setScannerPedidoId] = useState<string | null>(null)
+const [scannerInput, setScannerInput] = useState('')
+const [histId, setHistId] = useState<string | null>(null)
+const [histNombre, setHistNombre] = useState('')
   const [scannerCilindros, setScannerCilindros] = useState<PedidoCilindro[]>([])
 
   const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0])
@@ -287,6 +291,16 @@ export default function PedidosTab() {
     await fetch(`/api/pedidos/${scannerPedidoId}/cilindros?cilindroId=${id}`, { method: 'DELETE' })
     setScannerCilindros((prev) => prev.filter((c) => c.id !== id))
     toast({ title: 'Cilindro quitado' })
+  }
+
+  async function resolverHistorialSerie(serie: string) {
+    try {
+      const res = await fetch(`/api/cylinders?serie=${encodeURIComponent(serie)}`)
+      const data = await res.json()
+      const hit = Array.isArray(data) && data.length > 0 ? data[0] : null
+      if (hit) { setHistId(hit.id); setHistNombre(hit.numeroSerie) }
+      else toast({ title: 'Tubo no encontrado', description: serie, variant: 'destructive' })
+    } catch { toast({ title: 'Error', description: 'No se pudo resolver el tubo', variant: 'destructive' }) }
   }
 
   if (loading) return <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
@@ -661,9 +675,14 @@ export default function PedidosTab() {
                         ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Verificado</Badge>
                         : <Badge variant="destructive" className="text-[10px]">No en inv.</Badge>}
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => eliminarCilindroScan(c.id)}>
-                      <Trash2 className="w-3 h-3 text-red-400" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Historial del tubo" onClick={() => resolverHistorialSerie(c.numeroSerie)}>
+                        <History className="w-3 h-3 text-slate-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => eliminarCilindroScan(c.id)}>
+                        <Trash2 className="w-3 h-3 text-red-400" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -676,6 +695,8 @@ export default function PedidosTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
     </div>
   )
 }

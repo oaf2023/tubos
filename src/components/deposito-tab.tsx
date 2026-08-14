@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ESTADO_COLORS, ESTADO_LABELS } from '@/lib/tab-constants'
+import HistorialTubo from '@/components/historial-tubo'
 
 const API = '/api/deposito'
 
@@ -532,6 +533,27 @@ function TagsPanel() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ tid: '', cylinderId: '' })
   const [cylinders, setCylinders] = useState<any[]>([])
+  const [devTag, setDevTag] = useState<any | null>(null)
+  const [devMotivo, setDevMotivo] = useState('')
+  const [devolviendo, setDevolviendo] = useState(false)
+
+  const handleDevolver = async () => {
+    if (!devTag?.cylinderId) return
+    if (!devMotivo) return
+    setDevolviendo(true)
+    try {
+      const res = await fetch(`/api/cylinders/${devTag.cylinderId}/devolucion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo: devMotivo, ubicacion: 'Depósito' }),
+      })
+      if (!res.ok) throw new Error()
+      alert(`Tubo devuelto (${devMotivo})`)
+      setDevTag(null); setDevMotivo('')
+    } catch {
+      alert('No se pudo registrar la devolución')
+    } finally { setDevolviendo(false) }
+  }
 
   const fetchTags = async () => {
     const t = await fetch(`${API}/tags`).then(r => r.json())
@@ -615,6 +637,11 @@ function TagsPanel() {
                 {t.activo ? <Badge variant="outline" className="text-green-600 border-green-300 text-[10px]">Activo</Badge> :
                   <Badge variant="outline" className="text-slate-400 text-[10px]">Inactivo</Badge>}
                 {t.fechaAsociacion && <span className="text-[10px] text-slate-400">{new Date(t.fechaAsociacion).toLocaleDateString()}</span>}
+                {t.cylinder && t.cylinder.estado === 'EN_CLIENTE' && (
+                  <Button variant="outline" size="sm" className="h-7 text-xs text-orange-600 border-orange-300" onClick={() => { setDevTag(t); setDevMotivo('') }}>
+                    <PackageOpen className="w-3 h-3 mr-1" />Devolver
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}><Trash2 className="w-3.5 h-3.5 text-red-400" /></Button>
               </div>
             </CardContent>
@@ -622,12 +649,41 @@ function TagsPanel() {
         ))}
         {filtered.length === 0 && <div className="text-center py-12 text-slate-400"><Tags className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No hay tags RFID</p></div>}
       </div>
+
+      <Dialog open={!!devTag} onOpenChange={v => { if (!v) setDevTag(null) }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Devolución en depósito</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Tubo <strong className="font-mono">{devTag?.cylinder?.numeroSerie}</strong> ({devTag?.cylinder?.gas?.codigo}) — ingreso como devolución del cliente.
+            </p>
+            <div>
+              <Label>Motivo de devolución</Label>
+              <Select value={devMotivo} onValueChange={setDevMotivo}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar motivo..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VACIO">Vacío</SelectItem>
+                  <SelectItem value="MEDIO_LLENO">Medio lleno</SelectItem>
+                  <SelectItem value="DANIADO">Dañado</SelectItem>
+                  <SelectItem value="NO_PAGO">No pagó</SelectItem>
+                  <SelectItem value="OTRO">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleDevolver} disabled={devolviendo || !devMotivo} className="w-full">
+              {devolviendo ? 'Registrando...' : 'Registrar devolución'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
 function EventosPanel() {
   const [eventos, setEventos] = useState<any[]>([])
+  const [histId, setHistId] = useState<string | null>(null)
+  const [histNombre, setHistNombre] = useState('')
 
   useEffect(() => {
     fetch(`${API}/eventos`).then(r => r.json()).then(setEventos).catch(() => {})
@@ -653,12 +709,18 @@ function EventosPanel() {
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[10px] text-slate-400">{new Date(e.timestamp).toLocaleString()}</span>
                 <Badge variant="outline" className="text-[10px]">{e.origen}</Badge>
+                {e.cylinderId && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Historial del tubo" onClick={() => { setHistId(e.cylinderId); setHistNombre('') }}>
+                    <History className="w-3.5 h-3.5 text-slate-500" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
         {eventos.length === 0 && <div className="text-center py-12 text-slate-400"><History className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No hay eventos registrados</p></div>}
       </div>
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck } from 'lucide-react'
+import { Plus, Edit3, Trash2, X, Receipt, Save, FileText, Cylinder, PackagePlus, UserCheck, History, Flag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +27,8 @@ import type { Cylinder as CylinderType, Gas } from '@/lib/tab-types'
 import { formatDate, SgaBadge, ESTADO_LABELS, ESTADO_COLORS } from '@/lib/tab-constants'
 import TubeSelector from '@/components/tube-selector'
 import ScannerInput from '@/components/scanner-input'
+import HistorialTubo from '@/components/historial-tubo'
+import { MOTIVOS_DEVOLUCION } from '@/lib/devolucion'
 
 interface RemitoItemData {
   id?: string
@@ -37,6 +39,7 @@ interface RemitoItemData {
   tipoOperacion: string
   cantidad: number
   fechaDevolucion?: string
+  motivoDevolucion?: string
   diasAlquiler?: number
   precioUnitario?: number
   subtotal?: number
@@ -100,6 +103,11 @@ export default function RemitosTab() {
   const [asignarRemito, setAsignarRemito] = useState<Remito | null>(null)
   const [asignarClienteId, setAsignarClienteId] = useState('')
   const [asignando, setAsignando] = useState(false)
+
+  // Historial de tubo (unificado)
+  const [detalleTubos, setDetalleTubos] = useState<Remito | null>(null)
+  const [histId, setHistId] = useState<string | null>(null)
+  const [histNombre, setHistNombre] = useState('')
 
   function resetForm() {
     setClienteId(''); setTipo('ENTREGA'); setTecnico(''); setObservaciones('')
@@ -223,6 +231,22 @@ export default function RemitosTab() {
     setEditingId(r.id); setShowForm(true)
   }
 
+  function marcarDevolucion(idx: number, motivo: string) {
+    if (!motivo) return
+    setItems((prev) => {
+      const n = [...prev]
+      const hoy = new Date().toISOString().slice(0, 10)
+      n[idx] = {
+        ...n[idx],
+        tipoOperacion: 'DEVOLUCION',
+        fechaDevolucion: hoy,
+        motivoDevolucion: motivo,
+      }
+      return n
+    })
+    toast({ title: 'Devolución marcada', description: `Se guardará al actualizar el remito · ${motivo}` })
+  }
+
   const clienteSel = clientes.find((c: any) => c.id === clienteId)
   const filtrados = remitos.filter((r) => (filtroTipo === 'all' || r.tipo === filtroTipo) && (filtroEstado === 'all' || r.estado === filtroEstado))
 
@@ -308,6 +332,9 @@ export default function RemitosTab() {
                         <UserCheck className="w-3 h-3 mr-1" /> Asignar cliente
                       </Button>
                     )}
+                    <Button variant="ghost" size="sm" onClick={() => { setDetalleTubos(r) }} title="Historial de tubos del remito">
+                      <History className="w-4 h-4 text-slate-500" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><Edit3 className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => eliminar(r.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                   </TableCell>
@@ -387,12 +414,54 @@ export default function RemitosTab() {
                         <Badge key={idx} variant="outline" className="text-[10px]">
                           <Cylinder className="w-3 h-3 mr-1" />
                           {it.numeroSerie} · {it.gasCodigo}
-                          <button className="ml-1.5 hover:text-red-500" onClick={() => {
+                          <button className="ml-1.5 hover:text-orange-500" title="Historial del tubo" onClick={() => { setHistId(it.cylinderId); setHistNombre(it.numeroSerie || '') }}>
+                            <History className="w-3 h-3" />
+                          </button>
+                          <button className="ml-0.5 hover:text-red-500" onClick={() => {
                             const i = items.filter((_, j) => j !== idx)
                             setItems(i.length === 0 ? [] : i)
                           }}><X className="w-3 h-3" /></button>
                         </Badge>
                       ))}
+                    </div>
+                    {!editingId && (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Label className="text-xs text-red-600 font-semibold flex items-center gap-1"><Flag className="w-3 h-3" /> Nuevo remito: se registra la entrega de estos tubos</Label>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {editingId && items.filter((i) => i.cylinderId).length > 0 && (
+                  <div className="border border-red-100 rounded-lg p-2 bg-red-50/50">
+                    <Label className="text-[11px] font-semibold text-red-700 flex items-center gap-1">
+                      Devolución de tubos
+                    </Label>
+                    <div className="mt-1.5 space-y-1.5">
+                      {items.filter((i) => i.cylinderId).map((it, idx) => {
+                        const globalIdx = items.findIndex((x) => x === it)
+                        const yaDevuelto = Boolean(it.fechaDevolucion || it.motivoDevolucion)
+                        return (
+                          <div key={`${it.cylinderId}-${idx}`} className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] text-slate-600 flex-1 truncate">{it.numeroSerie}</span>
+                            {yaDevuelto ? (
+                              <Badge variant="outline" className="text-[10px] border-red-300 text-red-600">
+                                Devuelto · {it.motivoDevolucion || 'sin motivo'}
+                              </Badge>
+                            ) : (
+                              <select
+                                className="border rounded px-1.5 py-1 text-[11px] flex-1"
+                                value=""
+                                onChange={(e) => marcarDevolucion(globalIdx, e.target.value)}
+                              >
+                                <option value="">Devolver como...</option>
+                                {MOTIVOS_DEVOLUCION.map((m) => (
+                                  <option key={m.valor} value={m.valor}>{m.label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -521,6 +590,47 @@ export default function RemitosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo Tubos del remito */}
+      <Dialog open={!!detalleTubos} onOpenChange={(o) => { if (!o) setDetalleTubos(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-orange-500" />Tubos del remito #{detalleTubos?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto space-y-2 py-2">
+            {detalleTubos?.items?.map((it, idx) => (
+              <div key={idx} className="flex items-center justify-between border rounded-lg px-3 py-2">
+                <div className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <Cylinder className="w-4 h-4 text-slate-400" />
+                    <span className="font-mono text-xs">{it.numeroSerie || 'S/N'}</span>
+                    <Badge variant="outline" className="text-[10px]">{it.gasCodigo}</Badge>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    {it.tipoOperacion}
+                    {it.motivoDevolucion && <span className="ml-2 text-red-500">· {it.motivoDevolucion}</span>}
+                    {it.fechaDevolucion && <span className="ml-2">· dev. {new Date(it.fechaDevolucion).toLocaleDateString()}</span>}
+                  </div>
+                </div>
+                {it.cylinderId ? (
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setHistId(it.cylinderId || null); setHistNombre(it.numeroSerie || '') }}>
+                    <History className="w-3 h-3 mr-1" />Historial
+                  </Button>
+                ) : (
+                  <span className="text-[10px] text-slate-300">sin tubo</span>
+                )}
+              </div>
+            ))}
+            {detalleTubos && detalleTubos.items.length === 0 && (
+              <div className="text-center text-xs text-slate-400 py-6">Este remito no tiene items</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
 
       {/* Diálogo Facturar desde Remito */}
       <Dialog open={facturaDialog} onOpenChange={(o) => { if (!o) { setFacturaDialog(false); setFacturarRemito(null) } }}>

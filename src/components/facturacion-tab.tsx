@@ -12,8 +12,10 @@ import {
   Save,
   Clock,
   Cylinder,
+  History,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import HistorialTubo from '@/components/historial-tubo'
 import ComprobantesHistoricos from '@/components/comprobantes-historicos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -309,6 +311,8 @@ export default function FacturacionTab() {
   const [observaciones, setObservaciones] = useState('')
   const [selectedRemitoIds, setSelectedRemitoIds] = useState<string[]>([])
   const [facturaItems, setFacturaItems] = useState<FacturaItem[]>([])
+const [histId, setHistId] = useState<string | null>(null)
+const [histNombre, setHistNombre] = useState('')
   const [descuento, setDescuento] = useState(0)
   const [impuestos, setImpuestos] = useState(0)
   const [saldoAnterior, setSaldoAnterior] = useState(0)
@@ -512,6 +516,7 @@ export default function FacturacionTab() {
   }
 
   return (
+    <>
     <Tabs defaultValue="actuales" className="w-full">
       <div className="flex items-center justify-between mb-4">
         <TabsList>
@@ -883,7 +888,16 @@ export default function FacturacionTab() {
                               }}
                             />
                           </TableCell>
-                          <TableCell className="font-mono text-[10px]">{it.numeroSerie || '-'}</TableCell>
+<TableCell className="font-mono text-[10px]">
+  <span className="flex items-center gap-1">
+    {it.numeroSerie || '-'}
+    {it.cylinderId && (
+      <button className="text-slate-400 hover:text-orange-500" title="Historial del tubo" onClick={() => { setHistId(it.cylinderId); setHistNombre(it.numeroSerie || '') }}>
+        <History className="w-3 h-3" />
+      </button>
+    )}
+  </span>
+</TableCell>
                           <TableCell className="text-center text-xs">{it.diasFacturados || '-'}</TableCell>
                           <TableCell className="text-center">
                             <Input
@@ -1042,5 +1056,8 @@ export default function FacturacionTab() {
         <ComprobantesHistoricos />
       </TabsContent>
     </Tabs>
+
+    <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
+    </>
   )
 }

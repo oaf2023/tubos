@@ -340,6 +340,9 @@ enum TipoMovimiento {
   REPARACION
   ALTA
   BAJA
+  ENTREGA
+  DEVOLUCION
+  RETIRO
 }
 
 enum TipoMantenimiento {
@@ -466,6 +469,7 @@ model Cylinder {
   fechaCarga          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  ultimoMovimiento    DateTime? // Fecha del último registro de trazabilidad
 
   // Para gases fragilizantes (H2)
   compatibleH2        Boolean  @default(false) // Estampe H o HG
@@ -500,11 +504,16 @@ model CylinderMovimiento {
   tipo        TipoMovimiento // CARGA, DESCARGA, TRASLADO, INSPECCION, REPARACION, ALTA, BAJA
   descripcion String
   usuario     String?
+  remitoId    String?  // Remito asociado (entrega/devolución)
+  documentoId String?  // Documento comercial asociado (factura/NC)
   latOrigen   Float?
   lngOrigen   Float?
   latDestino  Float?
   lngDestino  Float?
   ubicacion   String?
+
+  @@index([remitoId])
+  @@index([documentoId])
 }
 
 model Mantenimiento {
@@ -566,10 +575,20 @@ model RemitoItem {
   tipoOperacion   TipoOperacionItemRemito // ALQUILER, VENTA, CAMBIO, DEVOLUCION
   cantidad        Int      @default(1)
   fechaDevolucion DateTime? // Cuándo se devolvió
+  motivoDevolucion MotivoDevolucion? // VACIO, MEDIO_LLENO, DANIADO, NO_PAGO, OTRO
+  devolucionRegistradaPor String? // Operador que registró la devolución
   diasAlquiler    Int?     // Calculado al facturar
   precioUnitario  Decimal?
   subtotal        Decimal?
   createdAt       DateTime @default(now())
+}
+
+enum MotivoDevolucion {
+  VACIO
+  MEDIO_LLENO
+  DANIADO
+  NO_PAGO
+  OTRO
 }
 
 // ============ FACTURACIÓN ============
@@ -764,8 +783,10 @@ model DocumentoComercial {
   estado                   EstadoDocumentoComercial @default(BORRADOR)
   fiscal                   Boolean  @default(false)
   sinValidezFiscal         Boolean  @default(true)
-  comprobanteAsociadoId    String?  // Para NC/ND: comprobante original
+comprobanteAsociadoId    String?  // Para NC/ND: comprobante original
   idempotencyKey           String?  @unique // Evita doble emisión si falla la red
+  usuarioId                String?  // Operador que emitió el documento
+  usuarioNombre            String?
 
   clienteId                String?
   clienteCodigo            String?
@@ -1712,10 +1733,11 @@ model EventoTubo {
   clienteNombre   String?
   latitud         Float?
   longitud        Float?
-  estadoAnterior  String?
+estadoAnterior  String?
   estadoNuevo     String?
   observacion     String?
   fotoUrl         String?
+  autorizadoPor   String?  // Operador que autorizó una operación no validada
   hashEvento      String?
   createdAt       DateTime           @default(now())
 

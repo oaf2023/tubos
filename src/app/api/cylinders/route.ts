@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { syncCylinderToGraph } from '@/lib/neo4j'
+import { getRequestUser } from '@/lib/api-auth'
 
 // GET /api/cylinders - listar todos los tubos con filtros opcionales
 export async function GET(request: NextRequest) {
@@ -124,12 +125,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Crear movimiento de auditoría (alta)
+    const user = getRequestUser(request)
     await db.cylinderMovimiento.create({
       data: {
         cylinderId: cylinder.id,
         tipo: 'ALTA',
         descripcion: `Alta de tubo ${cylinder.numeroSerie} - ${cylinder.gas.nombre}`,
-        usuario: body.usuario || 'sistema',
+        usuario: user?.usuario || user?.nombre || 'anónimo',
         ubicacion: cylinder.ubicacionNombre,
         latDestino: cylinder.ubicacionLat,
         lngDestino: cylinder.ubicacionLng,

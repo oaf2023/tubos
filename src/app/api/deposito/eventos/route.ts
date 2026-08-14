@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
+import { getRequestUser } from '@/lib/api-auth'
 
 const MAPA_ESTADOS: Record<string, string> = {
   VACIOS: 'VACIO_DEPOSITO',
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
     })
     if (!lector) return NextResponse.json({ error: 'Lector no encontrado' }, { status: 404 })
 
+    const user = getRequestUser(request)
+    const usuario = body.usuario || user?.usuario || user?.nombre || null
+
     const tag = await db.tagRFID.findUnique({ where: { tid: body.tid } })
     let cylinderId = tag?.cylinderId || null
     let estadoAnterior: string | null = null
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
             gasId: cylinder.gasId,
             estadoAnterior,
             estadoNuevo,
-            usuario: body.usuario || null,
+            usuario: usuario,
             observacion: `Lectura RFID zona ${lector.zona.nombre} (${lector.zona.tipo})`,
           })
         }
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
         estadoAnterior,
         estadoNuevo: lector.zona.tipo ? MAPA_ESTADOS[lector.zona.tipo] || null : null,
         origen: body.origen || 'AUTOMATICO',
-        usuario: body.usuario || null,
+        usuario: usuario,
         observacion: body.observacion || null,
       },
     })
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
             cylinderId,
             tipo: 'TRASLADO',
             descripcion: `Lectura RFID en zona ${lector.zona.nombre} (${lector.zona.tipo})`,
-            usuario: body.usuario || 'SISTEMA',
+            usuario: usuario,
             ubicacion: lector.zona.nombre,
           },
         })

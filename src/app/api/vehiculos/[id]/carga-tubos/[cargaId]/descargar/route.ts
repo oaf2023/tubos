@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { registrarMovimientoTubo } from '@/lib/trazabilidad'
+import { getRequestUser } from '@/lib/api-auth'
 
-export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string; cargaId: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string; cargaId: string }> }) {
   try {
     const { id, cargaId } = await params
     const sesion = await db.cargaVehiculo.findFirstOrThrow({
       where: { id: cargaId, vehiculoId: id },
       include: { items: { include: { cylinder: true } } },
     })
+    const user = getRequestUser(request)
     for (const item of sesion.items) {
-      await db.cylinderMovimiento.create({
-        data: {
-          cylinderId: item.cylinderId,
-          tipo: 'DESCARGA',
-          descripcion: `Descargado de vehículo (sesión ${cargaId})`,
-          ubicacion: 'Depósito',
-        },
-      })
-      await db.cylinder.update({
-        where: { id: item.cylinderId },
-        data: { estado: 'VACIO' },
+      await registrarMovimientoTubo({
+        cylinderId: item.cylinderId,
+        accion: 'DEVOLUCION',
+        tipoMovimiento: 'DESCARGA',
+        descripcion: `Descargado de vehículo (sesión ${cargaId})`,
+        estadoAnterior: item.cylinder?.estado || null,
+        estadoNuevo: 'VACIO',
+        usuarioId: user?.id || null,
+        usuarioNombre: user?.usuario || user?.nombre || null,
+        ubicacion: 'Depósito',
       })
     }
     await db.cargaVehiculo.update({

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
 import { createHash } from 'crypto'
+import { validarEntregaCliente } from '@/lib/trazabilidad'
 
 const EVENT_HASH_SALT = process.env.EVENT_HASH_SALT || 'tubos-gastrack-default-salt'
 
 export async function POST(req: NextRequest) {
   try {
-    const { valor, origen, read_source, device_id, lat, lng } = await req.json()
+    const { valor, origen, read_source, device_id, lat, lng, clienteId } = await req.json()
     if (!valor) {
       return NextResponse.json({ error: 'Valor del tag requerido' }, { status: 400 })
     }
@@ -89,13 +90,26 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const hasPermission = user.tipo !== 'cliente' || user.clienteId === cylinder.clienteId
+    let hasPermission = user.tipo !== 'cliente' || user.clienteId === cylinder.clienteId
+
+    const clienteValidar = user.tipo === 'cliente' ? user.clienteId : (clienteId || cylinder.clienteId)
+    if (clienteValidar) {
+      const validacion = await validarEntregaCliente(cylinder.id, clienteValidar)
+      if (!validacion.valido) {
+        alertas.push(
+          `Tubo NO entregado a este cliente${validacion.entregadoA ? ` (entregado a ${validacion.entregadoA})` : ''}`,
+        )
+        if (user.tipo === 'cliente' && validacion.entregadoAId && validacion.entregadoAId !== user.clienteId) {
+          hasPermission = false
+        }
+      }
+    }
 
     const quickViewFull = {
       ...quickViewBase,
       clienteAsignado: cylinder.cliente,
       clienteId: cylinder.clienteId,
-      presionActual: cylinder.presionActual,
+      presionActualBar: cylinder.presionActualBar,
       ubicacion: cylinder.ubicacionNombre,
       provincia: cylinder.provincia,
       fechaVencimientoPrueba: cylinder.fechaProximoRetest,

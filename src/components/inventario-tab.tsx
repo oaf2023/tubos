@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Search, Package, GitBranch, Edit3, Trash2, Plus, RefreshCw, X, Save, ScanLine } from 'lucide-react'
+import { Search, Package, GitBranch, Edit3, Trash2, Plus, RefreshCw, X, Save, ScanLine, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,6 +35,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { Cylinder, Gas, Location } from '@/lib/tab-types'
 import ScannerInput from '@/components/scanner-input'
+import HistorialTubo from '@/components/historial-tubo'
 import { SgaBadge, ESTADO_COLORS, ESTADO_LABELS, formatDate, daysUntil, NODE_COLORS } from '@/lib/tab-constants'
 import { ESTADOS, CAPACIDADES_LITROS } from '@/lib/catalogo'
 
@@ -115,6 +116,9 @@ export default function InventarioTab() {
   const [graphCylinder, setGraphCylinder] = useState<Cylinder | null>(null)
   const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; source: string } | null>(null)
   const [graphLoading, setGraphLoading] = useState(false)
+
+  const [histId, setHistId] = useState<string | null>(null)
+  const [histNombre, setHistNombre] = useState('')
 
   const [conteos, setConteos] = useState<any[]>([])
   const [recepciones, setRecepciones] = useState<any[]>([])
@@ -599,6 +603,15 @@ export default function InventarioTab() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
+                              onClick={() => { setHistId(c.id); setHistNombre(c.numeroSerie) }}
+                              title="Historial unificado del tubo"
+                            >
+                              <History className="w-4 h-4 text-slate-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-8 w-8 text-purple-600"
                               onClick={() => loadGraph(c)}
                               title="Ver grafo de relaciones"
@@ -1079,6 +1092,8 @@ export default function InventarioTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
     </div>
   )
 }

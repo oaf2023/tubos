@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { registrarMovimientoStock } from '@/lib/stock-log'
+import { registrarMovimientoTubo } from '@/lib/trazabilidad'
+import { getRequestUser } from '@/lib/api-auth'
 
 async function getFirstGasId(tx?: typeof db): Promise<string | null> {
   const client = tx || db
@@ -33,41 +35,86 @@ export async function PUT(
       })
 
       if (body.estado === 'ENTREGADO' && p.clienteId) {
+        const user = getRequestUser(request)
+        const usuarioNombre = user?.nombre || user?.usuario || null
         const ultimoRemito = await tx.remito.findFirst({
           orderBy: { numero: 'desc' },
           select: { numero: true },
         })
         const nextNumero = (ultimoRemito?.numero ?? 0) + 1
         const defaultGasId = await getFirstGasId(tx)
+        const esRetiro = p.tipoOperacion === 'RETIRO'
 
-        await tx.remito.create({
+        const remito = await tx.remito.create({
           data: {
             numero: nextNumero,
             clienteId: p.clienteId,
             cliente: p.nombre,
             fecha: new Date(),
-            tipo: (p.tipoOperacion === 'RETIRO' ? 'DEVOLUCION' : 'ENTREGA') as any,
+            tipo: (esRetiro ? 'DEVOLUCION' : 'ENTREGA') as any,
             estado: 'COMPLETADO',
+            tecnico: usuarioNombre || undefined,
             observaciones: body.notasConductor
               ? `Generado desde ruta - Parada #${p.orden} - Nota: ${body.notasConductor}`
               : `Generado desde ruta - Parada #${p.orden}`,
-            items: defaultGasId && p.demandaTubos
-              ? {
-                  create: [{
-                    gasId: defaultGasId,
-                    gasCodigo: 'VAR',
-                    tipoOperacion: p.tipoOperacion === 'RETIRO' ? 'DEVOLUCION' : 'ALQUILER',
-                    cantidad: p.demandaTubos,
-                  }],
-                }
-              : undefined,
           },
         })
+
+        const cylinderIds = (p.cylinderIds || '').split(',').map((s) => s.trim()).filter(Boolean)
+
+        if (cylinderIds.length > 0) {
+          const cylinders = await tx.cylinder.findMany({
+            where: { id: { in: cylinderIds } },
+            include: { gas: true },
+          })
+          for (const cyl of cylinders) {
+            await tx.remitoItem.create({
+              data: {
+                remitoId: remito.id,
+                cylinderId: cyl.id,
+                numeroSerie: cyl.numeroSerie,
+                gasId: cyl.gasId,
+                gasCodigo: cyl.gas.codigo,
+                tipoOperacion: esRetiro ? 'DEVOLUCION' : 'ALQUILER',
+                cantidad: 1,
+              },
+            })
+            await registrarMovimientoTubo(
+              {
+                cylinderId: cyl.id,
+                accion: esRetiro ? 'DEVOLUCION' : 'ENTREGA',
+                tipoMovimiento: esRetiro ? 'DEVOLUCION' : 'ENTREGA',
+                descripcion: `${esRetiro ? 'Retiro' : 'Entrega'} por ruta (parada #${p.orden} - ${p.nombre})`,
+                estadoNuevo: esRetiro ? 'EN_DEPOSITO' : 'EN_CLIENTE',
+                clienteId: esRetiro ? null : p.clienteId,
+                clienteNombre: esRetiro ? null : p.nombre,
+                usuarioId: user?.id || null,
+                usuarioNombre,
+                remitoId: remito.id,
+                ubicacion: p.nombre,
+                lat: p.lat,
+                lng: p.lng,
+                origen: 'PORTAL_UHF',
+              },
+              tx,
+            )
+          }
+        } else {
+          await tx.remitoItem.create({
+            data: {
+              remitoId: remito.id,
+              gasId: defaultGasId || '',
+              gasCodigo: 'VAR',
+              tipoOperacion: esRetiro ? 'DEVOLUCION' : 'ALQUILER',
+              cantidad: p.demandaTubos || 1,
+            },
+          })
+        }
 
         if (defaultGasId && p.demandaTubos) {
           await registrarMovimientoStock({
             gasId: defaultGasId,
-            tipo: p.tipoOperacion === 'RETIRO' ? 'ENTRADA' : 'SALIDA',
+            tipo: esRetiro ? 'ENTRADA' : 'SALIDA',
             cantidad: p.demandaTubos,
             observacion: `Parada #${p.orden} ${p.tipoOperacion} (${p.nombre})`,
           }, tx)

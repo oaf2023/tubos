@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { syncCylinderToGraph } from '@/lib/neo4j'
-import { registrarMovimientoPorEstadoCilindro } from '@/lib/stock-log'
+import { registrarMovimientoTubo } from '@/lib/trazabilidad'
+import { getRequestUser } from '@/lib/api-auth'
 
 // GET /api/cylinders/[id] - detalle completo de un tubo con movimientos
 export async function GET(
@@ -124,17 +125,10 @@ export async function PUT(
     })
 
     // Auditoría: registrar cambios relevantes
+    const user = getRequestUser(request)
     const cambios: string[] = []
     if (body.estado && body.estado !== anterior.estado) {
       cambios.push(`Estado: ${anterior.estado} → ${body.estado}`)
-      await registrarMovimientoPorEstadoCilindro({
-        cylinderId: id,
-        gasId: updated.gasId,
-        estadoAnterior: anterior.estado,
-        estadoNuevo: body.estado,
-        usuario: body.usuario || null,
-        observacion: 'Cambio de estado manual',
-      })
     }
     if (body.ubicacionNombre && body.ubicacionNombre !== anterior.ubicacionNombre)
       cambios.push(`Ubicación: ${anterior.ubicacionNombre} → ${body.ubicacionNombre}`)
@@ -146,18 +140,19 @@ export async function PUT(
       cambios.push(`Inspección: ${anterior.resultadoInspeccion} → ${body.resultadoInspeccion}`)
 
     if (cambios.length > 0) {
-      await db.cylinderMovimiento.create({
-        data: {
-          cylinderId: id,
-          tipo: cambios.some((c) => c.startsWith('Ubicación')) ? 'TRASLADO' : 'INSPECCION',
-          descripcion: cambios.join(' | '),
-          usuario: body.usuario || 'sistema',
-          ubicacion: updated.ubicacionNombre,
-          latOrigen: anterior.ubicacionLat,
-          lngOrigen: anterior.ubicacionLng,
-          latDestino: updated.ubicacionLat,
-          lngDestino: updated.ubicacionLng,
-        },
+      await registrarMovimientoTubo({
+        cylinderId: id,
+        accion: 'CONTROL',
+        tipoMovimiento: cambios.some((c) => c.startsWith('Ubicación')) ? 'TRASLADO' : 'INSPECCION',
+        descripcion: cambios.join(' | '),
+        estadoAnterior: anterior.estado,
+        estadoNuevo: body.estado && body.estado !== anterior.estado ? body.estado : undefined,
+        usuarioId: user?.id || null,
+        usuarioNombre: user?.nombre || user?.usuario || null,
+        observacion: 'Cambio manual desde inventario',
+        ubicacion: updated.ubicacionNombre,
+        lat: updated.ubicacionLat,
+        lng: updated.ubicacionLng,
       })
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { syncMovementToGraph } from '@/lib/neo4j'
+import { getRequestUser } from '@/lib/api-auth'
 
 export async function GET(
   _request: NextRequest,
@@ -28,12 +29,13 @@ export async function POST(
     const { id } = await params
     const body = await request.json()
 
+    const user = getRequestUser(request)
     const mov = await db.cylinderMovimiento.create({
       data: {
         cylinderId: id,
         tipo: body.tipo || 'INSPECCION',
         descripcion: body.descripcion || '',
-        usuario: body.usuario || 'sistema',
+        usuario: user?.usuario || user?.nombre || body.usuario || 'anónimo',
         ubicacion: body.ubicacion || null,
         latOrigen: body.latOrigen ? parseFloat(body.latOrigen) : null,
         lngOrigen: body.lngOrigen ? parseFloat(body.lngOrigen) : null,

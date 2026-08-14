@@ -19,6 +19,7 @@ import {
   Camera,
   XCircle,
   Send,
+  Cylinder,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -55,6 +56,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { Ruta, RutaParada, Location, MapMarker } from '@/lib/tab-types'
 import type { GeocercaData } from '@/components/map-view'
 import { formatDate } from '@/lib/tab-constants'
+import TubeSelector from '@/components/tube-selector'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -106,6 +108,7 @@ type ParadaInput = Location & {
   tiempoServicioMin?: number
   prioridad?: number
   tipoOperacion?: string
+  cylinderIds?: string[]
 }
 
 export default function RutasTab() {
@@ -125,6 +128,8 @@ export default function RutasTab() {
   const [optimizando, setOptimizando] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [tabParadas, setTabParadas] = useState<'ubicaciones' | 'clientes'>('ubicaciones')
+  const [tubosPorParada, setTubosPorParada] = useState<Record<string, any[]>>({})
+  const [selectorParadaId, setSelectorParadaId] = useState<string | null>(null)
 
   // Distancia optimizada (OSRM)
   const [optDistance, setOptDistance] = useState<{ km: number; horas: number } | null>(null)
@@ -321,7 +326,7 @@ export default function RutasTab() {
         lng: p.lng,
         nombre: p.nombre,
         provincia: p.provincia,
-        cylinderIds: '',
+        cylinderIds: (tubosPorParada[p.id] || []).map((t) => t.id).join(','),
         notas: '',
         clienteId: p.clienteId || undefined,
         demandaTubos: p.demandaTubos || undefined,
@@ -362,6 +367,7 @@ export default function RutasTab() {
     toast({ title: 'Ruta creada', description: `${nombreRuta} con ${selectedParadas.length} paradas` })
     setNombreRuta('')
     setSelectedParadas([])
+    setTubosPorParada({})
     setSelectedVehicleId('')
     setCostoPorKm('')
     setOptDistance(null)
@@ -904,6 +910,14 @@ export default function RutasTab() {
                       </span>
                       <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                       <span className="truncate flex-1">{p.nombre}</span>
+                      <button
+                        className="p-0.5 text-slate-400 hover:text-orange-500 shrink-0"
+                        title="Elegir tubos a entregar en esta parada"
+                        onClick={() => setSelectorParadaId(p.id)}
+                      >
+                        <Cylinder className="w-3 h-3 inline mr-0.5" />
+                        <span className="text-[9px]">{(tubosPorParada[p.id] || []).length}</span>
+                      </button>
                       <div className="flex gap-0.5 shrink-0">
                         <button
                           className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20"
@@ -925,6 +939,32 @@ export default function RutasTab() {
                 </div>
               </div>
             )}
+
+            <Dialog open={!!selectorParadaId} onOpenChange={(o) => { if (!o) setSelectorParadaId(null) }}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Cylinder className="w-5 h-5 text-orange-500" />
+                    Tubos para {selectedParadas.find((p) => p.id === selectorParadaId)?.nombre}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Elegí los tubos que se entregarán en esta parada. Al confirmar la entrega, cada tubo queda registrado
+                    con su estado EN_CLIENTE y el operador que realizó la entrega.
+                  </DialogDescription>
+                </DialogHeader>
+                <TubeSelector
+                  clientId={selectedParadas.find((p) => p.id === selectorParadaId)?.clienteId || null}
+                  selected={selectorParadaId ? tubosPorParada[selectorParadaId] || [] : []}
+                  onSelect={(tubes) => {
+                    if (!selectorParadaId) return
+                    setTubosPorParada((prev) => ({ ...prev, [selectorParadaId]: tubes }))
+                  }}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSelectorParadaId(null)}>Cerrar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Button
               onClick={crearRuta}

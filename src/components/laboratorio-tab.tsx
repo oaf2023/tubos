@@ -40,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import HistorialTubo from '@/components/historial-tubo'
 import { useToast } from '@/hooks/use-toast'
 import type { Cylinder, Gas } from '@/lib/tab-types'
 import { ESTADO_COLORS, ESTADO_LABELS, formatDate, daysUntil, SgaBadge } from '@/lib/tab-constants'
@@ -570,6 +571,8 @@ function TrazabilidadPanel() {
   const [busqueda, setBusqueda] = useState('')
   const [cilindroSeleccionado, setCilindroSeleccionado] = useState<CylinderConMovimientos | null>(null)
   const [buscando, setBuscando] = useState(false)
+  const [histId, setHistId] = useState<string | null>(null)
+  const [histNombre, setHistNombre] = useState('')
 
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [filtroBusqueda, setFiltroBusqueda] = useState('')
@@ -738,6 +741,9 @@ function TrazabilidadPanel() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <History className="w-4 h-4" /> Timeline:
                   <span className="font-mono">{cilindroSeleccionado.numeroSerie}</span>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-orange-600" onClick={() => { setHistId(cilindroSeleccionado.id); setHistNombre(cilindroSeleccionado.numeroSerie) }}>
+                    Historial completo
+                  </Button>
                 </CardTitle>
                 <CardDescription>
                   {cilindroSeleccionado.gas.nombre} · {cilindroSeleccionado.ubicacionNombre} ·{' '}
@@ -969,6 +975,7 @@ function TrazabilidadPanel() {
           </Card>
         </div>
       </div>
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
     </div>
   )
 }

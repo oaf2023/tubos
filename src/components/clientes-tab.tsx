@@ -25,6 +25,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { Cliente, Cylinder } from '@/lib/tab-types'
+import HistorialTubo from '@/components/historial-tubo'
 import {
   TIPOLOGIAS, ESTADO_CUENTA_OPTS, formatDate, SgaBadge,
   ESTADO_COLORS, ESTADO_LABELS, daysUntil,
@@ -110,6 +111,8 @@ export default function ClientesTab() {
   const [viewCylindersCliente, setViewCylindersCliente] = useState<Cliente | null>(null)
   const [cylindersForCliente, setCylindersForCliente] = useState<Cylinder[]>([])
   const [loadingCylinders, setLoadingCylinders] = useState(false)
+  const [histId, setHistId] = useState<string | null>(null)
+  const [histNombre, setHistNombre] = useState('')
 
   // History dialog
   const [viewHistoryCliente, setViewHistoryCliente] = useState<Cliente | null>(null)
@@ -889,6 +892,7 @@ export default function ClientesTab() {
                   <TableRow>
                     <TableHead>N° Serie</TableHead><TableHead>Gas</TableHead><TableHead>Estado</TableHead>
                     <TableHead>Capacidad</TableHead><TableHead>PH</TableHead><TableHead>Ubicación</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -917,6 +921,11 @@ export default function ClientesTab() {
                         })()}
                       </TableCell>
                       <TableCell className="text-xs">{cyl.ubicacionNombre}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Historial unificado" onClick={() => { setHistId(cyl.id); setHistNombre(cyl.numeroSerie) }}>
+                          <History className="w-4 h-4 text-slate-500" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1078,6 +1087,8 @@ export default function ClientesTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <HistorialTubo tubeId={histId} open={!!histId} onClose={() => setHistId(null)} nombre={histNombre || undefined} />
     </div>
   )
 }
