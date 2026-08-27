@@ -2362,3 +2362,32 @@ model RecepcionStock {
   @@index([gasId, fecha])
   @@map("RecepcionStock")
 }
+
+// ============ MÉTRICAS DE SISTEMA PARA GRAFANA ============
+
+model MetricSnapshot {
+  id                   String   @id @default(cuid())
+  timestamp            DateTime @default(now())
+
+  // Métricas de sistema
+  cpuPercent           Float?
+  ramPercent           Float?
+  diskPercent          Float?
+  uptimeSeconds        Int?
+  nodeVersion          String?
+  healthScore          Int?
+  healthClassification String?
+
+  // KPIs de negocio
+  pedidosDelDia        Int?
+  facturasPendientes   Int?
+  tubosActivos         Int?
+  alertasActivas       Int?
+
+  // Metadata
+  hostname             String?
+  deviceId             String?
+
+  @@index([timestamp])
+  @@map("MetricSnapshot")
+}

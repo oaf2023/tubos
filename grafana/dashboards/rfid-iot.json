@@ -1,0 +1,701 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_GASTRACK",
+      "label": "GastTrack",
+      "description": "PostgreSQL connection for GasTrack AR",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "piechart",
+      "name": "Pie chart",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "barchart",
+      "name": "Bar chart",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "id": null,
+  "uid": "gastrack-rfid-iot",
+  "title": "RFID/IoT - GasTrack AR",
+  "description": "Dashboard de monitoreo RFID/IoT para el sistema de tracking de cilindros de GasTrack AR",
+  "tags": ["gastrack", "rfid", "iot"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Resumen General",
+      "type": "row"
+    },
+    {
+      "id": 1,
+      "title": "Total Eventos",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"EventoRFID\")",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Eventos Última Hora",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"EventoRFID\" WHERE \"timestamp\" >= NOW() - INTERVAL '1 hour')",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Eventos 24h",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"EventoRFID\" WHERE \"timestamp\" >= NOW() - INTERVAL '24 hours')",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "yellow", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Tags Totales",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"TagRFID\")",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Tags Asociados",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"TagRFID\" WHERE \"cylinderId\" IS NOT NULL)",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Lectores Activos",
+      "type": "stat",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "(SELECT COUNT(*) FROM \"LectorIoT\" WHERE activo = true)",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101,
+      "title": "Tendencias y Distribución",
+      "type": "row"
+    },
+    {
+      "id": 7,
+      "title": "Eventos por Hora",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 14, "x": 0, "y": 7 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT DATE_TRUNC('hour', e.\"timestamp\") AS time, COUNT(e.id) AS eventos\nFROM \"EventoRFID\" e\nWHERE e.\"timestamp\" >= $__timeFrom() AND e.\"timestamp\" <= $__timeTo()\nGROUP BY time ORDER BY time",
+          "format": "time_series",
+          "timeColumn": "time",
+          "metricColumn": "none"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Eventos",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Eventos por Zona",
+      "type": "piechart",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 7 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT z.nombre AS zona, z.tipo AS tipo_zona, COUNT(e.id) AS cantidad\nFROM \"EventoRFID\" e JOIN \"ZonaLectura\" z ON e.\"zonaId\" = z.id\nWHERE e.\"timestamp\" >= $__timeFrom() AND e.\"timestamp\" <= $__timeTo()\nGROUP BY z.nombre, z.tipo ORDER BY cantidad DESC",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "id": 102,
+      "title": "Análisis por Origen y Stock",
+      "type": "row"
+    },
+    {
+      "id": 9,
+      "title": "Eventos por Origen",
+      "type": "barchart",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT e.origen, COUNT(e.id) AS cantidad\nFROM \"EventoRFID\" e\nWHERE e.\"timestamp\" >= $__timeFrom() AND e.\"timestamp\" <= $__timeTo()\nGROUP BY e.origen ORDER BY cantidad DESC",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "single", "sort": "none" },
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 200
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Origen",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Stock por Gas",
+      "type": "barchart",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT g.codigo AS gas, g.\"colorHex\" AS color, s.llenos, s.vacios, s.\"enReparto\" AS en_transito, s.mantenimiento\nFROM \"StockGas\" s JOIN \"Gas\" g ON s.\"gasId\" = g.id\nORDER BY (s.llenos + s.vacios + s.\"enReparto\" + s.mantenimiento) DESC",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "normal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 200
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "short",
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "llenos" },
+            "properties": [
+              { "id": "displayName", "value": "Llenos" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "vacios" },
+            "properties": [
+              { "id": "displayName", "value": "Vacíos" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "en_transito" },
+            "properties": [
+              { "id": "displayName", "value": "En Tránsito" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mantenimiento" },
+            "properties": [
+              { "id": "displayName", "value": "Mantenimiento" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 103,
+      "title": "Detalles de Dispositivos y Tags",
+      "type": "row"
+    },
+    {
+      "id": 11,
+      "title": "Actividad de Lectores",
+      "type": "table",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT l.nombre AS lector, l.activo, l.\"ultimaLectura\" AS ultima_lectura,\n  (SELECT COUNT(*) FROM \"EventoRFID\" e WHERE e.\"lectorId\" = l.id) AS total_eventos,\n  (SELECT COUNT(*) FROM \"EventoRFID\" e WHERE e.\"lectorId\" = l.id AND e.\"timestamp\" >= NOW() - INTERVAL '24 hours') AS eventos_24h\nFROM \"LectorIoT\" l ORDER BY l.activo DESC, total_eventos DESC",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "activo", "desc": true }],
+        "footer": { "show": false, "reducer": ["sum"], "countRows": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false,
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "activo" },
+            "properties": [
+              { "id": "displayName", "value": "Activo" },
+              {
+                "id": "custom.cellOptions",
+                "value": { "type": "color-background" }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true": { "text": "SÍ", "color": "green", "index": 0 },
+                      "false": { "text": "NO", "color": "red", "index": 1 }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ultima_lectura" },
+            "properties": [
+              { "id": "displayName", "value": "Última Lectura" },
+              { "id": "unit", "value": "dateTimeFromNow" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "total_eventos" },
+            "properties": [
+              { "id": "displayName", "value": "Total Eventos" },
+              { "id": "unit", "value": "short" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "eventos_24h" },
+            "properties": [
+              { "id": "displayName", "value": "Eventos 24h" },
+              { "id": "unit", "value": "short" }
+            ]
+          }
+        ]
+      },
+      "transformations": []
+    },
+    {
+      "id": 12,
+      "title": "Tags por Estado",
+      "type": "table",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_GASTRACK}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT t.codigo AS tag_codigo, t.estado AS tag_estado, c.\"numeroSerie\" AS tubo_asociado, z.nombre AS zona_ultima_lectura\nFROM \"TagRFID\" t\nLEFT JOIN \"Cylinder\" c ON t.\"cylinderId\" = c.id\nLEFT JOIN \"LectorIoT\" l ON t.\"lectorId\" = l.id\nLEFT JOIN \"ZonaLectura\" z ON l.\"zonaId\" = z.id\nORDER BY t.estado, t.codigo",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "tag_estado", "desc": false }],
+        "footer": { "show": false, "reducer": ["sum"], "countRows": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false,
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "tag_estado" },
+            "properties": [
+              { "id": "displayName", "value": "Estado" },
+              {
+                "id": "custom.cellOptions",
+                "value": { "type": "color-background" }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "asignado": { "text": "ASIGNADO", "color": "green", "index": 0 },
+                      "disponible": { "text": "DISPONIBLE", "color": "blue", "index": 1 },
+                      "perdido": { "text": "PERDIDO", "color": "red", "index": 2 },
+                      "inactivo": { "text": "INACTIVO", "color": "orange", "index": 3 }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "tag_codigo" },
+            "properties": [
+              { "id": "displayName", "value": "Código Tag" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "tubo_asociado" },
+            "properties": [
+              { "id": "displayName", "value": "Tubo Asociado" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "zona_ultima_lectura" },
+            "properties": [
+              { "id": "displayName", "value": "Zona Última Lectura" }
+            ]
+          }
+        ]
+      },
+      "transformations": []
+    }
+  ]
+}

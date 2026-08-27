@@ -1,0 +1,20 @@
+apiVersion: 1
+
+datasources:
+  - name: GasTrack PostgreSQL
+    type: postgres
+    access: proxy
+    url: HOST:PORT
+    user: DATABASE_USER
+    secureJsonData:
+      password: DATABASE_PASSWORD
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      opensslMode: prefer
+    isDefault: true
+    editable: true
