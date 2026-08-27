@@ -69,12 +69,17 @@ export default function MenuUtil() {
   const [open, setOpen] = useState(false)
   const [activeUtil, setActiveUtil] = useState<UtilId | null>(null)
   const [visible, setVisible] = useState(false)
+  const [isGerencia, setIsGerencia] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const check = () => {
       const saved = sessionStorage.getItem('opencode_user')
       setVisible(!!saved)
+      if (saved) {
+        const u = JSON.parse(saved)
+        setIsGerencia(u.nivelAcceso === 0 && u.rol?.nombre === 'gerencia')
+      }
     }
     check()
     const interval = setInterval(check, 500)
@@ -148,7 +153,7 @@ export default function MenuUtil() {
               <p className="text-xs font-medium text-slate-400 px-2 py-1">Menú Útil</p>
             </div>
             <div className="p-2 grid grid-cols-2 gap-1">
-              {MENU_ITEMS.map(item => {
+              {MENU_ITEMS.filter(item => item.id !== 'grafana' || isGerencia).map(item => {
                 const Icon = item.icon
                 return (
                   <button
