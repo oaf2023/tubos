@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Zap, ClipboardList, FileText, Barcode, History, Users, ShoppingCart, Download, Printer, X,
+  Zap, ClipboardList, FileText, Barcode, History, Users, ShoppingCart, Download, Printer, X, LayoutDashboard,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -18,6 +18,7 @@ const MENU_ITEMS = [
   { id: 'pedidos', icon: ShoppingCart, label: 'Pedidos', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700', action: 'tab', tab: 'pedidos' },
   { id: 'descargas', icon: Download, label: 'Descargas', color: 'bg-rose-50 hover:bg-rose-100 text-rose-700', action: 'link', link: '/descargas' },
   { id: 'reportes', icon: Printer, label: 'Reportes', color: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700', action: 'tab', tab: 'reportes' },
+  { id: 'grafana', icon: LayoutDashboard, label: 'Dashboards', color: 'bg-amber-50 hover:bg-amber-100 text-amber-700', action: 'dialog' },
 ] as const
 
 type UtilItem = typeof MENU_ITEMS[number]
@@ -26,6 +27,7 @@ type UtilId = UtilItem['id']
 const MODULES: Record<string, { path: string; title: string; size: string }> = {
   'impresion-cb': { path: './floating-utils/impresion-cb', title: 'Impresión de CB', size: 'sm:max-w-md' },
   historicos: { path: './comprobantes-historicos', title: 'Consulta de Históricos', size: 'sm:max-w-4xl' },
+  grafana: { path: './grafana-dashboard', title: 'Dashboards Grafana', size: 'sm:max-w-6xl' },
 }
 
 function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () => void }) {
