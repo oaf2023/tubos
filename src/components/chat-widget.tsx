@@ -335,7 +335,7 @@ export default function ChatWidget({ modo = 'usuario', token = null }: ChatWidge
 
   return (
     <>
-      <div className="fixed bottom-24 right-4 sm:bottom-24 sm:right-6 z-[60] flex flex-col items-end gap-2">
+      <div className="fixed bottom-32 right-4 sm:bottom-24 sm:right-6 z-[60] flex flex-col items-end gap-2">
         {previews.map((p) => (
           <button
             key={p.id}

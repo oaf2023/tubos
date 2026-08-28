@@ -63,6 +63,7 @@ import HeaderHelp from '@/components/header-help'
 import HeaderInstall from '@/components/header-install'
 import ChatWidget from '@/components/chat-widget'
 import UsuariosConectados from '@/components/usuarios-conectados'
+import MobileBottomNav from '@/components/mobile-bottom-nav'
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -167,10 +168,10 @@ export default function Home() {
                 <Factory className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                <h1 className="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">
                   Control Digital de Información
                 </h1>
-                <p className="text-xs text-slate-500">Portal de Clientes</p>
+                <p className="text-xs text-slate-500 hidden sm:block">Portal de Clientes</p>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
@@ -196,7 +197,7 @@ export default function Home() {
             </div>
           </div>
         </header>
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex bg-yellow-50 scroll-shadow-x">
               <TabsTrigger value="lectura" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
@@ -227,7 +228,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 relative overflow-hidden">
       <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start bg-yellow-50 scroll-shadow-x">
             {user.nivelAcceso === 0 && user.rol?.nombre === 'gerencia' && (
@@ -425,6 +426,7 @@ export default function Home() {
       <Footer />
       <Toaster />
       <ChatWidget />
+      <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} user={user} />
     </div>
   )
 }
@@ -438,7 +440,7 @@ function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
             <Factory className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-slate-900">
+            <h1 className="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">
               Control Digital de Información
             </h1>
             <p className="text-xs text-slate-500 hidden sm:block">

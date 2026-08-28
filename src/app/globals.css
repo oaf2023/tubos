@@ -287,3 +287,7 @@
   background-size: 40px 100%, 40px 100%, 12px 100%, 12px 100%;
   background-attachment: local, local, scroll, scroll;
 }
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

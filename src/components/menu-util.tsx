@@ -145,7 +145,7 @@ export default function MenuUtil() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50" ref={menuRef}>
+      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[70]" ref={menuRef}>
         <button
           onClick={() => setOpen(o => !o)}
           className={`
@@ -176,7 +176,7 @@ export default function MenuUtil() {
               absolute bottom-full right-0 mb-3
               w-64 sm:w-72
               bg-white rounded-2xl shadow-xl border border-slate-200
-              overflow-hidden
+              overflow-hidden z-[70]
               animate-in slide-in-from-bottom-2 fade-in
               duration-150
             `}
