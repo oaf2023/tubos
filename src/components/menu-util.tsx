@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Zap, ClipboardList, FileText, Barcode, History, Users, ShoppingCart, Download, Printer, X, LayoutDashboard,
+  Calculator, StickyNote, Navigation, Calendar, ArrowLeftRight, CheckSquare, FolderOpen, CloudSun,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 
-const MENU_ITEMS = [
+const NAV_ITEMS = [
   { id: 'remitos', icon: ClipboardList, label: 'Entrega/Remitos', color: 'bg-orange-50 hover:bg-orange-100 text-orange-700', action: 'tab', tab: 'remitos' },
   { id: 'comprobantes', icon: FileText, label: 'Comprobantes', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700', action: 'tab', tab: 'comprobantes' },
   { id: 'impresion-cb', icon: Barcode, label: 'Impresión CB', color: 'bg-teal-50 hover:bg-teal-100 text-teal-700', action: 'dialog' },
@@ -21,39 +22,66 @@ const MENU_ITEMS = [
   { id: 'grafana', icon: LayoutDashboard, label: 'Dashboards', color: 'bg-amber-50 hover:bg-amber-100 text-amber-700', action: 'dialog' },
 ] as const
 
-type UtilItem = typeof MENU_ITEMS[number]
-type UtilId = UtilItem['id']
+const TOOL_ITEMS = [
+  { id: 'calc', icon: Calculator, label: 'Calculadora', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700', action: 'dialog' },
+  { id: 'notas', icon: StickyNote, label: 'Bloc de Notas', color: 'bg-amber-50 hover:bg-amber-100 text-amber-700', action: 'dialog' },
+  { id: 'navegar', icon: Navigation, label: 'Navegar', color: 'bg-green-50 hover:bg-green-100 text-green-700', action: 'dialog' },
+  { id: 'calendario', icon: Calendar, label: 'Calendario', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700', action: 'dialog' },
+  { id: 'conversor', icon: ArrowLeftRight, label: 'Conversor', color: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700', action: 'dialog' },
+  { id: 'todos', icon: CheckSquare, label: 'Recordatorios', color: 'bg-rose-50 hover:bg-rose-100 text-rose-700', action: 'dialog' },
+  { id: 'explorador', icon: FolderOpen, label: 'Explorador', color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700', action: 'dialog' },
+  { id: 'clima-hist', icon: CloudSun, label: 'Clima Hist.', color: 'bg-sky-50 hover:bg-sky-100 text-sky-700', action: 'dialog' },
+] as const
+
+type NavItem = typeof NAV_ITEMS[number]
+type ToolItem = typeof TOOL_ITEMS[number]
+type AnyItem = NavItem | ToolItem
+type DialogId = NavItem['id'] | ToolItem['id']
 
 const MODULES: Record<string, { path: string; title: string; size: string }> = {
   'impresion-cb': { path: './floating-utils/impresion-cb', title: 'Impresión de CB', size: 'sm:max-w-md' },
   historicos: { path: './comprobantes-historicos', title: 'Consulta de Históricos', size: 'sm:max-w-4xl' },
   grafana: { path: './grafana-dashboard', title: 'Dashboards Grafana', size: 'sm:max-w-6xl' },
+  calc: { path: './floating-utils/calc', title: 'Calculadora', size: 'sm:max-w-sm' },
+  notas: { path: './floating-utils/notas', title: 'Bloc de Notas', size: 'sm:max-w-lg' },
+  navegar: { path: './floating-utils/navegar', title: 'Navegar', size: 'sm:max-w-md' },
+  calendario: { path: './floating-utils/calendario', title: 'Calendario', size: 'sm:max-w-sm' },
+  conversor: { path: './floating-utils/conversor', title: 'Conversor', size: 'sm:max-w-sm' },
+  todos: { path: './floating-utils/todos', title: 'Recordatorios', size: 'sm:max-w-md' },
+  explorador: { path: './floating-utils/explorador', title: 'Explorador de Archivos', size: 'sm:max-w-xl' },
+  'clima-hist': { path: './floating-utils/clima-hist', title: 'Clima Histórico', size: 'sm:max-w-2xl' },
 }
 
-function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () => void }) {
+const LABELS: Record<string, string> = {
+  ...Object.fromEntries(NAV_ITEMS.map(i => [i.id, i.label])),
+  ...Object.fromEntries(TOOL_ITEMS.map(i => [i.id, i.label])),
+}
+
+function UtilDialog({ dialogId, onClose }: { dialogId: DialogId | null; onClose: () => void }) {
   const [Comp, setComp] = useState<React.ComponentType | null>(null)
 
   useEffect(() => {
-    if (!utilId) return
+    if (!dialogId) return
+    setComp(null)
     const load = async () => {
       try {
-        const mod = await import(MODULES[utilId].path)
+        const mod = await import(MODULES[dialogId].path)
         setComp(() => mod.default)
       } catch { setComp(null) }
     }
     load()
-  }, [utilId])
+  }, [dialogId])
 
-  const meta = utilId ? MODULES[utilId] : null
+  const meta = dialogId ? MODULES[dialogId] : null
 
   return (
-    <Dialog open={!!utilId} onOpenChange={open => !open && onClose()}>
+    <Dialog open={!!dialogId} onOpenChange={open => !open && onClose()}>
       <DialogContent className={`w-[95vw] rounded-2xl ${meta?.size || 'sm:max-w-md'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle className="text-lg">{meta?.title || ''}</DialogTitle>
+          <DialogTitle className="text-lg">{dialogId ? LABELS[dialogId] || meta?.title || '' : ''}</DialogTitle>
         </DialogHeader>
         {Comp ? (
-          <div className={utilId === 'historicos' ? 'max-h-[75vh] overflow-y-auto -mx-6 px-6' : ''}>
+          <div className={dialogId === 'historicos' ? 'max-h-[75vh] overflow-y-auto -mx-6 px-6' : ''}>
             <Comp />
           </div>
         ) : (
@@ -67,9 +95,10 @@ function UtilDialog({ utilId, onClose }: { utilId: UtilId | null; onClose: () =>
 export default function MenuUtil() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [activeUtil, setActiveUtil] = useState<UtilId | null>(null)
+  const [activeDialog, setActiveDialog] = useState<DialogId | null>(null)
   const [visible, setVisible] = useState(false)
   const [isGerencia, setIsGerencia] = useState(false)
+  const [tab, setTab] = useState<'nav' | 'tools'>('nav')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -98,22 +127,25 @@ export default function MenuUtil() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  function handleClick(item: UtilItem) {
+  function handleClick(item: AnyItem) {
     setOpen(false)
     if (item.action === 'tab') {
-      window.dispatchEvent(new CustomEvent('menu-util:nav', { detail: item.tab }))
+      window.dispatchEvent(new CustomEvent('menu-util:nav', { detail: (item as NavItem).tab }))
     } else if (item.action === 'dialog') {
-      setActiveUtil(item.id)
+      setActiveDialog(item.id as DialogId)
     } else if (item.action === 'link') {
-      router.push(item.link)
+      router.push((item as NavItem & { link: string }).link)
     }
   }
 
   if (!visible) return null
 
+  const filteredNav = NAV_ITEMS.filter(item => item.id !== 'grafana' || isGerencia)
+  const currentItems = tab === 'nav' ? filteredNav : TOOL_ITEMS
+
   return (
     <>
-      <div className="fixed bottom-56 right-4 sm:bottom-60 sm:right-6 z-50" ref={menuRef}>
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50" ref={menuRef}>
         <button
           onClick={() => setOpen(o => !o)}
           className={`
@@ -134,26 +166,37 @@ export default function MenuUtil() {
           ) : (
             <Zap className="w-5 h-5 sm:w-5 sm:h-5" />
           )}
-          <span className="hidden sm:inline">Menú Útil</span>
-          <span className="inline sm:hidden text-xs">Útil</span>
+          <span className="hidden sm:inline">Utilidades</span>
+          <span className="inline sm:hidden text-xs">Utils</span>
         </button>
 
         {open && (
           <div
             className={`
               absolute bottom-full right-0 mb-3
-              w-56 sm:w-72
+              w-64 sm:w-72
               bg-white rounded-2xl shadow-xl border border-slate-200
               overflow-hidden
               animate-in slide-in-from-bottom-2 fade-in
               duration-150
             `}
           >
-            <div className="p-2 border-b border-slate-100">
-              <p className="text-xs font-medium text-slate-400 px-2 py-1">Menú Útil</p>
+            <div className="flex border-b border-slate-100">
+              <button
+                onClick={() => setTab('nav')}
+                className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${tab === 'nav' ? 'text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Navegación
+              </button>
+              <button
+                onClick={() => setTab('tools')}
+                className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${tab === 'tools' ? 'text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Herramientas
+              </button>
             </div>
-            <div className="p-2 grid grid-cols-2 gap-1">
-              {MENU_ITEMS.filter(item => item.id !== 'grafana' || isGerencia).map(item => {
+            <div className="p-2 grid grid-cols-2 gap-1 max-h-[50vh] overflow-y-auto">
+              {currentItems.map(item => {
                 const Icon = item.icon
                 return (
                   <button
@@ -178,7 +221,7 @@ export default function MenuUtil() {
         )}
       </div>
 
-      <UtilDialog utilId={activeUtil} onClose={() => setActiveUtil(null)} />
+      <UtilDialog dialogId={activeDialog} onClose={() => setActiveDialog(null)} />
     </>
   )
 }

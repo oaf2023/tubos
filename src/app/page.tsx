@@ -198,7 +198,7 @@ export default function Home() {
         </header>
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex bg-yellow-50">
+            <TabsList className="w-full overflow-x-auto gap-1 mb-4 h-auto p-1 flex bg-yellow-50 scroll-shadow-x">
               <TabsTrigger value="lectura" className="flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm">
                 <Smartphone className="w-5 h-5 sm:w-4 sm:h-4" /><span>Lectura</span>
               </TabsTrigger>
@@ -229,7 +229,7 @@ export default function Home() {
       <Header user={user} onLogout={() => { setUser(null); sessionStorage.removeItem('opencode_user') }} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start bg-yellow-50">
+          <TabsList className="flex w-full overflow-x-auto gap-1 mb-6 h-auto p-1 scrollbar-thin whitespace-nowrap justify-start bg-yellow-50 scroll-shadow-x">
             {user.nivelAcceso === 0 && user.rol?.nombre === 'gerencia' && (
               <TabsTrigger value="gerencia" className="flex-shrink-0 flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800 data-[state=active]:border-yellow-300 border border-transparent">
                 <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /><span>Gerencia</span>
@@ -424,7 +424,6 @@ export default function Home() {
       </main>
       <Footer />
       <Toaster />
-      <UsuariosConectados />
       <ChatWidget />
     </div>
   )
@@ -455,6 +454,7 @@ function Header({ user, onLogout }: { user?: any; onLogout?: () => void }) {
           <HeaderDeviceInfo user={user} />
           <HeaderHelp />
           <HeaderInstall />
+          <UsuariosConectados />
           <Badge variant="outline" className="hidden md:flex border-orange-300 text-orange-700 bg-orange-50">
             <MapPin className="w-3 h-3 mr-1" />
             Base: San Nicolás de los Arroyos

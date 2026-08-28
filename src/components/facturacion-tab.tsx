@@ -647,8 +647,8 @@ const [histNombre, setHistNombre] = useState('')
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
                 <Label>Cliente</Label>
                 <select className="w-full border rounded px-3 py-2 text-sm" value={consumidorFinal ? 'CONSUMIDOR_FINAL' : clienteId} onChange={async (e) => {
                   const cid = e.target.value

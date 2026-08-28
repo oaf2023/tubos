@@ -83,7 +83,7 @@ export default function AvisoLoginBanner({ usuario, tipoLogin }: AvisoLoginBanne
   const item = items[index]
 
   return (
-    <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-auto sm:bottom-6 sm:w-full sm:max-w-xl sm:mx-auto z-50 flex justify-center animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div className="fixed top-16 left-3 right-3 sm:left-auto sm:right-auto sm:top-20 sm:w-full sm:max-w-xl sm:mx-auto z-50 flex justify-center animate-in slide-in-from-top-4 fade-in duration-200">
       <div className={`w-full rounded-xl shadow-lg shadow-black/30 px-3 py-2 flex items-center gap-2 ${item.tipo === 'aviso' ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950' : 'bg-gradient-to-r from-emerald-400 to-teal-400 text-emerald-950'}`}>
         {item.tipo === 'aviso' ? (
           <Bell className="w-4 h-4 shrink-0" />

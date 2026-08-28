@@ -143,7 +143,7 @@ export default function ProveedoresTab() {
     <div className="space-y-6">
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-72">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             placeholder="Buscar por nombre..."

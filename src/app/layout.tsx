@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import PWARegister from "@/components/pwa-register";
 import FloatingUtilities from "@/components/floating-utilities";
 import MenuUtil from "@/components/menu-util";
+import Providers from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,11 +76,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
-        <PWARegister />
-        <FloatingUtilities />
-        <MenuUtil />
+        <Providers>
+          {children}
+          <Toaster />
+          <PWARegister />
+          <FloatingUtilities />
+          <MenuUtil />
+        </Providers>
       </body>
     </html>
   );
