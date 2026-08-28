@@ -495,6 +495,7 @@ model Cylinder {
   @@index([clienteId])
   @@index([fechaProximoRetest])
   @@index([provincia], name: "cyl_provincia_idx")
+  @@index([estado, gasId])
 }
 
 model CylinderMovimiento {
@@ -515,6 +516,7 @@ model CylinderMovimiento {
 
   @@index([remitoId])
   @@index([documentoId])
+  @@index([cylinderId, fecha])
 }
 
 model Mantenimiento {
@@ -527,6 +529,8 @@ model Mantenimiento {
   costo       Float?
   fecha       DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  @@index([cylinderId, fecha])
 }
 
 model Location {
@@ -601,7 +605,10 @@ model RemitoItem {
   descargadoPor       String?  // Operador que descargó
   novedad             String?  // TipoNovedad detectada al verificar
   novedadDetalle      String?  // Aclaración libre de la novedad
-  metodoResolucion    String?  // MetodoResolucion: cómo se resolvió (descargar igual, no descargar, reasignar...)
+   metodoResolucion    String?  // MetodoResolucion: cómo se resolvió (descargar igual, no descargar, reasignar...)
+
+  @@index([remitoId])
+  @@index([cylinderId])
 }
 
 enum MotivoDevolucion {
@@ -699,6 +706,9 @@ model FacturaItem {
   precioUnitario  Decimal @default(0)
   subtotal        Decimal @default(0)
   createdAt       DateTime @default(now())
+
+  @@index([facturaId])
+  @@index([facturaId, tipo])
 }
 
 model ConfiguracionFiscal {
@@ -935,7 +945,7 @@ model DocumentoComercialItem {
   remitoItemId          String?
   pedidoItemId          String?
   mlOrderItemId         String?
-  createdAt             DateTime @default(now())
+  createdAt       DateTime @default(now())
 }
 
 model DocumentoComercialTributo {
@@ -1015,6 +1025,7 @@ model Cliente {
   @@index([apellido])
   @@index([ciudad])
   @@index([rubro])
+  @@index([activo])
 }
 
 model Proveedor {
@@ -1359,6 +1370,8 @@ model MantenimientoVehiculo {
   estado        EstadoMantenimiento       @default(PENDIENTE)
   observaciones String?
   createdAt     DateTime @default(now())
+
+  @@index([vehiculoId, fecha])
 }
 
 model CargaCombustible {
@@ -1372,6 +1385,8 @@ model CargaCombustible {
   rendimiento Float?
   tipo       TipoCargaCombustible @default(CARGA) // CARGA, CARGA_ELECTRICA
   createdAt     DateTime @default(now())
+
+  @@index([vehiculoId, fecha])
 }
 
 model DocumentoVehiculo {
@@ -1449,6 +1464,11 @@ model EventoRFID {
   observacion   String?
   createdAt     DateTime    @default(now())
   movimientosStock MovimientoStock[]
+
+  @@index([timestamp])
+  @@index([cylinderId, timestamp])
+  @@index([zonaId, timestamp])
+  @@index([lectorId, timestamp])
 }
 
 model SesionLecturaRFID {
@@ -1470,6 +1490,9 @@ model SesionLecturaRFID {
   estadoNuevo   String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  @@index([cylinderId])
+  @@index([lectorId])
 }
 
 model StockGas {
@@ -1631,6 +1654,8 @@ model Alerta {
   @@index([cylinderId])
   @@index([resuelta])
   @@index([nivel])
+  @@index([resuelta, nivel])
+  @@index([fecha])
 }
 
 model AuditLog {
