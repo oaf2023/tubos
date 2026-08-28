@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clearSessionCookie, verifySession } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { deactivateSession } from '@/lib/session-tracker'
 
 export async function POST(req: NextRequest) {
   const response = NextResponse.json({ ok: true })
@@ -9,6 +10,7 @@ export async function POST(req: NextRequest) {
     if (token) {
       const user = await verifySession(token)
       if (user) {
+        await deactivateSession(user.id)
         await logAudit({
           accion: 'LOGOUT',
           entidad: user.tipo === 'cliente' ? 'ClienteAcceso' : 'Usuario',

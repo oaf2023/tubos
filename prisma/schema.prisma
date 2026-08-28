@@ -1261,6 +1261,7 @@ model Usuario {
   rutasAsignadas Ruta[] @relation("ConductorRutas") // Rutas donde es conductor
   sesiones    SesionConductor[]
   presencias  PresenciaUsuario[]
+  sesionesActivas SesionActiva[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -2302,6 +2303,19 @@ model PresenciaUsuario {
   usuario        Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("PresenciaUsuario")
+}
+
+model SesionActiva {
+  id          String   @id @default(cuid())
+  usuarioId   String
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  deviceInfo  String?  // "Chrome 120 / Windows" o "Safari / iPhone"
+  ip          String?
+  loginAt     DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  active      Boolean  @default(true)
+
+  @@index([usuarioId, active])
 }
 
 model AvisoUsuario {

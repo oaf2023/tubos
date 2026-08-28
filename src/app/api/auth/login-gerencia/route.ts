@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
 import { setSessionCookie } from '@/lib/auth'
+import { detectSessionConflict } from '@/lib/session-tracker'
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,7 +42,15 @@ export async function POST(req: NextRequest) {
     const { password: _, ...safeUser } = user
     await logAudit({ accion: 'LOGIN', entidad: 'Usuario', entidadId: user.id, usuario: user.usuario, detalle: { tipo: 'gerencia', resultado: 'exitoso' }, direccionIp: req.headers.get('x-forwarded-for') || undefined })
 
-    const response = NextResponse.json({ user: { ...safeUser, tipo: 'gerencia' } })
+    // Detectar sesiones concurrentes
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null
+    const userAgent = req.headers.get('user-agent') || null
+    const conflicto = await detectSessionConflict(user.id, ip, userAgent)
+
+    const response = NextResponse.json({
+      user: { ...safeUser, tipo: 'gerencia' },
+      conflictoSesion: conflicto?.conflicto ? conflicto : undefined,
+    })
     await setSessionCookie(response, {
       id: user.id,
       nombre: user.nombre,

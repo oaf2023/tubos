@@ -6,9 +6,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import FallingDistriconCards from '@/components/falling-districon-cards'
 import AvisoLoginBanner from '@/components/aviso-login-banner'
+import { ShieldAlert, Monitor, Smartphone, X } from 'lucide-react'
 
 interface LoginPageProps {
   onLogin: (user: any) => void
+}
+
+type ConflictoSesion = {
+  conflicto: boolean
+  sesionAnterior?: {
+    deviceInfo: string | null
+    ip: string | null
+    loginAt: Date
+  }
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
@@ -17,6 +27,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [conflicto, setConflicto] = useState<ConflictoSesion | null>(null)
+  const [pendingUser, setPendingUser] = useState<any>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,11 +50,22 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         setError(data.error || (res.status === 500 ? 'Error interno del servidor' : 'Credenciales inválidas'))
         return
       }
-      onLogin(data.user)
+      if (data.conflictoSesion) {
+        setConflicto(data.conflictoSesion)
+        setPendingUser(data.user)
+      } else {
+        onLogin(data.user)
+      }
     } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleConfirmLogin() {
+    if (pendingUser) {
+      onLogin(pendingUser)
     }
   }
 
@@ -66,6 +89,60 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <div className="bg-slate-900/85 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10">
+          {/* Banner de conflicto de sesión */}
+          {conflicto && (
+            <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-300">Sesión anterior detectada</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Se detectó otra sesión activa de tu cuenta. Fue cerrada automáticamente por seguridad.
+                  </p>
+                  {conflicto.sesionAnterior && (
+                    <div className="mt-2 text-xs text-slate-500 space-y-0.5">
+                      <p className="flex items-center gap-1.5">
+                        <Monitor className="w-3 h-3" />
+                        {conflicto.sesionAnterior.deviceInfo || 'Dispositivo desconocido'}
+                      </p>
+                      {conflicto.sesionAnterior.ip && (
+                        <p>IP: {conflicto.sesionAnterior.ip}</p>
+                      )}
+                      <p>
+                        Última actividad: {new Date(conflicto.sesionAnterior.loginAt).toLocaleString('es-AR')}
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={handleConfirmLogin}
+                      className="bg-amber-500 hover:bg-amber-600 text-black text-xs font-medium"
+                    >
+                      Continuar igualmente
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setConflicto(null); setPendingUser(null) }}
+                      className="text-xs text-slate-400 hover:text-white"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setConflicto(null); setPendingUser(null) }}
+                  className="flex-shrink-0 text-slate-500 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex mb-6 bg-white/5 rounded-lg p-1">
             <button
@@ -124,7 +201,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!conflicto}
               className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold py-2.5 shadow-lg shadow-orange-500/25"
             >
               {loading ? (

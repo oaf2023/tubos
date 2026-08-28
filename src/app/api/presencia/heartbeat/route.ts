@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { touchSession } from '@/lib/session-tracker'
 
 // POST /api/presencia/heartbeat - registra actividad del usuario autenticado (JWT)
 export async function POST(request: NextRequest) {
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
       create: { usuarioId: user.id, nombre: user.nombre },
       update: { ultimoHeartbeat: new Date() },
     })
+
+    // Actualizar lastSeen de la sesión activa
+    await touchSession(user.id)
 
     await db.presenciaUsuario.deleteMany({
       where: { ultimoHeartbeat: { lt: new Date(Date.now() - 5 * 60 * 1000) } },
